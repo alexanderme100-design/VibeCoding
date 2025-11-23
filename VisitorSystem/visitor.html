@@ -47,7 +47,7 @@
       import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
       // =================================================================
-      // ⚠️ 使用您提供的 Firebase Config (已替換)
+      // ⚠️ 使用您提供的 Firebase Config
       // =================================================================
       const firebaseConfig = {
         apiKey: "AIzaSyB3lmeAgcQ2cJfUDaJwmkzd3K8wzjt64Rs",
@@ -79,7 +79,8 @@
         Library: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>,
         GraduationCap: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>,
         Loading: () => <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
-        Microscope: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/></svg>
+        Microscope: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/></svg>,
+        FileDown: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>
       };
 
       // --- 設定檔 ---
@@ -160,6 +161,11 @@
             setLoading(false);
           }, (error) => {
             console.error("讀取資料失敗:", error);
+            // 如果權限不足，UI 會在這裡報錯
+            if (error.code === 'permission-denied') {
+               alert('讀取失敗：權限不足。請前往 Firebase Console > Firestore Database > Rules 檢查規則。');
+            }
+            
             // 如果是因為索引問題失敗，嘗試不排序讀取
             if (error.code === 'failed-precondition') {
                const simpleQ = query(visitorsCollectionRef);
@@ -209,7 +215,11 @@
 
           } catch (error) {
             console.error("寫入失敗:", error);
-            alert('登記失敗: ' + error.message);
+            if (error.code === 'permission-denied') {
+              alert('登記失敗：資料庫權限不足 (Permission Denied)。\n\n請至 Firebase Console > Firestore Database > Rules 修改規則為：\nallow read, write: if request.auth != null;');
+            } else {
+              alert('登記失敗: ' + error.message);
+            }
             setSubmitting(false);
           }
         };
@@ -232,7 +242,11 @@
             // 成功後，Snapshot 會自動更新列表，不需要手動重整
           } catch (error) {
             console.error("簽離失敗:", error);
-            alert('簽離失敗: ' + error.message);
+            if (error.code === 'permission-denied') {
+              alert('簽離失敗：資料庫權限不足。請檢查 Firestore Rules。');
+            } else {
+              alert('簽離失敗: ' + error.message);
+            }
           }
         };
 
@@ -250,6 +264,42 @@
         const filteredVisitors = visitors.filter(v => 
           v.name.includes(searchTerm) || v.host.includes(searchTerm) || (v.reason && v.reason.includes(searchTerm))
         );
+
+        // 下載 CSV 的功能
+        const downloadCSV = () => {
+          // 欄位標題
+          const headers = ['狀態', '姓名', '電話', '地點', '受訪單位', '事由', '入校時間', '離校時間'];
+          
+          // 轉換資料
+          const rows = filteredVisitors.map(v => [
+            v.status === 'IN' ? '在校中' : '已離校',
+            v.name,
+            v.phone || '',
+            LOCATIONS.find(l => l.id === v.location)?.name || v.location,
+            v.host,
+            v.reason,
+            v.checkInTime,
+            v.checkOutTime || ''
+          ]);
+
+          // 組合 CSV 內容 (加上雙引號避免逗號問題)
+          const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(field => `"${field}"`).join(','))
+          ].join('\n');
+
+          // 加入 BOM 以支援 Excel 中文顯示
+          const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          
+          // 觸發下載
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `訪客紀錄_${new Date().toISOString().slice(0,10)}.csv`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        };
 
         return (
           <div className="min-h-screen font-sans text-slate-800 flex flex-col md:flex-row">
@@ -393,9 +443,21 @@
                 <div className="animate-fade-in">
                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <h2 className="text-2xl font-bold text-slate-700">訪客紀錄管理</h2>
-                    <div className="relative w-full md:w-64">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search /></div>
-                      <input type="text" placeholder="搜尋姓名、單位..." className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                    
+                    <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                      {/* Search Input */}
+                      <div className="relative w-full md:w-64">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search /></div>
+                        <input type="text" placeholder="搜尋姓名、單位..." className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                      </div>
+                      
+                      {/* Download Button */}
+                      <button 
+                        onClick={downloadCSV}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-full font-bold transition flex items-center justify-center gap-2 shadow-sm whitespace-nowrap"
+                      >
+                        <Icons.FileDown /> 下載報表
+                      </button>
                     </div>
                   </div>
 
