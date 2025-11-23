@@ -295,8 +295,17 @@
                             <button onClick={() => setView('home')} className="bg-gray-100 p-2 rounded-full text-xl">⬅️</button>
                             <h2 className="text-2xl font-bold text-gray-700">{view === 'borrow_auth' ? '👋 借用登入' : '👋 歸還登入'}</h2><div className="w-10"></div>
                         </div>
-                        <div className="bg-gray-100 p-4 rounded-xl text-center mb-4">
-                            <span className="text-4xl font-mono font-bold text-gray-800 tracking-widest min-h-[3rem] block">{studentId || '_ _ _ _'}</span>
+                        
+                        {/* 修正：輸入框改為動態顯示，移除固定底線 */}
+                        <div className="bg-gray-100 p-4 rounded-xl text-center mb-4 border-2 border-blue-100 h-24 flex items-center justify-center">
+                            {studentId ? (
+                                <span className="text-5xl font-mono font-bold text-gray-800 tracking-widest">{studentId}</span>
+                            ) : (
+                                <span className="text-gray-400 text-xl animate-pulse flex items-center gap-2">
+                                    <span className="inline-block w-1 h-6 bg-gray-400 animate-bounce"></span>
+                                    請輸入號碼...
+                                </span>
+                            )}
                         </div>
                         
                         <div className="text-center mb-4">
@@ -427,4 +436,3 @@
     </script>
 </body>
 </html>
-
