@@ -1,4 +1,4 @@
-    	<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8">
@@ -44,19 +44,19 @@
         orderBy, 
         serverTimestamp 
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-      import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+      import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
       // =================================================================
-      // ⚠️ 使用環境變數自動取得 Firebase Config
+      // ⚠️ 使用您提供的 Firebase Config (已替換)
       // =================================================================
-     const firebaseConfig = {
-  apiKey: "AIzaSyB3lmeAgcQ2cJfUDaJwmkzd3K8wzjt64Rs",
-  authDomain: "school-visitor-system-efe35.firebaseapp.com",
-  projectId: "school-visitor-system-efe35",
-  storageBucket: "school-visitor-system-efe35.firebasestorage.app",
-  messagingSenderId: "1027279524616",
-  appId: "1:1027279524616:web:5b316a71e193138ff812bd"
-};
+      const firebaseConfig = {
+        apiKey: "AIzaSyB3lmeAgcQ2cJfUDaJwmkzd3K8wzjt64Rs",
+        authDomain: "school-visitor-system-efe35.firebaseapp.com",
+        projectId: "school-visitor-system-efe35",
+        storageBucket: "school-visitor-system-efe35.firebasestorage.app",
+        messagingSenderId: "1027279524616",
+        appId: "1:1027279524616:web:5b316a71e193138ff812bd"
+      };
 
       // 初始化 Firebase
       const app = initializeApp(firebaseConfig);
@@ -126,29 +126,19 @@
           host: ''
         });
 
-        // 定義資料庫路徑 (遵循 Artifacts 規範)
-        const visitorsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'visitors');
+        // ⚠️ 使用您自己的資料庫，直接存取根目錄集合，不使用 artifacts 路徑
+        const visitorsCollectionRef = collection(db, 'visitors');
 
-        // 1. 處理 Firebase 登入 (優先使用 Custom Token)
+        // 1. 處理 Firebase 登入 (改回純匿名登入)
         useEffect(() => {
-          const initAuth = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-              try {
-                await signInWithCustomToken(auth, __initial_auth_token);
-              } catch (e) {
-                console.error("Custom token sign-in failed, falling back to anonymous", e);
-                await signInAnonymously(auth);
-              }
-            } else {
-              await signInAnonymously(auth);
-            }
-          };
-          
-          initAuth();
-
           const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
             if (currentUser) {
               setUser(currentUser);
+            } else {
+              signInAnonymously(auth).catch((error) => {
+                console.error("登入失敗:", error);
+                alert("系統連線失敗，請檢查 Firebase Console > Authentication 是否已開啟匿名登入");
+              });
             }
           });
           return () => unsubscribeAuth();
@@ -233,7 +223,8 @@
           setVisitors(tempVisitors);
 
           try {
-            const visitorRef = doc(db, 'artifacts', appId, 'public', 'data', 'visitors', visitorId);
+            // ⚠️ 直接存取根目錄的 visitors 集合文件
+            const visitorRef = doc(db, 'visitors', visitorId);
             await updateDoc(visitorRef, {
               status: 'OUT',
               checkOutTime: getCurrentTimeString()
