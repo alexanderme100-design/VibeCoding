@@ -4,31 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>午餐退費申請系統</title>
-  <!-- 引入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- 引入 FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <style>
-    /* iOS/macOS 風格字體設定 */
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
-    
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
       background-color: #F2F2F7;
       color: #1C1C1E;
       -webkit-tap-highlight-color: transparent;
     }
-
-    /* macOS 風格卡片 */
     .ios-card {
       background-color: white;
       border-radius: 1.25rem;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
       border: 1px solid rgba(0, 0, 0, 0.03);
     }
-
-    /* macOS 風格輸入框 */
     .ios-input {
       background-color: #F2F2F7;
       border: 1px solid transparent;
@@ -45,8 +37,6 @@
       background-color: #FFF2F2;
       border-color: #FF3B30;
     }
-
-    /* macOS 風格按鈕 */
     .ios-btn-primary {
       background-color: #007AFF;
       color: white;
@@ -63,102 +53,59 @@
       cursor: not-allowed;
       transform: none;
     }
-
     /* 自訂 Checkbox/Radio */
     input[type="radio"], input[type="checkbox"] {
-      appearance: none;
-      -webkit-appearance: none;
-      width: 1.35rem;
-      height: 1.35rem;
-      border: 2px solid #D1D1D6;
-      border-radius: 50%;
-      vertical-align: middle;
-      position: relative;
-      transition: all 0.2s;
-      background-color: white;
+      appearance: none; -webkit-appearance: none; width: 1.35rem; height: 1.35rem;
+      border: 2px solid #D1D1D6; border-radius: 50%; vertical-align: middle; position: relative;
+      transition: all 0.2s; background-color: white;
     }
-    input[type="checkbox"] {
-      border-radius: 6px;
-    }
-    input[type="radio"]:checked, input[type="checkbox"]:checked {
-      border-color: #007AFF;
-      background-color: #007AFF;
-    }
+    input[type="checkbox"] { border-radius: 6px; }
+    input[type="radio"]:checked, input[type="checkbox"]:checked { border-color: #007AFF; background-color: #007AFF; }
     input[type="radio"]:checked::after {
-      content: '';
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 0.5rem; height: 0.5rem;
-      background-color: white;
-      border-radius: 50%;
+      content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 0.5rem; height: 0.5rem; background-color: white; border-radius: 50%;
     }
     input[type="checkbox"]:checked::after {
-      content: '\f00c';
-      font-family: 'Font Awesome 6 Free';
-      font-weight: 900;
-      color: white;
-      font-size: 0.8rem;
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
+      content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: white;
+      font-size: 0.8rem; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     }
+    .calendar-day { border-radius: 50%; font-weight: 500; position: relative; }
+    .calendar-day.selected { background-color: #007AFF; color: white; font-weight: 600; box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3); }
+    .calendar-day.today { color: #007AFF; font-weight: 700; }
+    .calendar-day.today::after { content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background-color: #007AFF; border-radius: 50%; }
+    .calendar-day.today.selected { color: white; }
+    .calendar-day.today.selected::after { background-color: white; }
+    .calendar-day.is-disabled { color: #C7C7CC; text-decoration: line-through; opacity: 0.5; cursor: not-allowed; }
+    .calendar-day.is-holiday { color: #ff9a9a; }
+    .calendar-day.makeup-day { background-color: #FEF3C7; color: #D97706; }
+    .calendar-day.makeup-day.selected { background-color: #007AFF; color: white; }
+    
+    /* 管理員模式樣式 */
+    .admin-mode .calendar-day { cursor: pointer !important; opacity: 1 !important; text-decoration: none !important; }
+    .admin-mode .calendar-day.is-holiday-setting { background-color: #FF3B30; color: white; border: none; }
+    .admin-mode .calendar-day.is-holiday-setting::after { display: none; } /* hide today dot if holiday */
+    .admin-bar { background: linear-gradient(to right, #1c1c1e, #2c2c2e); color: white; }
 
-    /* 日曆樣式 */
-    .calendar-day {
-      border-radius: 50%;
-      font-weight: 500;
-      position: relative;
-    }
-    .calendar-day.selected {
-      background-color: #007AFF;
-      color: white;
-      font-weight: 600;
-      box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
-    }
-    .calendar-day.today {
-      color: #007AFF;
-      font-weight: 700;
-    }
-    .calendar-day.today::after {
-      content: '';
-      position: absolute;
-      bottom: 4px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 4px; height: 4px;
-      background-color: #007AFF;
-      border-radius: 50%;
-    }
-    .calendar-day.today.selected {
-      color: white;
-    }
-    .calendar-day.today.selected::after {
-      background-color: white;
-    }
-    .calendar-day:disabled {
-      color: #C7C7CC;
-      text-decoration: none;
-      opacity: 0.5;
-    }
-
-    .required::after {
-      content: " *";
-      color: #FF3B30;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
-    }
-    .modal-content {
-      animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
+    .required::after { content: " *"; color: #FF3B30; }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .modal-content { animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   </style>
 </head>
 <body class="antialiased pb-10">
 
-  <div class="max-w-2xl mx-auto my-6 px-3 sm:px-6">
+  <!-- 管理員設定模式頂部 Bar (預設隱藏) -->
+  <div id="adminBar" class="hidden fixed top-0 left-0 w-full z-40 admin-bar shadow-md p-3 flex items-center justify-between animate-fade-in">
+    <div class="flex items-center">
+      <span class="bg-red-500 text-white text-xs px-2 py-1 rounded-md font-bold mr-2">ADMIN</span>
+      <span class="text-sm font-medium">假日設定模式：請點擊日期以設定/取消假日</span>
+    </div>
+    <div class="flex space-x-2">
+        <button onclick="saveAdminHolidays()" class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-2 rounded-lg transition-colors">儲存設定</button>
+        <button onclick="toggleAdminMode()" class="bg-gray-600 hover:bg-gray-500 text-white text-xs px-3 py-2 rounded-lg transition-colors">取消</button>
+    </div>
+  </div>
+
+  <div class="max-w-2xl mx-auto my-6 px-3 sm:px-6 pt-4">
     
     <!-- Header -->
     <div class="mb-6 text-center sm:text-left">
@@ -184,27 +131,15 @@
       <ul class="space-y-3 text-sm text-gray-700">
         <li class="flex items-start">
           <span class="text-blue-500 mr-3 flex-shrink-0 text-lg leading-none mt-0.5">•</span>
-          <span class="flex-1 leading-relaxed text-justify">
-            請於停餐日往前<strong class="text-gray-900 mx-0.5">第 2 個工作日下午 1:00 前</strong>提出。
-          </span>
+          <span class="flex-1 leading-relaxed text-justify">請於停餐日往前<strong class="text-gray-900 mx-0.5">第 2 個工作日下午 1:00 前</strong>提出。</span>
         </li>
         <li class="flex items-start">
           <span class="text-blue-500 mr-3 flex-shrink-0 text-lg leading-none mt-0.5">•</span>
-          <span class="flex-1 leading-relaxed text-justify">
-            已申請補助或未在校用餐者免填。全班停餐由導師代表。
-          </span>
+          <span class="flex-1 leading-relaxed text-justify">逾時申請因食材已訂購，<span class="text-red-500 font-bold">無法退費</span>。</span>
         </li>
         <li class="flex items-start">
           <span class="text-blue-500 mr-3 flex-shrink-0 text-lg leading-none mt-0.5">•</span>
-          <span class="flex-1 leading-relaxed text-justify">
-            逾時申請因食材已訂購，<span class="text-red-500 font-bold">無法退費</span>。資料錯誤亦同。
-          </span>
-        </li>
-        <li class="flex items-start">
-          <span class="text-blue-500 mr-3 flex-shrink-0 text-lg leading-none mt-0.5">•</span>
-          <span class="flex-1 leading-relaxed">
-            洽詢：<a href="tel:0222819980" target="_top" class="text-blue-600 font-bold decoration-blue-300 underline-offset-2 hover:underline">02-22819980 分機 9353</a> (呂小姐)
-          </span>
+          <span class="flex-1 leading-relaxed">洽詢：<a href="tel:0222819980" target="_top" class="text-blue-600 font-bold decoration-blue-300 underline-offset-2 hover:underline">02-22819980 分機 9353</a> (呂小姐)</span>
         </li>
       </ul>
     </div>
@@ -218,90 +153,66 @@
           <span class="bg-gray-100 text-gray-500 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2">1</span>
           基本資料
         </h2>
-
         <div class="space-y-6">
-          <!-- 停餐事由 -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-3 required">停餐事由</label>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors">
-                <input type="radio" name="reason" value="法定請假(腸病毒、水痘)" required>
-                <span class="ml-3 text-sm font-medium">法定請假 (腸病毒等)</span>
+                <input type="radio" name="reason" value="法定請假(腸病毒、水痘)" required><span class="ml-3 text-sm font-medium">法定請假</span>
               </label>
               <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors">
-                <input type="radio" name="reason" value="病假">
-                <span class="ml-3 text-sm font-medium">病假</span>
+                <input type="radio" name="reason" value="病假"><span class="ml-3 text-sm font-medium">病假</span>
               </label>
               <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors">
-                <input type="radio" name="reason" value="事假">
-                <span class="ml-3 text-sm font-medium">事假</span>
+                <input type="radio" name="reason" value="事假"><span class="ml-3 text-sm font-medium">事假</span>
               </label>
               <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors">
-                <input type="radio" name="reason" value="其他">
-                <span class="ml-3 text-sm font-medium">其他</span>
+                <input type="radio" name="reason" value="其他"><span class="ml-3 text-sm font-medium">其他</span>
               </label>
             </div>
             <input type="text" id="reasonOtherInput" class="ios-input hidden mt-3 w-full text-sm" placeholder="請輸入具體事由...">
           </div>
-
-          <!-- 申請類別 -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-3 required">申請類別</label>
             <div class="bg-gray-50 p-1 rounded-xl flex">
               <label class="flex-1 text-center cursor-pointer">
                 <input type="radio" name="applyType" value="individual" class="hidden peer" checked onchange="toggleStudentCount(false)">
-                <div class="py-2 rounded-lg text-sm font-medium text-gray-500 peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm transition-all">
-                  個人申請
-                </div>
+                <div class="py-2 rounded-lg text-sm font-medium text-gray-500 peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm transition-all">個人申請</div>
               </label>
               <label class="flex-1 text-center cursor-pointer">
                 <input type="radio" name="applyType" value="class" class="hidden peer" onchange="toggleStudentCount(true)">
-                <div class="py-2 rounded-lg text-sm font-medium text-gray-500 peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm transition-all">
-                  全班/多人
-                </div>
+                <div class="py-2 rounded-lg text-sm font-medium text-gray-500 peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm transition-all">全班/多人</div>
               </label>
             </div>
-            
             <div id="studentCountContainer" class="hidden mt-4 animate-fade-in">
-              <label class="text-sm text-gray-600 mb-1 block">退費人數</label>
               <div class="flex items-center">
                 <input type="number" id="studentCount" name="studentCount" value="1" min="1" class="ios-input w-24 text-center font-bold text-lg" oninput="updateSummary()">
                 <span class="ml-3 text-gray-500 text-sm">人</span>
               </div>
             </div>
           </div>
-
-          <!-- 班級與姓名 -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2 required">班級座號 / 職稱</label>
+              <label class="block text-sm font-semibold text-gray-700 mb-2 required">班級座號</label>
               <input type="text" id="classSeat" name="classSeat" placeholder="例：60123 或 601全班" class="ios-input w-full" required>
             </div>
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2 required">停餐學生</label>
+              <label class="block text-sm font-semibold text-gray-700 mb-2 required">姓名</label>
               <input type="text" id="name" name="name" class="ios-input w-full" required>
             </div>
           </div>
-          
-          <!-- 葷素 -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2 required">用餐葷素</label>
             <div class="flex space-x-6 mt-2">
-              <label class="flex items-center cursor-pointer">
-                <input type="radio" name="diet" value="葷" required>
-                <span class="ml-2 font-medium">葷食</span>
-              </label>
-              <label class="flex items-center cursor-pointer">
-                <input type="radio" name="diet" value="素">
-                <span class="ml-2 font-medium">素食</span>
-              </label>
+              <label class="flex items-center cursor-pointer"><input type="radio" name="diet" value="葷" required><span class="ml-2 font-medium">葷食</span></label>
+              <label class="flex items-center cursor-pointer"><input type="radio" name="diet" value="素"><span class="ml-2 font-medium">素食</span></label>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Section 2: 日期與計算 -->
-      <div class="ios-card p-5 sm:p-6">
+      <div class="ios-card p-5 sm:p-6 relative">
         <h2 class="text-lg font-bold text-gray-900 mb-5 flex items-center">
           <span class="bg-gray-100 text-gray-500 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2">2</span>
           選擇日期
@@ -316,6 +227,7 @@
               <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-gray-200 mr-1"></span>不可</span>
             </div>
           </div>
+          <p id="calendar-hint" class="text-xs text-gray-400 mb-2"><i class="fa-solid fa-hand-point-up mr-1"></i>點擊灰色日期可查看原因</p>
           <div id="calendar-wrapper" class="space-y-6 select-none">
             <!-- JS 生成日曆 -->
           </div>
@@ -324,23 +236,11 @@
         <!-- 統計 Widget -->
         <div class="bg-gray-900 rounded-2xl p-5 text-white shadow-lg">
           <div class="grid grid-cols-3 gap-4 text-center divide-x divide-gray-700">
-            <div>
-              <div class="text-xs text-gray-400 mb-1">人數</div>
-              <input type="text" id="displayStudentCount" readonly class="bg-transparent text-center text-xl font-bold w-full text-white outline-none" value="1">
-            </div>
-            <div>
-              <div class="text-xs text-gray-400 mb-1">天數</div>
-              <input type="number" id="totalDays" name="totalDays" readonly class="bg-transparent text-center text-xl font-bold w-full text-white outline-none" value="0">
-            </div>
-            <div>
-              <div class="text-xs text-gray-400 mb-1">總金額</div>
-              <div class="text-xl font-bold text-blue-400">$<span id="totalAmount">0</span></div>
-            </div>
+            <div><div class="text-xs text-gray-400 mb-1">人數</div><input type="text" id="displayStudentCount" readonly class="bg-transparent text-center text-xl font-bold w-full text-white outline-none" value="1"></div>
+            <div><div class="text-xs text-gray-400 mb-1">天數</div><input type="number" id="totalDays" name="totalDays" readonly class="bg-transparent text-center text-xl font-bold w-full text-white outline-none" value="0"></div>
+            <div><div class="text-xs text-gray-400 mb-1">總金額</div><div class="text-xl font-bold text-blue-400">$<span id="totalAmount">0</span></div></div>
           </div>
-          
-          <div id="selected-dates-display" class="mt-4 pt-4 border-t border-gray-700 text-xs text-gray-300 min-h-[30px] flex flex-wrap gap-2">
-            <span class="italic opacity-50">請選擇上方日期...</span>
-          </div>
+          <div id="selected-dates-display" class="mt-4 pt-4 border-t border-gray-700 text-xs text-gray-300 min-h-[30px] flex flex-wrap gap-2"><span class="italic opacity-50">請選擇上方日期...</span></div>
           <input type="hidden" id="dateInput" name="dateInput" required>
         </div>
       </div>
@@ -351,21 +251,24 @@
           <span class="bg-gray-100 text-gray-500 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2">3</span>
           社團調查
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="club-container">
-          <!-- JS 選項 -->
-        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="club-container"></div>
       </div>
 
       <!-- Submit Button -->
       <div class="pb-6">
-        <button type="submit" id="submitBtn" class="ios-btn-primary w-full py-4 text-lg shadow-lg hover:shadow-xl shadow-blue-500/20 disabled:shadow-none">
-          提交申請
-        </button>
+        <button type="submit" id="submitBtn" class="ios-btn-primary w-full py-4 text-lg shadow-lg hover:shadow-xl shadow-blue-500/20 disabled:shadow-none">提交申請</button>
       </div>
 
     </form>
     
-    <!-- Loading & Modals -->
+    <!-- 底部管理員入口 -->
+    <div class="max-w-2xl mx-auto my-8 px-2 text-center">
+        <button onclick="toggleAdminMode()" class="text-xs text-gray-300 hover:text-gray-500 transition-colors">
+            <i class="fa-solid fa-gear mr-1"></i> 管理員設定 (假日/不供餐日)
+        </button>
+    </div>
+
+    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="hidden fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
       <div class="bg-white p-6 rounded-2xl shadow-2xl border border-gray-100 text-center w-64">
         <div class="animate-spin rounded-full h-10 w-10 border-[3px] border-blue-100 border-t-blue-500 mx-auto mb-4"></div>
@@ -373,62 +276,53 @@
       </div>
     </div>
     
+    <!-- Modals -->
     <div id="successModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
       <div class="modal-content bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm w-full">
-        <div class="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-          <i class="fa-solid fa-check"></i>
-        </div>
+        <div class="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fa-solid fa-check"></i></div>
         <h3 class="text-2xl font-bold text-gray-900 mb-2">申請成功</h3>
         <p class="text-gray-500 mb-8">系統已收到您的資料，<br>請留意退費通知。</p>
-        <button type="button" onclick="closeSuccessModal()" class="ios-btn-primary w-full py-3.5">
-          完成
-        </button>
+        <button type="button" onclick="closeSuccessModal()" class="ios-btn-primary w-full py-3.5">完成</button>
+      </div>
+    </div>
+
+    <div id="infoModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
+      <div class="modal-content bg-white p-6 rounded-2xl shadow-2xl text-center max-w-xs w-full">
+        <div class="mb-3 text-yellow-500 text-4xl"><i class="fa-solid fa-circle-exclamation"></i></div>
+        <h3 class="text-lg font-bold text-gray-900 mb-2" id="infoModalTitle">提示</h3>
+        <p class="text-gray-600 mb-6 text-sm" id="infoModalMessage">訊息內容</p>
+        <button type="button" onclick="closeInfoModal()" class="bg-gray-100 text-gray-700 hover:bg-gray-200 font-bold py-2.5 px-4 rounded-xl w-full transition-colors">我知道了</button>
       </div>
     </div>
 
   </div>
 
   <script>
-    // --- 這裡請填入您部署 Web App 後取得的網址 ---
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz64y8GNkn-ayo6pDgoENgaOA7PbG2dm3O9dwOD-yGv4cAKdoCWj-PWATArXIKgRTwW/exec"; 
+    // --- 請填入您部署 Web App 後取得的網址 ---
+    const GAS_API_URL = "在此處貼上您的_GAS_WEB_APP_URL"; 
 
     // --- Configuration ---
     const COST_PER_MEAL = 60;
-    
-    // 假日設定
-    const HOLIDAYS = [
-        "2025/1/1", "2025/2/28", "2025/4/3", "2025/4/4", "2026/1/1"
-    ];
+    const MAKEUP_DAYS = ["2025/2/8"]; // 補班日
+    const CLUB_OPTIONS = ["全部未參加","1.2年級課後班(一.四.五)","3.4年級課後班(五)","1.2年級羽球隊(一. 四.五)","3.4年級羽球隊(五)","週三(羽球隊)","週三籃球班A","週三籃球班B","週三籃球班C","週三才藝班(流行mv舞蹈班)","週三才藝班(英語初階自然發音班P4-P6)班","週三才藝班(英語社團基礎字彙班V1-V3)","週三才藝班(幸福捏一下A)","週三才藝班(創意DIY-禮品＆點心小鋪)","週三才藝班(兒童創意美術)","週三才藝班(數學桌遊社寶可夢)","週三才藝班(思丁(STEAM)創客好小子)","週三才藝班(動漫平板繪圖與手作創作營)","週三才藝班(黑鷹足球社團課)","週五籃球班A","週五籃球班B","週五籃球班C","其他"];
 
-    const CLUB_OPTIONS = [
-      "全部未參加",
-      "1.2年級課後班(一.四.五)", "3.4年級課後班(五)",
-      "1.2年級羽球隊(一. 四.五)", "3.4年級羽球隊(五)", "週三(羽球隊)",
-      "週三籃球班A", "週三籃球班B", "週三籃球班C",
-      "週三才藝班(流行mv舞蹈班)", "週三才藝班(英語初階自然發音班P4-P6)班",
-      "週三才藝班(英語社團基礎字彙班V1-V3)", "週三才藝班(幸福捏一下A)",
-      "週三才藝班(創意DIY-禮品＆點心小鋪)", "週三才藝班(兒童創意美術)",
-      "週三才藝班(數學桌遊社寶可夢)", "週三才藝班(思丁(STEAM)創客好小子)",
-      "週三才藝班(動漫平板繪圖與手作創作營)", "週三才藝班(黑鷹足球社團課)",
-      "週五籃球班A", "週五籃球班B", "週五籃球班C",
-      "其他"
-    ];
-
+    // 系統變數
+    let HOLIDAYS = []; // 改為動態載入
     let earliestValidDateObj = null;
     let earliestValidDateStr = "";
     let selectedDatesSet = new Set();
+    let adminHolidaySet = new Set();
     let currentStudentCount = 1;
+    let isAdminMode = false;
 
     // --- Initialization ---
     document.addEventListener('DOMContentLoaded', () => {
       renderClubs();
-      calculateDeadlineRule();
-      initCalendar();
-      updateSummary();
-      initReasonToggle();
+      initReasonToggle(); // Fixed ReferenceError: function is now defined below
+      fetchHolidays();
     });
 
-    // Toggle Student Count Input
+    // --- Helper Functions (Restored) ---
     function toggleStudentCount(isClass) {
       const container = document.getElementById('studentCountContainer');
       const input = document.getElementById('studentCount');
@@ -467,12 +361,89 @@
       });
     }
 
-    // --- Calendar Logic ---
-    function initCalendar() {
-      const now = new Date();
-      renderMonth(now.getFullYear(), now.getMonth());
-      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      renderMonth(nextMonth.getFullYear(), nextMonth.getMonth());
+    // --- Admin Mode Logic ---
+    function toggleAdminMode() {
+        if (!isAdminMode) {
+            const pwd = prompt("請輸入管理員密碼 (預設: admin):");
+            if (pwd !== "admin") return alert("密碼錯誤");
+        }
+
+        isAdminMode = !isAdminMode;
+        const adminBar = document.getElementById('adminBar');
+        const hint = document.getElementById('calendar-hint');
+
+        if (isAdminMode) {
+            adminBar.classList.remove('hidden');
+            adminHolidaySet = new Set(HOLIDAYS);
+            document.body.classList.add('admin-mode');
+            hint.innerText = "點擊日期來「新增」或「移除」假日 (紅色代表假日)";
+            hint.classList.replace('text-gray-400', 'text-red-500');
+        } else {
+            adminBar.classList.add('hidden');
+            document.body.classList.remove('admin-mode');
+            hint.innerText = "點擊灰色日期可查看原因";
+            hint.classList.replace('text-red-500', 'text-gray-400');
+            fetchHolidays(); 
+        }
+        renderCalendar();
+    }
+
+    function saveAdminHolidays() {
+        if (!confirm("確定要儲存這些假日設定嗎？")) return;
+        
+        const newHolidays = Array.from(adminHolidaySet).sort();
+        
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+        
+        fetch(GAS_API_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: 'updateHolidays', holidays: newHolidays }),
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+            if (data.result === 'success') {
+                alert("設定已儲存！");
+                HOLIDAYS = newHolidays; 
+                toggleAdminMode(); 
+            } else {
+                alert("儲存失敗：" + data.error);
+            }
+        })
+        .catch(err => {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+            alert("連線錯誤：" + err);
+        });
+    }
+
+    // --- Fetch Data ---
+    function fetchHolidays() {
+        if (!GAS_API_URL || GAS_API_URL.includes("在此處貼上")) return renderCalendar();
+
+        fetch(GAS_API_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: 'getHolidays' }),
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.result === 'success' && Array.isArray(data.holidays)) {
+                HOLIDAYS = data.holidays;
+            }
+            calculateDeadlineRule();
+            renderCalendar();
+        })
+        .catch(err => console.error("Fetch holidays error:", err));
+    }
+
+    // --- Calendar Render Wrapper ---
+    function renderCalendar() {
+        document.getElementById('calendar-wrapper').innerHTML = ''; 
+        const now = new Date();
+        renderMonth(now.getFullYear(), now.getMonth());
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        renderMonth(nextMonth.getFullYear(), nextMonth.getMonth());
     }
 
     function renderMonth(year, month) {
@@ -488,9 +459,7 @@
       const weekHeader = document.createElement('div');
       weekHeader.className = "grid grid-cols-7 gap-1 mb-2 text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wider";
       ['日', '一', '二', '三', '四', '五', '六'].forEach(d => {
-        const span = document.createElement('span');
-        span.innerText = d;
-        weekHeader.appendChild(span);
+        const span = document.createElement('span'); span.innerText = d; weekHeader.appendChild(span);
       });
       monthContainer.appendChild(weekHeader);
       
@@ -500,71 +469,84 @@
       const firstDay = new Date(year, month, 1);
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const startDayOfWeek = firstDay.getDay(); 
-      
       const today = new Date();
       
-      for (let i = 0; i < startDayOfWeek; i++) {
-        grid.appendChild(document.createElement('div'));
-      }
+      for (let i = 0; i < startDayOfWeek; i++) grid.appendChild(document.createElement('div'));
       
       for (let d = 1; d <= daysInMonth; d++) {
         const dateObj = new Date(year, month, d);
         const dateStr = formatDateKey(dateObj); 
-        
         const btn = document.createElement('button');
-        btn.type = "button"; 
-        btn.innerText = d;
+        btn.type = "button"; btn.innerText = d;
         btn.className = "calendar-day h-10 w-full flex items-center justify-center text-sm transition-transform active:scale-90";
         
         const dayOfWeek = dateObj.getDay();
         const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-        const isHoliday = HOLIDAYS.includes(dateStr);
         
-        if (dateObj.toDateString() === today.toDateString()) {
-          btn.classList.add('today');
+        let isHoliday = false;
+        if (isAdminMode) {
+            isHoliday = adminHolidaySet.has(dateStr);
+        } else {
+            isHoliday = HOLIDAYS.includes(dateStr);
         }
 
-        if (isWeekend || isHoliday) {
-          btn.style.color = "#FF3B30"; // iOS Red for holidays
+        const isMakeup = MAKEUP_DAYS.includes(dateStr); 
+        
+        if (dateObj.toDateString() === today.toDateString()) btn.classList.add('today');
+
+        if (isMakeup) {
+            btn.classList.add('makeup-day');
+        } else if (isWeekend || isHoliday) {
+            btn.style.color = "#FF3B30";
+            if(isHoliday) {
+                if(isAdminMode) btn.classList.add('is-holiday-setting'); 
+                else btn.classList.add('is-holiday');
+            }
         }
         
-        const compareDate = new Date(dateObj);
-        compareDate.setHours(0,0,0,0);
-        
-        const thresholdDate = new Date(earliestValidDateObj);
-        thresholdDate.setHours(0,0,0,0);
-        
-        if (compareDate < thresholdDate) {
-          btn.disabled = true;
-        } else if (isWeekend || isHoliday) {
-          btn.disabled = true;
-          btn.style.opacity = "0.3"; 
+        if (isAdminMode) {
+            btn.onclick = () => {
+                if (adminHolidaySet.has(dateStr)) adminHolidaySet.delete(dateStr);
+                else adminHolidaySet.add(dateStr);
+                renderCalendar();
+            };
         } else {
-          btn.onclick = () => toggleDateSelection(dateStr, btn);
-          if (selectedDatesSet.has(dateStr)) {
-            btn.classList.add('selected');
-          }
+            const compareDate = new Date(dateObj); compareDate.setHours(0,0,0,0);
+            const thresholdDate = new Date(earliestValidDateObj); thresholdDate.setHours(0,0,0,0);
+            
+            let isDisabled = false;
+            let disableReason = "";
+
+            if (compareDate < thresholdDate) {
+                isDisabled = true;
+                disableReason = `已超過申請期限\n(需於 ${formatDateSimple(earliestValidDateObj)} (含)以後才可退費)`;
+            } else if (!isMakeup && isHoliday) {
+                isDisabled = true;
+                disableReason = "非供餐日 (假日/國定假日/補假)";
+            } else if (!isMakeup && isWeekend) {
+                isDisabled = true;
+                disableReason = "非供餐日 (週末)";
+            }
+
+            if (isDisabled) {
+              btn.classList.add('is-disabled');
+              btn.onclick = () => showInfoModal(`無法選擇 ${dateStr}`, `原因：${disableReason}`);
+            } else {
+              btn.onclick = () => toggleDateSelection(dateStr, btn);
+              if (selectedDatesSet.has(dateStr)) btn.classList.add('selected');
+            }
         }
         
         grid.appendChild(btn);
       }
-      
-      monthContainer.appendChild(grid);
-      wrapper.appendChild(monthContainer);
+      monthContainer.appendChild(grid); wrapper.appendChild(monthContainer);
     }
 
-    function formatDateKey(date) {
-      return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
-    }
-
+    function formatDateKey(date) { return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`; }
+    
     function toggleDateSelection(dateStr, btnElement) {
-      if (selectedDatesSet.has(dateStr)) {
-        selectedDatesSet.delete(dateStr);
-        btnElement.classList.remove('selected');
-      } else {
-        selectedDatesSet.add(dateStr);
-        btnElement.classList.add('selected');
-      }
+      if (selectedDatesSet.has(dateStr)) { selectedDatesSet.delete(dateStr); btnElement.classList.remove('selected'); }
+      else { selectedDatesSet.add(dateStr); btnElement.classList.add('selected'); }
       updateSummary();
     }
 
@@ -572,33 +554,21 @@
       const input = document.getElementById('studentCount');
       const inputVal = input.value;
       currentStudentCount = parseInt(inputVal) || 0;
-      
-      if (currentStudentCount <= 0 && !document.getElementById('studentCountContainer').classList.contains('hidden')) {
-        input.classList.add('error');
-      } else {
-        input.classList.remove('error');
-      }
-      
+      if (currentStudentCount <= 0 && !document.getElementById('studentCountContainer').classList.contains('hidden')) input.classList.add('error');
+      else input.classList.remove('error');
       document.getElementById('displayStudentCount').value = currentStudentCount;
-
       const sortedDates = Array.from(selectedDatesSet).sort((a, b) => new Date(a) - new Date(b));
-      
       const displayEl = document.getElementById('selected-dates-display');
-      if (sortedDates.length === 0) {
-        displayEl.innerHTML = '<span class="italic opacity-50">請選擇上方日期...</span>';
-      } else {
+      if (sortedDates.length === 0) displayEl.innerHTML = '<span class="italic opacity-50">請選擇上方日期...</span>';
+      else {
         const tags = sortedDates.map(d => `<span class="bg-blue-500 text-white px-2 py-0.5 rounded-md">${d}</span>`).join('');
         displayEl.innerHTML = tags;
       }
-      
       document.getElementById('dateInput').value = sortedDates.join(', ');
-      
       const daysCount = sortedDates.length;
       document.getElementById('totalDays').value = daysCount;
-      
       const totalAmount = daysCount * currentStudentCount * COST_PER_MEAL;
       document.getElementById('totalAmount').innerText = totalAmount.toLocaleString();
-      
       const submitBtn = document.getElementById('submitBtn');
       if (daysCount === 0 || currentStudentCount <= 0) {
         submitBtn.disabled = true;
@@ -614,198 +584,99 @@
       const container = document.getElementById('club-container');
       CLUB_OPTIONS.forEach((club, index) => {
         const div = document.createElement('div');
-        div.innerHTML = `
-          <label class="flex items-start p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-white hover:shadow-sm cursor-pointer transition-all">
-             <input type="checkbox" name="clubs" value="${club}" id="club_${index}" class="mt-0.5 flex-shrink-0">
-             <span class="ml-3 text-sm text-gray-700 leading-tight select-none">${club}</span>
-          </label>
-        `;
+        div.innerHTML = `<label class="flex items-start p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-white hover:shadow-sm cursor-pointer transition-all"><input type="checkbox" name="clubs" value="${club}" id="club_${index}" class="mt-0.5 flex-shrink-0"><span class="ml-3 text-sm text-gray-700 leading-tight select-none">${club}</span></label>`;
         container.appendChild(div.firstElementChild);
       });
-      
       const noneCheckbox = document.getElementById('club_0');
       const otherCheckboxes = Array.from(document.querySelectorAll('input[name="clubs"]:not(#club_0)'));
-      
       noneCheckbox.addEventListener('change', (e) => {
-        if(e.target.checked) {
-          otherCheckboxes.forEach(cb => { cb.checked = false; cb.disabled = true; 
-             cb.parentElement.classList.add('opacity-50', 'bg-gray-100');
-          });
-        } else {
-          otherCheckboxes.forEach(cb => { cb.disabled = false; 
-             cb.parentElement.classList.remove('opacity-50', 'bg-gray-100');
-          });
-        }
+        if(e.target.checked) { otherCheckboxes.forEach(cb => { cb.checked = false; cb.disabled = true; cb.parentElement.classList.add('opacity-50', 'bg-gray-100'); }); }
+        else { otherCheckboxes.forEach(cb => { cb.disabled = false; cb.parentElement.classList.remove('opacity-50', 'bg-gray-100'); }); }
       });
     }
 
-    // --- Deadline Calculation ---
     function calculateDeadlineRule() {
-      const now = new Date();
-      const currentHour = now.getHours();
+      const now = new Date(); const currentHour = now.getHours();
       let baseDate = new Date(now);
-      let note = "";
-      
-      let daysToAdd = 0;
-      if (currentHour >= 13) {
-        note = `已過 13:00`;
-        daysToAdd = 3;
-      } else {
-        note = `13:00 前`;
-        daysToAdd = 2;
-      }
-      
+      let daysToAdd = (currentHour >= 13) ? 3 : 2; 
       earliestValidDateObj = addWorkDays(baseDate, daysToAdd);
       earliestValidDateStr = formatDateFull(earliestValidDateObj);
       
       const displayEl = document.getElementById('rule-display');
-      displayEl.innerHTML = `
-        <div class="flex items-center justify-between">
-           <span class="text-xs text-gray-500 font-medium">現在時刻：${formatDateFull(now)} (${note})</span>
-        </div>
-        <div class="text-lg font-bold text-blue-600 mt-1">
-          <span class="text-xs text-gray-400 font-normal mr-1">最早可退費日</span>
-          ${earliestValidDateStr}
-        </div>
-      `;
-    }
-
-    function addDays(date, days) {
-      const result = new Date(date);
-      result.setDate(result.getDate() + days);
-      return result;
+      displayEl.innerHTML = `<div class="flex items-center justify-between"><span class="text-xs text-gray-500 font-medium">現在時刻：${formatDateFull(now)} (${currentHour >= 13 ? '已過 13:00' : '13:00 前'})</span></div><div class="text-lg font-bold text-blue-600 mt-1"><span class="text-xs text-gray-400 font-normal mr-1">最早可退費日</span>${earliestValidDateStr}</div>`;
     }
 
     function isWorkDay(date) {
+      const dateStr = formatDateKey(date);
+      if (MAKEUP_DAYS.includes(dateStr)) return true;
       const day = date.getDay();
       if (day === 0 || day === 6) return false;
-      const dateStr = formatDateKey(date);
       if (HOLIDAYS.includes(dateStr)) return false;
       return true;
     }
 
     function addWorkDays(startDate, days) {
-      let currentDate = new Date(startDate);
-      let added = 0;
+      let currentDate = new Date(startDate); let added = 0;
       while (added < days) {
         currentDate.setDate(currentDate.getDate() + 1);
-        if (isWorkDay(currentDate)) {
-          added++;
-        }
+        if (isWorkDay(currentDate)) added++;
       }
       return currentDate;
     }
 
-    function formatDateSimple(date) {
-      return `${date.getMonth() + 1}/${date.getDate()}`;
-    }
-
+    function formatDateSimple(date) { return `${date.getMonth() + 1}/${date.getDate()}`; }
     function formatDateFull(date) {
-      const yyyy = date.getFullYear();
-      const mm = String(date.getMonth() + 1).padStart(2, '0');
-      const dd = String(date.getDate()).padStart(2, '0');
+      const yyyy = date.getFullYear(); const mm = String(date.getMonth() + 1).padStart(2, '0'); const dd = String(date.getDate()).padStart(2, '0');
       const dayName = ['日','一','二','三','四','五','六'][date.getDay()];
       return `${yyyy}/${mm}/${dd} (${dayName})`;
     }
 
-    // --- Form Submission (GitHub Version) ---
+    function showInfoModal(title, message) {
+        document.getElementById('infoModalTitle').innerText = title;
+        document.getElementById('infoModalMessage').innerText = message;
+        document.getElementById('infoModal').classList.remove('hidden');
+    }
+    function closeInfoModal() { document.getElementById('infoModal').classList.add('hidden'); }
+    
     function handleFormSubmit(e) {
       e.preventDefault();
+      if (!GAS_API_URL || GAS_API_URL.includes("在此處貼上")) { alert("請先設定 GAS_API_URL！"); return; }
       
-      // 檢查是否設定了 API URL
-      if (!GAS_API_URL || GAS_API_URL.includes("在此處貼上")) {
-        alert("請先設定 GAS_API_URL！");
-        return;
-      }
-
       const form = document.getElementById('refundForm');
       const formData = new FormData(form);
       const data = {};
-      
       const clubs = [];
-      document.querySelectorAll('input[name="clubs"]:checked').forEach(cb => {
-        clubs.push(cb.value);
-      });
-      
-      formData.forEach((value, key) => {
-        if (key !== 'clubs') data[key] = value;
-      });
-      
+      document.querySelectorAll('input[name="clubs"]:checked').forEach(cb => clubs.push(cb.value));
+      formData.forEach((value, key) => { if (key !== 'clubs') data[key] = value; });
       if (data['reason'] === '其他') {
         const otherText = document.getElementById('reasonOtherInput').value.trim();
-        if (otherText) {
-          data['reason'] = `其他：${otherText}`;
-        }
+        if (otherText) data['reason'] = `其他：${otherText}`;
       }
-
       data['clubs'] = clubs.join(', ');
-      
-      if (data['applyType'] === 'individual') {
-        data['studentCount'] = 1;
-      }
+      if (data['applyType'] === 'individual') data['studentCount'] = 1;
       
       document.getElementById('loadingOverlay').classList.remove('hidden');
-
-      // 使用 fetch 發送請求到 GAS
-      // 使用 text/plain 避免 OPTIONS preflight 請求
-      fetch(GAS_API_URL, {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: {
-            "Content-Type": "text/plain;charset=utf-8",
-        },
-      })
-      .then(response => {
-        if (response.ok) {
-           return response.json();
-        } else {
-           throw new Error("Network response was not ok.");
-        }
-      })
+      fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(data), headers: { "Content-Type": "text/plain;charset=utf-8" } })
+      .then(res => res.json())
       .then(result => {
-         if (result.result === "success") {
-             onSuccess();
-         } else {
-             onFailure(new Error(result.error || "Unknown error"));
-         }
+         if (result.result === "success") onSuccess();
+         else onFailure(new Error(result.error || "Unknown error"));
       })
-      .catch(error => {
-         // GAS Web App 跨域有時會因為 Redirect 導致 fetch 認為失敗
-         // 但若我們確定後端寫入成功，可以在這裡做寬容處理
-         // 這裡建議嚴格處理，若失敗就報錯
-         onFailure(error);
-      });
+      .catch(onFailure);
     }
 
     function onSuccess() {
       document.getElementById('loadingOverlay').classList.add('hidden');
-      
-      document.getElementById('refundForm').reset();
-      selectedDatesSet.clear();
-      document.getElementById('calendar-wrapper').innerHTML = '';
-      toggleStudentCount(false);
-      initCalendar();
+      document.getElementById('refundForm').reset(); selectedDatesSet.clear();
+      document.getElementById('calendar-wrapper').innerHTML = ''; toggleStudentCount(false);
+      fetchHolidays();
       updateSummary();
       const otherCheckboxes = Array.from(document.querySelectorAll('input[name="clubs"]:not(#club_0)'));
-      otherCheckboxes.forEach(cb => { 
-        cb.disabled = false; 
-        cb.parentElement.classList.remove('opacity-50', 'bg-gray-100');
-      });
-      calculateDeadlineRule();
-
+      otherCheckboxes.forEach(cb => { cb.disabled = false; cb.parentElement.classList.remove('opacity-50', 'bg-gray-100'); });
       document.getElementById('successModal').classList.remove('hidden');
     }
-
-    function closeSuccessModal() {
-      document.getElementById('successModal').classList.add('hidden');
-    }
-
-    function onFailure(error) {
-      document.getElementById('loadingOverlay').classList.add('hidden');
-      alert('發生錯誤，請稍後再試或聯繫管理員：' + error.message);
-    }
+    function closeSuccessModal() { document.getElementById('successModal').classList.add('hidden'); }
+    function onFailure(error) { document.getElementById('loadingOverlay').classList.add('hidden'); alert('發生錯誤：' + error.message); }
   </script>
 </body>
-
 </html>
-
