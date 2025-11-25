@@ -257,7 +257,9 @@
     document.addEventListener('DOMContentLoaded', () => {
       renderClubs();
       initReasonToggle();
-      fetchHolidays();
+      fetchHolidays(); // 啟動時先抓取假日設定
+      // 啟動每秒更新時間與倒數
+      setInterval(updateDashboard, 1000);
     });
 
     async function safeFetch(data) {
@@ -288,47 +290,42 @@
     }
 
     function toggleAdminMode() {
-        // 如果已經在管理員模式，則離開
-        if (isAdminMode) {
-            exitAdminMode();
-            return;
+        if (!isAdminMode) {
+            const pwd = prompt("請輸入管理員密碼:");
+            if (!pwd) return;
+
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            
+            safeFetch({ action: 'checkPassword', password: pwd })
+            .then(data => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                if (data.result === 'success') {
+                    isAdminMode = true;
+                    adminPassword = pwd; 
+                    
+                    const adminBar = document.getElementById('adminBar');
+                    const hint = document.getElementById('calendar-hint');
+                    
+                    adminBar.classList.remove('hidden');
+                    adminHolidaySet = new Set(HOLIDAYS);
+                    document.body.classList.add('admin-mode');
+                    hint.innerText = "點擊日期來「新增」或「移除」假日 (紅色代表假日)";
+                    hint.classList.replace('text-gray-400', 'text-red-500');
+                    renderCalendar();
+                } else {
+                    alert("密碼錯誤");
+                }
+            })
+            .catch(err => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                alert("驗證失敗：" + err.message);
+            });
         }
-
-        // 進入管理員模式：先要求密碼並驗證
-        const pwd = prompt("請輸入管理員密碼:");
-        if (!pwd) return;
-
-        document.getElementById('loadingOverlay').classList.remove('hidden');
-        
-        safeFetch({ action: 'checkPassword', password: pwd })
-        .then(data => {
-            document.getElementById('loadingOverlay').classList.add('hidden');
-            if (data.result === 'success') {
-                isAdminMode = true;
-                adminPassword = pwd; // 暫存密碼
-                
-                const adminBar = document.getElementById('adminBar');
-                const hint = document.getElementById('calendar-hint');
-                
-                adminBar.classList.remove('hidden');
-                adminHolidaySet = new Set(HOLIDAYS);
-                document.body.classList.add('admin-mode');
-                hint.innerText = "點擊日期來「新增」或「移除」假日 (紅色代表假日)";
-                hint.classList.replace('text-gray-400', 'text-red-500');
-                renderCalendar();
-            } else {
-                alert("密碼錯誤");
-            }
-        })
-        .catch(err => {
-            document.getElementById('loadingOverlay').classList.add('hidden');
-            alert("驗證失敗：" + err.message);
-        });
     }
 
     function exitAdminMode() {
         isAdminMode = false;
-        adminPassword = ""; // 清除密碼
+        adminPassword = ""; 
         
         const adminBar = document.getElementById('adminBar');
         const hint = document.getElementById('calendar-hint');
@@ -337,7 +334,7 @@
         document.body.classList.remove('admin-mode');
         hint.innerText = "點擊灰色日期可查看原因";
         hint.classList.replace('text-red-500', 'text-gray-400');
-        fetchHolidays(); // 重新抓取以還原
+        fetchHolidays(); 
     }
 
     function saveAdminHolidays() {
@@ -346,7 +343,6 @@
         const newHolidays = Array.from(adminHolidaySet).sort();
         document.getElementById('loadingOverlay').classList.remove('hidden');
         
-        // 傳送密碼進行授權
         safeFetch({ action: 'updateHolidays', holidays: newHolidays, password: adminPassword })
         .then(data => {
             document.getElementById('loadingOverlay').classList.add('hidden');
@@ -364,7 +360,6 @@
         });
     }
 
-    // ... Rest of the functions ...
     function handleFormSubmit(e) {
       e.preventDefault();
       const form = document.getElementById('refundForm');
@@ -529,15 +524,67 @@
         else { otherCheckboxes.forEach(cb => { cb.disabled = false; cb.parentElement.classList.remove('opacity-50', 'bg-gray-100'); }); }
       });
     }
-    function calculateDeadlineRule() {
-      const now = new Date(); const currentHour = now.getHours();
+
+    // --- New Logic: Combined Update Dashboard ---
+    function updateDashboard() {
+      // 1. Get current time
+      const now = new Date();
+      const currentHour = now.getHours();
+      
+      // 2. Logic for "Earliest Date" and "Deadline"
       let baseDate = new Date(now);
       let daysToAdd = (currentHour >= 13) ? 3 : 2; 
+      
+      // Calculate earliest valid date only if it changed (optimization optional, but re-calc is cheap)
       earliestValidDateObj = addWorkDays(baseDate, daysToAdd);
       earliestValidDateStr = formatDateFull(earliestValidDateObj);
+
+      // 3. Logic for Countdown to Next 13:00
+      let targetTime = new Date(now);
+      targetTime.setHours(13, 0, 0, 0);
+      
+      if (now > targetTime) {
+        // If already past 13:00, target is tomorrow 13:00
+        targetTime.setDate(targetTime.getDate() + 1);
+      }
+      
+      const diffMs = targetTime - now;
+      const diffHrs = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
+      
+      const countdownStr = `${String(diffHrs).padStart(2, '0')}:${String(diffMins).padStart(2, '0')}:${String(diffSecs).padStart(2, '0')}`;
+
+      // 4. Update Display
       const displayEl = document.getElementById('rule-display');
-      displayEl.innerHTML = `<div class="flex items-center justify-between"><span class="text-xs text-gray-500 font-medium">現在時刻：${formatDateFull(now)} (${currentHour >= 13 ? '已過 13:00' : '13:00 前'})</span></div><div class="text-lg font-bold text-blue-600 mt-1"><span class="text-xs text-gray-400 font-normal mr-1">最早可退費日</span>${earliestValidDateStr}</div>`;
+      if (displayEl) {
+          displayEl.innerHTML = `
+            <div class="flex flex-col space-y-2">
+               <div class="flex justify-between items-center text-xs text-gray-500">
+                  <span>現在時刻：${formatDateFull(now)} ${now.toLocaleTimeString()}</span>
+               </div>
+               
+               <div class="flex items-center text-sm bg-red-50 p-2 rounded-lg border border-red-100">
+                  <i class="fa-solid fa-hourglass-half text-red-500 mr-2"></i>
+                  <span class="text-gray-600 mr-2">收單倒數：</span>
+                  <span class="text-red-600 font-bold font-mono text-lg">${countdownStr}</span>
+               </div>
+
+               <div class="text-sm font-bold text-blue-600 flex items-center mt-1">
+                  <span class="text-xs text-gray-400 font-normal mr-2">最早可退費日</span>
+                  ${earliestValidDateStr}
+               </div>
+            </div>
+          `;
+      }
     }
+
+    // Keep calculateDeadlineRule for initial run if needed, but updateDashboard replaces it mostly.
+    // We will alias it for compatibility with other calls like fetchHolidays
+    function calculateDeadlineRule() {
+        updateDashboard();
+    }
+
     function isWorkDay(date) {
       const dateStr = formatDateKey(date);
       if (MAKEUP_DAYS.includes(dateStr)) return true;
