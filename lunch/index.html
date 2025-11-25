@@ -53,7 +53,7 @@
       cursor: not-allowed;
       transform: none;
     }
-    /* 自訂 Checkbox/Radio */
+    /* Checkbox/Radio */
     input[type="radio"], input[type="checkbox"] {
       appearance: none; -webkit-appearance: none; width: 1.35rem; height: 1.35rem;
       border: 2px solid #D1D1D6; border-radius: 50%; vertical-align: middle; position: relative;
@@ -69,6 +69,7 @@
       content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: white;
       font-size: 0.8rem; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     }
+    /* Calendar */
     .calendar-day { border-radius: 50%; font-weight: 500; position: relative; }
     .calendar-day.selected { background-color: #007AFF; color: white; font-weight: 600; box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3); }
     .calendar-day.today { color: #007AFF; font-weight: 700; }
@@ -80,7 +81,6 @@
     .calendar-day.makeup-day { background-color: #FEF3C7; color: #D97706; }
     .calendar-day.makeup-day.selected { background-color: #007AFF; color: white; }
     
-    /* 管理員模式樣式 */
     .admin-mode .calendar-day { cursor: pointer !important; opacity: 1 !important; text-decoration: none !important; }
     .admin-mode .calendar-day.is-holiday-setting { background-color: #FF3B30; color: white; border: none; }
     .admin-mode .calendar-day.is-holiday-setting::after { display: none; } 
@@ -93,7 +93,6 @@
 </head>
 <body class="antialiased pb-10">
 
-  <!-- 管理員設定模式頂部 Bar -->
   <div id="adminBar" class="hidden fixed top-0 left-0 w-full z-40 admin-bar shadow-md p-3 flex items-center justify-between animate-fade-in">
     <div class="flex items-center">
       <span class="bg-red-500 text-white text-xs px-2 py-1 rounded-md font-bold mr-2">ADMIN</span>
@@ -101,12 +100,11 @@
     </div>
     <div class="flex space-x-2">
         <button onclick="saveAdminHolidays()" class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-2 rounded-lg transition-colors">儲存</button>
-        <button onclick="toggleAdminMode()" class="bg-gray-600 hover:bg-gray-500 text-white text-xs px-3 py-2 rounded-lg transition-colors">取消</button>
+        <button onclick="exitAdminMode()" class="bg-gray-600 hover:bg-gray-500 text-white text-xs px-3 py-2 rounded-lg transition-colors">取消</button>
     </div>
   </div>
 
   <div class="max-w-2xl mx-auto my-6 px-3 sm:px-6 pt-4">
-    
     <!-- Header -->
     <div class="mb-6 text-center sm:text-left">
       <h1 class="text-3xl font-bold text-gray-900 tracking-tight flex items-center justify-center sm:justify-start">
@@ -118,90 +116,49 @@
       <p class="text-gray-500 mt-1 ml-1 font-medium">每餐退費標準 $60</p>
     </div>
 
-    <!-- 規則說明 -->
+    <!-- 規則 -->
     <div class="ios-card p-4 sm:p-5 mb-6 bg-blue-50/50 border-blue-100">
       <h3 class="font-bold text-blue-600 mb-3 flex items-center text-sm uppercase tracking-wide">
         <i class="fa-solid fa-circle-info mr-2"></i> 申請規則與須知
       </h3>
-      
       <div id="rule-display" class="mb-4 bg-white p-3 rounded-xl border border-blue-100 shadow-sm">
          <p class="text-xs text-gray-400 mb-1">系統自動計算截算日...</p>
       </div>
-
       <ul class="space-y-3 text-sm text-gray-700">
-        <li class="flex items-start">
-          <span class="text-blue-500 mr-3 flex-shrink-0 text-lg leading-none mt-0.5">•</span>
-          <span class="flex-1 leading-relaxed text-justify">請於停餐日往前<strong class="text-gray-900 mx-0.5">第 2 個工作日下午 1:00 前</strong>提出。</span>
-        </li>
-        <li class="flex items-start">
-          <span class="text-blue-500 mr-3 flex-shrink-0 text-lg leading-none mt-0.5">•</span>
-          <span class="flex-1 leading-relaxed text-justify">逾時申請因食材已訂購，<span class="text-red-500 font-bold">無法退費</span>。</span>
-        </li>
-        <li class="flex items-start">
-          <span class="text-blue-500 mr-3 flex-shrink-0 text-lg leading-none mt-0.5">•</span>
-          <span class="flex-1 leading-relaxed">洽詢：<a href="tel:0222819980" target="_top" class="text-blue-600 font-bold decoration-blue-300 underline-offset-2 hover:underline">02-22819980 分機 9353</a> (呂小姐)</span>
-        </li>
+        <li class="flex items-start"><span class="text-blue-500 mr-3 flex-shrink-0 text-lg leading-none mt-0.5">•</span><span class="flex-1 leading-relaxed text-justify">請於停餐日往前<strong class="text-gray-900 mx-0.5">第 2 個工作日下午 1:00 前</strong>提出。</span></li>
+        <li class="flex items-start"><span class="text-blue-500 mr-3 flex-shrink-0 text-lg leading-none mt-0.5">•</span><span class="flex-1 leading-relaxed text-justify">逾時申請因食材已訂購，<span class="text-red-500 font-bold">無法退費</span>。</span></li>
+        <li class="flex items-start"><span class="text-blue-500 mr-3 flex-shrink-0 text-lg leading-none mt-0.5">•</span><span class="flex-1 leading-relaxed">洽詢：<a href="tel:0222819980" target="_top" class="text-blue-600 font-bold decoration-blue-300 underline-offset-2 hover:underline">02-22819980 分機 9353</a> (呂小姐)</span></li>
       </ul>
     </div>
 
-    <!-- Form -->
     <form id="refundForm" class="space-y-6" onsubmit="handleFormSubmit(event)">
-
-      <!-- Section 1: 基本資料 -->
+      <!-- Section 1 -->
       <div class="ios-card p-5 sm:p-6">
-        <h2 class="text-lg font-bold text-gray-900 mb-5 flex items-center">
-          <span class="bg-gray-100 text-gray-500 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2">1</span>
-          基本資料
-        </h2>
+        <h2 class="text-lg font-bold text-gray-900 mb-5 flex items-center"><span class="bg-gray-100 text-gray-500 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2">1</span>基本資料</h2>
         <div class="space-y-6">
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-3 required">停餐事由</label>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors">
-                <input type="radio" name="reason" value="法定請假(腸病毒、水痘)" required><span class="ml-3 text-sm font-medium">法定請假</span>
-              </label>
-              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors">
-                <input type="radio" name="reason" value="病假"><span class="ml-3 text-sm font-medium">病假</span>
-              </label>
-              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors">
-                <input type="radio" name="reason" value="事假"><span class="ml-3 text-sm font-medium">事假</span>
-              </label>
-              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors">
-                <input type="radio" name="reason" value="其他"><span class="ml-3 text-sm font-medium">其他</span>
-              </label>
+              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors"><input type="radio" name="reason" value="法定請假(腸病毒、水痘)" required><span class="ml-3 text-sm font-medium">法定請假</span></label>
+              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors"><input type="radio" name="reason" value="病假"><span class="ml-3 text-sm font-medium">病假</span></label>
+              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors"><input type="radio" name="reason" value="事假"><span class="ml-3 text-sm font-medium">事假</span></label>
+              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors"><input type="radio" name="reason" value="其他"><span class="ml-3 text-sm font-medium">其他</span></label>
             </div>
             <input type="text" id="reasonOtherInput" class="ios-input hidden mt-3 w-full text-sm" placeholder="請輸入具體事由...">
           </div>
-          
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-3 required">申請類別</label>
             <div class="bg-gray-50 p-1 rounded-xl flex">
-              <label class="flex-1 text-center cursor-pointer">
-                <input type="radio" name="applyType" value="individual" class="hidden peer" checked onchange="toggleStudentCount(false)">
-                <div class="py-2 rounded-lg text-sm font-medium text-gray-500 peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm transition-all">個人申請</div>
-              </label>
-              <label class="flex-1 text-center cursor-pointer">
-                <input type="radio" name="applyType" value="class" class="hidden peer" onchange="toggleStudentCount(true)">
-                <div class="py-2 rounded-lg text-sm font-medium text-gray-500 peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm transition-all">全班/多人</div>
-              </label>
+              <label class="flex-1 text-center cursor-pointer"><input type="radio" name="applyType" value="individual" class="hidden peer" checked onchange="toggleStudentCount(false)"><div class="py-2 rounded-lg text-sm font-medium text-gray-500 peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm transition-all">個人申請</div></label>
+              <label class="flex-1 text-center cursor-pointer"><input type="radio" name="applyType" value="class" class="hidden peer" onchange="toggleStudentCount(true)"><div class="py-2 rounded-lg text-sm font-medium text-gray-500 peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm transition-all">全班/多人</div></label>
             </div>
             <div id="studentCountContainer" class="hidden mt-4 animate-fade-in">
-              <div class="flex items-center">
-                <input type="number" id="studentCount" name="studentCount" value="1" min="1" class="ios-input w-24 text-center font-bold text-lg" oninput="updateSummary()">
-                <span class="ml-3 text-gray-500 text-sm">人</span>
-              </div>
+              <div class="flex items-center"><input type="number" id="studentCount" name="studentCount" value="1" min="1" class="ios-input w-24 text-center font-bold text-lg" oninput="updateSummary()"><span class="ml-3 text-gray-500 text-sm">人</span></div>
             </div>
           </div>
-
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2 required">班級座號</label>
-              <input type="text" id="classSeat" name="classSeat" placeholder="例：60123 或 601全班" class="ios-input w-full" required>
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2 required">姓名</label>
-              <input type="text" id="name" name="name" class="ios-input w-full" required>
-            </div>
+            <div><label class="block text-sm font-semibold text-gray-700 mb-2 required">班級座號</label><input type="text" id="classSeat" name="classSeat" placeholder="例：60123 或 601全班" class="ios-input w-full" required></div>
+            <div><label class="block text-sm font-semibold text-gray-700 mb-2 required">姓名</label><input type="text" id="name" name="name" class="ios-input w-full" required></div>
           </div>
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2 required">用餐葷素</label>
@@ -213,13 +170,9 @@
         </div>
       </div>
 
-      <!-- Section 2: 日期與計算 -->
+      <!-- Section 2 -->
       <div class="ios-card p-5 sm:p-6 relative">
-        <h2 class="text-lg font-bold text-gray-900 mb-5 flex items-center">
-          <span class="bg-gray-100 text-gray-500 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2">2</span>
-          選擇日期
-        </h2>
-
+        <h2 class="text-lg font-bold text-gray-900 mb-5 flex items-center"><span class="bg-gray-100 text-gray-500 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2">2</span>選擇日期</h2>
         <div class="bg-gray-50 rounded-2xl p-4 mb-4">
           <div class="flex items-center justify-between mb-4">
             <span class="text-sm font-bold text-gray-700">停餐日曆</span>
@@ -230,12 +183,8 @@
             </div>
           </div>
           <p id="calendar-hint" class="text-xs text-gray-400 mb-2"><i class="fa-solid fa-hand-point-up mr-1"></i>點擊灰色日期可查看原因</p>
-          <div id="calendar-wrapper" class="space-y-6 select-none">
-            <!-- JS 生成日曆 -->
-          </div>
+          <div id="calendar-wrapper" class="space-y-6 select-none"></div>
         </div>
-
-        <!-- 統計 Widget -->
         <div class="bg-gray-900 rounded-2xl p-5 text-white shadow-lg">
           <div class="grid grid-cols-3 gap-4 text-center divide-x divide-gray-700">
             <div><div class="text-xs text-gray-400 mb-1">人數</div><input type="text" id="displayStudentCount" readonly class="bg-transparent text-center text-xl font-bold w-full text-white outline-none" value="1"></div>
@@ -247,30 +196,21 @@
         </div>
       </div>
 
-      <!-- Section 3: 社團 -->
+      <!-- Section 3 -->
       <div class="ios-card p-5 sm:p-6">
-        <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-          <span class="bg-gray-100 text-gray-500 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2">3</span>
-          社團調查
-        </h2>
+        <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center"><span class="bg-gray-100 text-gray-500 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2">3</span>社團調查</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="club-container"></div>
       </div>
 
-      <!-- Submit Button -->
       <div class="pb-6">
         <button type="submit" id="submitBtn" class="ios-btn-primary w-full py-4 text-lg shadow-lg hover:shadow-xl shadow-blue-500/20 disabled:shadow-none">提交申請</button>
       </div>
-
     </form>
     
-    <!-- 底部管理員入口 -->
     <div class="max-w-2xl mx-auto my-8 px-2 text-center">
-        <button onclick="toggleAdminMode()" class="text-xs text-gray-300 hover:text-gray-500 transition-colors">
-            <i class="fa-solid fa-gear mr-1"></i> 管理員設定 (假日/不供餐日)
-        </button>
+        <button onclick="toggleAdminMode()" class="text-xs text-gray-300 hover:text-gray-500 transition-colors"><i class="fa-solid fa-gear mr-1"></i> 管理員設定 (假日/不供餐日)</button>
     </div>
 
-    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="hidden fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
       <div class="bg-white p-6 rounded-2xl shadow-2xl border border-gray-100 text-center w-64">
         <div class="animate-spin rounded-full h-10 w-10 border-[3px] border-blue-100 border-t-blue-500 mx-auto mb-4"></div>
@@ -278,7 +218,6 @@
       </div>
     </div>
     
-    <!-- Modals -->
     <div id="successModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
       <div class="modal-content bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm w-full">
         <div class="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fa-solid fa-check"></i></div>
@@ -296,20 +235,16 @@
         <button type="button" onclick="closeInfoModal()" class="bg-gray-100 text-gray-700 hover:bg-gray-200 font-bold py-2.5 px-4 rounded-xl w-full transition-colors">我知道了</button>
       </div>
     </div>
-
   </div>
 
   <script>
     // --- ⚠️ 重要：請務必填入部署後的 Web App 網址 ⚠️ ---
-    const GAS_API_URL = "https://script.google.com/a/macros/lcps.ntpc.edu.tw/s/AKfycby55RTelENyBEhlF1Clmgl2FsBBl_b4bdIwoW0XOWn1Jntnp_5zJqZAiLOsA7oOyMB_qw/exec"; 
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzMeFkFDWSbHhpNGOBZfm_c-VNzamP3ZH1YOg1MdgXRn5I_p7pBstIP3ZEAwRuy0bqL6g/exec"; 
 
-    // --- Configuration ---
     const COST_PER_MEAL = 60;
-    const ADMIN_PASSWORD = "22819980"; // 🟢 密碼設定：請在此處修改雙引號內的內容 (例如: "myPassword123")
     const MAKEUP_DAYS = ["2025/2/8"]; // 補班日
     const CLUB_OPTIONS = ["全部未參加","1.2年級課後班(一.四.五)","3.4年級課後班(五)","1.2年級羽球隊(一. 四.五)","3.4年級羽球隊(五)","週三(羽球隊)","週三籃球班A","週三籃球班B","週三籃球班C","週三才藝班(流行mv舞蹈班)","週三才藝班(英語初階自然發音班P4-P6)班","週三才藝班(英語社團基礎字彙班V1-V3)","週三才藝班(幸福捏一下A)","週三才藝班(創意DIY-禮品＆點心小鋪)","週三才藝班(兒童創意美術)","週三才藝班(數學桌遊社寶可夢)","週三才藝班(思丁(STEAM)創客好小子)","週三才藝班(動漫平板繪圖與手作創作營)","週三才藝班(黑鷹足球社團課)","週五籃球班A","週五籃球班B","週五籃球班C","其他"];
 
-    // 系統變數
     let HOLIDAYS = []; 
     let earliestValidDateObj = null;
     let earliestValidDateStr = "";
@@ -317,73 +252,108 @@
     let adminHolidaySet = new Set();
     let currentStudentCount = 1;
     let isAdminMode = false;
+    let adminPassword = ""; // 暫存密碼，用於後續 API 請求
 
-    // --- Initialization ---
     document.addEventListener('DOMContentLoaded', () => {
       renderClubs();
       initReasonToggle();
-      fetchHolidays(); // 嘗試讀取假日
+      fetchHolidays();
     });
 
-    // --- API Helper ---
-    // 安全的發送請求函式，處理 HTML 錯誤回應
     async function safeFetch(data) {
-        if (!GAS_API_URL || GAS_API_URL.includes("在此處貼上")) {
-            throw new Error("請先設定正確的 GAS_API_URL");
-        }
-        
+        if (!GAS_API_URL || GAS_API_URL.includes("在此處貼上")) throw new Error("請先設定正確的 GAS_API_URL");
         const response = await fetch(GAS_API_URL, {
             method: "POST",
             body: JSON.stringify(data),
             headers: { "Content-Type": "text/plain;charset=utf-8" },
         });
-
-        if (!response.ok) {
-            throw new Error(`伺服器回應錯誤: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error(`伺服器回應錯誤: ${response.status}`);
         const text = await response.text();
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            // 如果解析 JSON 失敗，通常是因為回傳了 HTML 錯誤頁面
-            console.error("Non-JSON response:", text.substring(0, 200)); // 除錯用
-            throw new Error("連線失敗：回傳資料格式錯誤 (可能是網址錯誤或權限不足)");
-        }
+        try { return JSON.parse(text); } 
+        catch (e) { throw new Error("連線失敗：回傳資料格式錯誤 (可能是網址錯誤或權限不足)"); }
     }
 
-    // --- Fetch Data ---
     function fetchHolidays() {
         safeFetch({ action: 'getHolidays' })
         .then(data => {
-            if (data.result === 'success' && Array.isArray(data.holidays)) {
-                HOLIDAYS = data.holidays;
-            }
+            if (data.result === 'success' && Array.isArray(data.holidays)) HOLIDAYS = data.holidays;
             calculateDeadlineRule();
             renderCalendar();
         })
         .catch(err => {
-            // 初始化抓取失敗時，只紀錄不跳警告，避免打擾使用者
             console.warn("無法載入假日設定:", err.message);
             calculateDeadlineRule();
             renderCalendar();
         });
     }
 
-    // --- Admin Mode Logic ---
+    function toggleAdminMode() {
+        // 如果已經在管理員模式，則離開
+        if (isAdminMode) {
+            exitAdminMode();
+            return;
+        }
+
+        // 進入管理員模式：先要求密碼並驗證
+        const pwd = prompt("請輸入管理員密碼:");
+        if (!pwd) return;
+
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+        
+        safeFetch({ action: 'checkPassword', password: pwd })
+        .then(data => {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+            if (data.result === 'success') {
+                isAdminMode = true;
+                adminPassword = pwd; // 暫存密碼
+                
+                const adminBar = document.getElementById('adminBar');
+                const hint = document.getElementById('calendar-hint');
+                
+                adminBar.classList.remove('hidden');
+                adminHolidaySet = new Set(HOLIDAYS);
+                document.body.classList.add('admin-mode');
+                hint.innerText = "點擊日期來「新增」或「移除」假日 (紅色代表假日)";
+                hint.classList.replace('text-gray-400', 'text-red-500');
+                renderCalendar();
+            } else {
+                alert("密碼錯誤");
+            }
+        })
+        .catch(err => {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+            alert("驗證失敗：" + err.message);
+        });
+    }
+
+    function exitAdminMode() {
+        isAdminMode = false;
+        adminPassword = ""; // 清除密碼
+        
+        const adminBar = document.getElementById('adminBar');
+        const hint = document.getElementById('calendar-hint');
+        
+        adminBar.classList.add('hidden');
+        document.body.classList.remove('admin-mode');
+        hint.innerText = "點擊灰色日期可查看原因";
+        hint.classList.replace('text-red-500', 'text-gray-400');
+        fetchHolidays(); // 重新抓取以還原
+    }
+
     function saveAdminHolidays() {
         if (!confirm("確定要儲存這些假日設定嗎？")) return;
         
         const newHolidays = Array.from(adminHolidaySet).sort();
         document.getElementById('loadingOverlay').classList.remove('hidden');
         
-        safeFetch({ action: 'updateHolidays', holidays: newHolidays })
+        // 傳送密碼進行授權
+        safeFetch({ action: 'updateHolidays', holidays: newHolidays, password: adminPassword })
         .then(data => {
             document.getElementById('loadingOverlay').classList.add('hidden');
             if (data.result === 'success') {
                 alert("設定已儲存！");
                 HOLIDAYS = newHolidays; 
-                toggleAdminMode(); 
+                exitAdminMode(); 
             } else {
                 alert("儲存失敗：" + data.error);
             }
@@ -394,10 +364,9 @@
         });
     }
 
-    // --- Form Submission ---
+    // ... Rest of the functions ...
     function handleFormSubmit(e) {
       e.preventDefault();
-      
       const form = document.getElementById('refundForm');
       const formData = new FormData(form);
       const data = {};
@@ -421,7 +390,6 @@
       .catch(onFailure);
     }
 
-    // ... (其餘介面邏輯保持不變) ...
     function toggleStudentCount(isClass) {
       const container = document.getElementById('studentCountContainer');
       const input = document.getElementById('studentCount');
@@ -442,30 +410,6 @@
           else { otherInput.classList.add('hidden'); otherInput.required = false; otherInput.value = ''; }
         });
       });
-    }
-
-    function toggleAdminMode() {
-        if (!isAdminMode) {
-            const pwd = prompt("請輸入管理員密碼:"); // 隱藏提示中的預設密碼
-            if (pwd !== ADMIN_PASSWORD) return alert("密碼錯誤");
-        }
-        isAdminMode = !isAdminMode;
-        const adminBar = document.getElementById('adminBar');
-        const hint = document.getElementById('calendar-hint');
-        if (isAdminMode) {
-            adminBar.classList.remove('hidden');
-            adminHolidaySet = new Set(HOLIDAYS);
-            document.body.classList.add('admin-mode');
-            hint.innerText = "點擊日期來「新增」或「移除」假日 (紅色代表假日)";
-            hint.classList.replace('text-gray-400', 'text-red-500');
-        } else {
-            adminBar.classList.add('hidden');
-            document.body.classList.remove('admin-mode');
-            hint.innerText = "點擊灰色日期可查看原因";
-            hint.classList.replace('text-red-500', 'text-gray-400');
-            fetchHolidays(); 
-        }
-        renderCalendar();
     }
 
     function renderCalendar() {
