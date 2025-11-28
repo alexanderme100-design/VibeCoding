@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Firebase 問卷系統</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,17 +12,20 @@
 
     <style>
         /* 基礎設定 */
-        body { 
-            font-family: 'Noto Sans TC', sans-serif; 
-            background-color: #f3f4f6; 
-            /* 修正手機版面高度問題，改用 min-h-screen */
+        html, body {
+            overflow-x: hidden; /* 防止左右滑動 */
             min-height: 100vh;
+            background-color: #f3f4f6;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        
+        body { 
             display: flex;
             flex-direction: column;
         }
         
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         /* 選項卡片被選中時的動畫 */
         input:checked + div { 
@@ -34,14 +37,28 @@
 
         /* 手機優化：點擊區域 */
         .tap-target {
-            min-height: 44px; /* iOS 建議最小點擊高度 */
+            min-height: 48px; /* 加大點擊區域 */
+        }
+
+        /* 進度條動畫 */
+        .progress-transition {
+            transition: width 0.3s ease-out;
+        }
+
+        /* 針對 iPhone 底部安全區域的修正 */
+        .safe-pb {
+            padding-bottom: env(safe-area-inset-bottom, 20px);
         }
     </style>
 </head>
 <body class="text-gray-800">
 
+    <!-- 進度條 (只在 Public View 顯示) -->
+    <div id="public-progress-bar" class="fixed top-0 left-0 w-full h-1.5 bg-gray-200 z-[60] hidden">
+        <div id="progress-fill" class="h-full bg-green-500 progress-transition" style="width: 0%"></div>
+    </div>
+
     <!-- Navbar (Admin Only) -->
-    <!-- 改為 sticky top-0 以確保在手機滾動時固定在頂部，但不遮擋內容 -->
     <nav id="admin-nav" class="bg-blue-600 text-white shadow-lg sticky top-0 z-50 hidden">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -61,24 +78,33 @@
     </nav>
 
     <!-- Main Content Area -->
-    <!-- 移除 overflow-hidden 與 h-screen，改讓 body 自然捲動 -->
-    <main class="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 relative" id="main-container">
+    <main class="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 relative min-h-[80vh]" id="main-container">
         
-        <!-- Loading State -->
-        <div id="loading-view" class="fixed inset-0 flex items-center justify-center bg-gray-100 z-50">
+        <!-- Loading State (Enhanced) -->
+        <div id="loading-view" class="fixed inset-0 flex flex-col items-center justify-center bg-gray-100 z-50 p-4">
             <div class="text-center">
-                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500 mb-4"></i>
-                <p class="text-gray-500">正在連接...</p>
+                <i class="fa-solid fa-circle-notch fa-spin text-5xl text-blue-500 mb-6"></i>
+                <p class="text-gray-600 text-lg font-medium animate-pulse">正在載入問卷...</p>
+                <div id="loading-error" class="hidden mt-6 bg-red-50 p-4 rounded-xl border border-red-100 max-w-xs mx-auto">
+                    <p class="text-red-600 text-sm mb-3"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 連線似乎有點慢</p>
+                    <button onclick="location.reload()" class="bg-white border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm hover:bg-red-50 transition w-full">
+                        重新整理頁面
+                    </button>
+                    <div id="debug-info" class="mt-2 text-[10px] text-gray-400 text-left font-mono break-all"></div>
+                </div>
             </div>
         </div>
 
         <!-- Login View -->
-        <div id="login-view" class="hidden fixed inset-0 flex items-center justify-center bg-gray-100 z-40 fade-in p-4">
-            <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
+        <div id="login-view" class="hidden fixed inset-0 flex items-center justify-center bg-gray-100 z-40 fade-in p-4 overflow-y-auto">
+            <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl max-w-md w-full text-center my-auto">
                 <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i class="fa-solid fa-user-shield text-3xl"></i>
                 </div>
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">問卷大師登入</h2>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">問卷大師登入</h2>
+                <div id="file-protocol-warning" class="hidden mb-4 p-3 bg-yellow-50 text-yellow-800 text-xs rounded-lg text-left">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i> 警告：您似乎是直接開啟檔案 (file://)。Firebase 驗證功能可能無法運作。請將此檔案上傳至網站伺服器。
+                </div>
                 
                 <div class="space-y-4 text-left">
                     <div>
@@ -92,10 +118,10 @@
                 </div>
 
                 <div class="flex gap-3 mt-6">
-                    <button onclick="app.loginWithEmail()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-md transition">
+                    <button onclick="app.loginWithEmail()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-md transition tap-target">
                         登入
                     </button>
-                    <button onclick="app.registerWithEmail()" class="flex-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 rounded-xl transition">
+                    <button onclick="app.registerWithEmail()" class="flex-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 rounded-xl transition tap-target">
                         註冊
                     </button>
                 </div>
@@ -105,7 +131,7 @@
         <!-- ================= ADMIN VIEWS ================= -->
 
         <!-- Dashboard View (Survey List) -->
-        <div id="dashboard-view" class="hidden fade-in">
+        <div id="dashboard-view" class="hidden fade-in pb-20">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800">我的問卷</h2>
@@ -127,9 +153,9 @@
         </div>
 
         <!-- Editor View -->
-        <div id="editor-view" class="hidden fade-in pb-20 max-w-4xl mx-auto">
-            <div class="flex justify-between items-center mb-4 sticky top-[60px] z-20 bg-[#f3f4f6] py-2">
-                <button onclick="app.showDashboard()" class="text-gray-500 hover:text-blue-600 flex items-center gap-2 transition px-2 py-1">
+        <div id="editor-view" class="hidden fade-in pb-32 max-w-4xl mx-auto">
+            <div class="flex justify-between items-center mb-4 sticky top-[60px] z-20 bg-[#f3f4f6] py-2 px-1">
+                <button onclick="app.showDashboard()" class="text-gray-500 hover:text-blue-600 flex items-center gap-2 transition px-2 py-1 bg-white rounded-lg shadow-sm border border-gray-100">
                     <i class="fa-solid fa-arrow-left"></i> <span class="hidden md:inline">返回列表</span>
                 </button>
                 
@@ -164,10 +190,10 @@
                 </div>
             </div>
             
-            <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+            <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] safe-pb">
                 <div class="max-w-4xl mx-auto flex justify-end gap-3">
-                    <button onclick="app.showDashboard()" class="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition">取消</button>
-                    <button onclick="app.saveSurvey()" id="save-btn" class="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg shadow-blue-200 transition flex items-center gap-2">
+                    <button onclick="app.showDashboard()" class="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition tap-target">取消</button>
+                    <button onclick="app.saveSurvey()" id="save-btn" class="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg shadow-blue-200 transition flex items-center gap-2 tap-target">
                         <i class="fa-solid fa-save"></i> 儲存
                     </button>
                 </div>
@@ -175,9 +201,8 @@
         </div>
 
         <!-- ================= PUBLIC VIEW (RESPONDENT - Mobile Optimized) ================= -->
-        <div id="public-view" class="hidden w-full max-w-3xl mx-auto fade-in pb-10">
+        <div id="public-view" class="hidden w-full max-w-3xl mx-auto fade-in pb-32">
             <!-- Survey Header -->
-            <!-- 手機版 Padding 縮小 (p-6)，電腦版加大 (md:p-8) -->
             <div class="bg-blue-600 text-white p-6 md:p-8 rounded-b-2xl md:rounded-t-2xl shadow-lg relative overflow-hidden">
                 <div class="absolute top-0 right-0 p-8 opacity-10 pointer-events-none"><i class="fa-solid fa-clipboard-question text-9xl"></i></div>
                 <h1 id="public-title" class="text-2xl md:text-3xl font-bold relative z-10 mb-2 break-words">載入中...</h1>
@@ -185,13 +210,12 @@
             </div>
 
             <!-- Survey Form -->
-            <!-- 手機版移除上方圓角，讓視覺延伸；Padding 調整為 p-5 -->
-            <form id="public-form" class="bg-white shadow-lg md:rounded-b-2xl p-5 md:p-8 space-y-6 md:space-y-8 mt-4 md:mt-0 rounded-xl md:rounded-none" onsubmit="event.preventDefault(); app.submitResponse();">
-                <div id="public-questions" class="space-y-8">
+            <form id="public-form" class="bg-white shadow-lg md:rounded-b-2xl p-5 md:p-8 space-y-8 mt-4 md:mt-0 rounded-xl md:rounded-none" onsubmit="event.preventDefault(); app.submitResponse();">
+                <div id="public-questions" class="space-y-10">
                     <!-- Questions injected here -->
                 </div>
 
-                <div class="pt-6 border-t border-gray-100">
+                <div class="pt-8 border-t border-gray-100">
                     <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 transition transform active:scale-[0.98] text-lg tap-target">
                         送出問卷
                     </button>
@@ -280,12 +304,19 @@
     <div id="share-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in p-4">
         <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full">
             <h3 class="text-lg font-bold text-gray-800 mb-2">發布問卷</h3>
-            <p class="text-sm text-gray-500 mb-4">將此連結傳送給填答者。</p>
-            <div class="flex gap-2 mb-4">
+            <p class="text-sm text-gray-500 mb-4">將此連結傳送給填答者，或出示 QR Code。</p>
+            <div class="flex gap-2 mb-6">
                 <input type="text" id="share-link-input" readonly class="w-full bg-gray-50 border border-gray-300 text-gray-600 text-sm rounded-lg p-2.5">
                 <button onclick="app.copyLink()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg text-sm font-medium whitespace-nowrap">複製</button>
             </div>
-            <button onclick="document.getElementById('share-modal').classList.add('hidden')" class="w-full py-2 text-gray-500 hover:bg-gray-50 rounded-lg">關閉</button>
+            
+            <!-- QR Code Area -->
+            <div class="text-center bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div class="text-xs text-gray-500 mb-2 uppercase font-bold tracking-wider">手機掃描填寫</div>
+                <img id="share-qr-img" src="" alt="QR Code" class="mx-auto w-40 h-40 bg-gray-200 rounded">
+            </div>
+
+            <button onclick="document.getElementById('share-modal').classList.add('hidden')" class="w-full mt-4 py-2 text-gray-500 hover:bg-gray-50 rounded-lg">關閉</button>
         </div>
     </div>
 
@@ -302,7 +333,7 @@
     </div>
 
     <!-- Toast -->
-    <div id="toast" class="fixed top-20 right-5 transform translate-x-full transition-transform duration-300 z-[60] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
+    <div id="toast" class="fixed top-20 right-5 transform translate-x-full transition-transform duration-300 z-[70] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
         <i id="toast-icon" class="fa-solid fa-check-circle text-green-400"></i>
         <span id="toast-msg">操作成功</span>
     </div>
@@ -333,23 +364,49 @@
         const publicModeOwnerId = urlParams.get('u');
         const isPublicMode = publicModeSurveyId && publicModeOwnerId;
 
+        // Check for local file protocol
+        if (window.location.protocol === 'file:') {
+            document.getElementById('file-protocol-warning').classList.remove('hidden');
+        }
+
         try {
             const app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
             
+            // Auth Flow
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                 signInWithCustomToken(auth, __initial_auth_token);
             } else if (isPublicMode) {
-                signInAnonymously(auth);
+                signInAnonymously(auth).catch(e => {
+                    console.error("Anon Auth Failed:", e);
+                    // Ensure loading screen doesn't hang forever
+                    setTimeout(() => {
+                        document.getElementById('loading-error').classList.remove('hidden');
+                        document.getElementById('debug-info').textContent = "Auth Error: " + e.message;
+                    }, 2000);
+                });
             }
-        } catch (e) { console.error("Init failed", e); }
+        } catch (e) { 
+            console.error("Init failed", e); 
+            document.getElementById('loading-error').classList.remove('hidden');
+            document.getElementById('debug-info').textContent = "Init Error: " + e.message;
+        }
+
+        // Safety Timeout for Loading Screen
+        setTimeout(() => {
+            const loading = document.getElementById('loading-view');
+            if (!loading.classList.contains('hidden')) {
+                document.getElementById('loading-error').classList.remove('hidden');
+            }
+        }, 5000); // 5 seconds timeout
 
         onAuthStateChanged(auth, (currentUser) => {
             document.getElementById('loading-view').classList.add('hidden');
             if (currentUser) {
                 user = currentUser;
                 document.getElementById('login-view').classList.add('hidden');
+                
                 if (isPublicMode) {
                     loadPublicSurvey(publicModeSurveyId, publicModeOwnerId);
                 } else {
@@ -361,10 +418,14 @@
                 }
             } else {
                 if (!isPublicMode) {
+                    // Admin mode needs login
                     document.getElementById('admin-nav').classList.add('hidden');
                     document.getElementById('dashboard-view').classList.add('hidden');
                     document.getElementById('editor-view').classList.add('hidden');
                     document.getElementById('login-view').classList.remove('hidden');
+                } else {
+                    // Public mode with NO user (auth failed/loading)
+                    // Wait for auth to complete or timeout
                 }
             }
         });
@@ -435,6 +496,18 @@
                 document.getElementById('dashboard-view').classList.add('hidden');
                 document.getElementById('editor-view').classList.remove('hidden');
                 window.scrollTo(0, 0);
+            },
+
+            // --- REORDER FEATURES ---
+            moveQuestion: (id, direction) => {
+                const card = document.getElementById(`q-${id}`);
+                const container = document.getElementById('questions-container');
+                if (direction === -1) {
+                    if (card.previousElementSibling) container.insertBefore(card, card.previousElementSibling);
+                } else {
+                    if (card.nextElementSibling) container.insertBefore(card.nextElementSibling, card);
+                }
+                window.app.renumberQuestions();
             },
 
             // --- BATCH IMPORT FEATURES ---
@@ -680,6 +753,10 @@
                                 <span class="ml-2 text-xs font-medium text-gray-500">必填</span>
                             </label>
                             <div class="h-4 w-px bg-gray-300 mx-1"></div>
+                            <!-- 上下移動按鈕 -->
+                            <button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-blue-500 p-1 transition"><i class="fa-solid fa-arrow-up"></i></button>
+                            <button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-blue-500 p-1 transition"><i class="fa-solid fa-arrow-down"></i></button>
+                            <div class="h-4 w-px bg-gray-300 mx-1"></div>
                             <button onclick="document.getElementById('q-${id}').remove(); window.app.renumberQuestions();" class="text-gray-400 hover:text-red-500 p-1 transition"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
@@ -752,6 +829,7 @@
             openShareModal: (id) => {
                 const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${user.uid}`;
                 document.getElementById('share-link-input').value = link;
+                document.getElementById('share-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}`;
                 document.getElementById('share-modal').classList.remove('hidden');
             },
             copyLink: () => {
@@ -760,6 +838,24 @@
                 document.execCommand('copy');
                 showToast("連結已複製");
             },
+            
+            // --- PUBLIC VIEW LOGIC (UPDATED) ---
+            updateProgressBar: () => {
+                const form = document.getElementById('public-form');
+                const total = document.querySelectorAll('.public-q-item').length;
+                if(total === 0) return;
+                
+                // Count answered questions
+                const answered = new Set();
+                const formData = new FormData(form);
+                for(let [key, val] of formData.entries()) {
+                    if(val) answered.add(key);
+                }
+                const count = answered.size;
+                const percent = Math.round((count / total) * 100);
+                document.getElementById('progress-fill').style.width = `${percent}%`;
+            },
+            
             submitResponse: async () => {
                 const submitBtn = document.getElementById('submit-btn');
                 submitBtn.disabled = true;
@@ -776,6 +872,7 @@
                     });
                     await addDoc(collection(db, 'artifacts', appId, 'users', publicModeOwnerId, 'surveys', publicModeSurveyId, 'responses'), { answers: answers, submittedAt: serverTimestamp() });
                     document.getElementById('public-form').classList.add('hidden');
+                    document.getElementById('public-progress-bar').classList.add('hidden'); // Hide bar
                     document.getElementById('thank-you-view').classList.remove('hidden');
                     window.scrollTo(0, 0);
                 } catch (e) { console.error(e); showToast("提交失敗", "error"); submitBtn.disabled = false; submitBtn.innerText = "送出問卷"; }
@@ -842,15 +939,13 @@
                         const reqAttr = isReq ? 'required' : '';
                         const reqMark = isReq ? '<span class="text-red-500 ml-1">*</span>' : '';
 
+                        // Wrapper ID for scroll target
+                        const questionId = `pq-${idx}`;
+
                         if (q.type === 'text') {
-                            inputHtml = `<input type="text" name="${name}" ${reqAttr} class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="請輸入您的答案...">`;
+                            inputHtml = `<input type="text" name="${name}" ${reqAttr} class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="請輸入您的答案..." oninput="app.updateProgressBar()">`;
                         } else if (q.type === 'radio') {
                             const optionsCount = q.options.length;
-                            
-                            // MOBILE OPTIMIZATION:
-                            // Use grid-cols-1 for mobile (vertical stack)
-                            // Use grid-cols-2 for tablets (sm)
-                            // Use grid-cols-X for desktop (lg)
                             
                             let gridClass = `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${Math.min(optionsCount, 5)} gap-3`;
                             if(optionsCount > 5) gridClass = `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${Math.min(optionsCount, 7)} gap-3`;
@@ -859,9 +954,13 @@
                                 q.options.map(opt => {
                                     const emoji = getEmojiForScale(opt, idx, optionsCount);
                                     const emojiHtml = emoji ? `<div class="text-3xl mb-2">${emoji}</div>` : '';
+                                    // Add onchange handler for auto-scroll
                                     return `
                                     <label class="cursor-pointer relative group">
-                                        <input type="radio" name="${name}" value="${opt}" ${reqAttr} class="peer sr-only">
+                                        <input type="radio" name="${name}" value="${opt}" ${reqAttr} class="peer sr-only" onchange="app.updateProgressBar(); setTimeout(() => { 
+                                            const next = document.getElementById('pq-${idx+1}'); 
+                                            if(next) next.scrollIntoView({behavior: 'smooth', block: 'center'}); 
+                                        }, 300)">
                                         <div class="h-full p-4 border-2 border-gray-200 rounded-xl hover:border-blue-300 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition flex flex-col items-center justify-center text-center">
                                             ${emojiHtml}
                                             <div class="text-sm font-bold text-gray-700 peer-checked:text-blue-700">${opt}</div>
@@ -870,10 +969,10 @@
                                 `}).join('') + `</div>`;
 
                         } else if (q.type === 'checkbox') {
-                             inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"><input type="checkbox" name="${name}" value="${opt}" class="w-5 h-5 text-blue-600 focus:ring-blue-500 rounded"><span class="text-gray-700 text-base">${opt}</span></label>`).join('') + `</div>`;
+                             inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"><input type="checkbox" name="${name}" value="${opt}" class="w-5 h-5 text-blue-600 focus:ring-blue-500 rounded" onchange="app.updateProgressBar()"><span class="text-gray-700 text-base">${opt}</span></label>`).join('') + `</div>`;
                         }
                         
-                        const qHtml = `<div class="public-q-item space-y-3" data-type="${q.type}">
+                        const qHtml = `<div id="${questionId}" class="public-q-item space-y-3 scroll-mt-20" data-type="${q.type}">
                             <h3 class="font-bold text-lg md:text-xl text-gray-800 break-words leading-relaxed">
                                 <span class="text-blue-600 mr-2">${idx + 1}.</span> ${q.text} ${reqMark}
                             </h3>
@@ -882,6 +981,7 @@
                         container.insertAdjacentHTML('beforeend', qHtml);
                     });
                     document.getElementById('public-view').classList.remove('hidden');
+                    document.getElementById('public-progress-bar').classList.remove('hidden'); // Show progress bar
                 } else {
                     document.getElementById('public-title').textContent = "找不到問卷";
                     document.getElementById('public-view').classList.remove('hidden');
