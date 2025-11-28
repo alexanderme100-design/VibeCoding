@@ -402,6 +402,8 @@
                     document.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
                 } catch (e) {
                     console.error("提交答案失敗: ", e);
+                    // 診斷輸出
+                    console.error("WRITE FAILED PATH:", COLLECTIONS.RESPONSES); 
                     showToast('提交失敗，請檢查 Firebase 規則或網路。', 'error');
                 } finally {
                     setSubmitting(false);
@@ -458,6 +460,8 @@
                     showToast(`成功匯入 ${newQuestions.length} 題。`, 'success');
                 } catch (e) {
                     console.error("批量匯入題目失敗: ", e);
+                    // 診斷輸出
+                    console.error("WRITE FAILED PATH:", COLLECTIONS.QUESTIONS);
                     showToast('批量匯入失敗，請檢查網路或權限。', 'error');
                 }
             };
@@ -490,6 +494,8 @@
                     setManualForm(prev => ({ ...prev, isOpen: false }));
                 } catch (e) {
                     console.error(`${action}題目失敗: `, e);
+                    // 診斷輸出
+                    console.error("WRITE FAILED PATH:", COLLECTIONS.QUESTIONS);
                     showToast(`${action}題目失敗，請稍後再試。`, 'error');
                 }
             };
@@ -503,6 +509,8 @@
                     showToast('題目刪除成功！', 'success');
                 } catch (e) {
                     console.error("刪除題目失敗: ", e);
+                    // 診斷輸出
+                    console.error("DELETE FAILED PATH:", COLLECTIONS.QUESTIONS + '/' + id);
                     showToast('刪除失敗，請檢查權限。', 'error');
                 }
             };
