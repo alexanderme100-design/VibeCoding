@@ -25,9 +25,21 @@ import { Database, TrendingUp, User, Trash, Edit, Plus, Upload, Download, Clipbo
 // 預設為 'Debug' 模式
 setLogLevel('Debug'); 
 
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' && __firebase_config !== '' ? __firebase_config : '{}');
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+// --- HARDCODED FIREBASE CONFIGURATION START ---
+// 這裡假設環境變數未提供，因此硬編碼您的最新配置
+const firebaseConfig = {
+    apiKey: "AIzaSyDownMHSXgqlTDCe8rAcD_7cQv8AZdMBlM",
+    authDomain: "score-401f6.firebaseapp.com",
+    projectId: "score-401f6",
+    storageBucket: "score-401f6.firebasestorage.app",
+    messagingSenderId: "277040199275",
+    appId: "1:277040199275:web:0cefac86741302cd2c232e",
+    measurementId: "G-1RCC7GT016"
+};
+const appId = firebaseConfig.projectId; 
+const initialAuthToken = null; 
+// --- HARDCODED FIREBASE CONFIGURATION END ---
+
 const ADMIN_PASSWORD = 'admin1234'; // 演示密碼
 
 const COLLECTIONS = {
@@ -146,7 +158,7 @@ const App = () => {
         setToast({ message, type });
     }, []);
 
-    // 認證邏輯
+    // 認證邏輯 (修復 TypeError 和優雅處理 auth/admin-restricted-operation)
     useEffect(() => {
         if (!auth) return;
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -159,10 +171,17 @@ const App = () => {
                     }
                 } catch (error) {
                     console.error("Firebase 認證失敗:", error);
-                    showToast('系統認證失敗，請檢查配置。', 'error');
+                    // 顯示明確訊息，讓用戶知道需要啟用匿名認證
+                    showToast('系統認證失敗: 請檢查 Firebase 匿名認證是否已啟用。', 'error');
+                    
+                    // 關鍵修復：如果登入失敗，設置 isAuthReady 但不設置 userId，防止後續操作崩潰
+                    setIsAuthReady(true);
+                    setLoading(false);
+                    return;
                 }
             }
-            setUserId(auth.currentUser?.uid);
+            // 登入成功或已存在用戶
+            setUserId(auth.currentUser?.uid || null); // 使用 null 避免 TypeError
             setIsAuthReady(true);
             setLoading(false);
         });
@@ -171,7 +190,10 @@ const App = () => {
 
     // 題目實時監聽器
     useEffect(() => {
-        if (!isAuthReady || !db) return;
+        if (!isAuthReady || !db || !userId) {
+            // 只有在認證成功後才開始監聽 Firestore
+            return;
+        }
 
         const q = collection(db, COLLECTIONS.QUESTIONS);
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -180,11 +202,11 @@ const App = () => {
             setQuestions(fetchedQuestions);
         }, (error) => {
             console.error("監聽題目失敗:", error);
-            showToast('載入題目時發生錯誤。', 'error');
+            showToast('載入題目時發生錯誤。 (請檢查 Firebase 規則)', 'error');
         });
 
         return () => unsubscribe();
-    }, [isAuthReady, showToast]);
+    }, [isAuthReady, userId, showToast]); // 加入 userId 作為依賴項，確保認證成功才啟動
 
     // 處理答案變更
     const handleAnswerChange = (questionId, score) => {
@@ -225,7 +247,14 @@ const App = () => {
 
     // 提交問卷
     const submitSurvey = async () => {
-        if (!isAuthReady || !userId || submitting || questions.length === 0) return;
+        if (!isAuthReady) {
+            showToast('系統正在初始化或認證失敗，請稍候。', 'error');
+            return;
+        }
+        if (!userId || submitting || questions.length === 0) {
+             showToast('請檢查題目或認證狀態。', 'error');
+             return;
+        }
         
         let allAnswered = questions.every(q => answers[q.id] !== undefined);
 
@@ -250,7 +279,7 @@ const App = () => {
             document.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
         } catch (e) {
             console.error("提交答案失敗: ", e);
-            showToast('提交失敗，請稍後再試。', 'error');
+            showToast('提交失敗，請檢查 Firebase 規則或網路。', 'error');
         } finally {
             setSubmitting(false);
         }
@@ -258,7 +287,10 @@ const App = () => {
 
     // CSV 匯入題目
     const importQuestions = async () => {
-        const csvText = document.getElementById('csv-input').value.trim();
+        const csvInput = document.getElementById('csv-input');
+        if (!csvInput) return;
+
+        const csvText = csvInput.value.trim();
         if (!csvText) {
             showToast('請貼上要匯入的 CSV 內容。', 'error');
             return;
@@ -298,7 +330,7 @@ const App = () => {
             });
             await Promise.all(batchPromises);
 
-            document.getElementById('csv-input').value = '';
+            csvInput.value = '';
             showToast(`成功匯入 ${newQuestions.length} 題。`, 'success');
         } catch (e) {
             console.error("批量匯入題目失敗: ", e);
@@ -356,6 +388,8 @@ const App = () => {
         }
         
         const exportStatus = document.getElementById('export-status');
+        if (!exportStatus) return; // 檢查 DOM 元素
+
         exportStatus.textContent = '正在獲取資料，請稍候...';
 
         try {
