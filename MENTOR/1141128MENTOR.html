@@ -2,435 +2,232 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>問卷管理系統 - Firebase Firestore</title>
+  <title>問卷系統｜整合版（填答 + 統計）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- 簡單內嵌樣式，你可以之後改成自己喜歡的設計 -->
+  <!-- Google 字體 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
   <style>
-    * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
-      background: #f5f5f5;
-    }
-    header {
-      background: #1976d2;
-      color: #fff;
-      padding: 12px 20px;
+      font-family: "Noto Sans TC", sans-serif;
+      background: #eef2f7;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      height: 100vh;
     }
-    header h1 {
-      margin: 0;
-      font-size: 20px;
-    }
-    header small {
-      font-size: 12px;
-      opacity: 0.85;
-    }
-    main {
-      display: flex;
-      height: calc(100vh - 56px);
-    }
-    aside {
+
+    /* 左側問卷選單 */
+    #sidebar {
       width: 280px;
+      background: #ffffff;
       border-right: 1px solid #ddd;
-      background: #fafafa;
-      padding: 12px;
-      overflow-y: auto;
-    }
-    section {
-      flex: 1;
       padding: 16px;
       overflow-y: auto;
     }
-    h2 {
+    #sidebar h2 {
       margin-top: 0;
       font-size: 18px;
-    }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 6px 12px;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-      transition: 0.15s;
-    }
-    .btn-primary {
-      background: #1976d2;
-      color: #fff;
-    }
-    .btn-secondary {
-      background: #e0e0e0;
-      color: #333;
-    }
-    .btn-danger {
-      background: #f44336;
-      color: #fff;
-    }
-    .btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .btn + .btn {
-      margin-left: 8px;
-    }
-    input[type="text"],
-    input[type="number"],
-    textarea,
-    select {
-      width: 100%;
-      padding: 6px 8px;
-      margin-top: 4px;
-      margin-bottom: 8px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
-    label {
-      font-size: 13px;
-      display: block;
-      margin-top: 4px;
-    }
-    .sidebar-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    .sidebar-header button {
-      font-size: 13px;
-    }
-    #surveySearch {
-      margin-bottom: 8px;
+      font-weight: 600;
     }
     #surveyList {
       list-style: none;
       padding: 0;
-      margin: 0;
     }
     #surveyList li {
-      padding: 6px 8px;
-      margin-bottom: 4px;
-      border-radius: 4px;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 6px;
       cursor: pointer;
-      font-size: 13px;
+      transition: 0.2s;
       border: 1px solid transparent;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    #surveyList li span.title {
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    #surveyList li span.badge {
-      font-size: 11px;
-      padding: 2px 6px;
-      border-radius: 999px;
-      margin-left: 4px;
-    }
-    #surveyList li.active {
-      background: #e3f2fd;
-      border-color: #1976d2;
     }
     #surveyList li:hover {
-      background: #eee;
+      background: #f0f7ff;
     }
-    .badge-draft { background: #fff9c4; }
-    .badge-published { background: #c8e6c9; }
-    .badge-archived { background: #eeeeee; }
+    #surveyList li.active {
+      border: 1px solid #2196f3;
+      background: #e3f2fd;
+    }
 
+    /* 右側主區域 */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 14px 20px;
+      background: #1976d2;
+      color: white;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    /* Tabs */
+    #tabs {
+      display: flex;
+      background: white;
+      border-bottom: 1px solid #ccc;
+    }
+    #tabs div {
+      padding: 12px 20px;
+      cursor: pointer;
+      flex: 1;
+      text-align: center;
+      font-weight: 500;
+      transition: 0.2s;
+    }
+    #tabs div.active {
+      border-bottom: 3px solid #1976d2;
+      background: #f0f0f0;
+      color: #1976d2;
+    }
+
+    /* 內容區 */
+    .tabPage {
+      padding: 20px;
+      overflow-y: auto;
+      height: calc(100vh - 120px);
+      display: none;
+    }
+    .tabPage.active {
+      display: block;
+      animation: fadeIn 0.4s;
+    }
+
+    /* 卡片 */
     .card {
-      background: #fff;
-      border-radius: 6px;
-      padding: 12px 14px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      background: white;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
     }
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
+
+    /* 漸入動畫 */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    .card-header h3 {
-      margin: 0;
-      font-size: 16px;
-    }
-    .tagline {
-      font-size: 12px;
-      color: #555;
-    }
-    .row {
-      display: flex;
-      gap: 12px;
-    }
-    .col {
-      flex: 1;
-    }
-    .question-item {
+
+    /* 題目區 */
+    .question {
+      margin-bottom: 14px;
       border-bottom: 1px solid #eee;
-      padding: 6px 0;
-      font-size: 13px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
+      padding-bottom: 10px;
     }
-    .question-main {
-      flex: 1;
+    .question-title {
+      font-weight: 600;
+      margin-bottom: 6px;
     }
-    .question-meta {
-      font-size: 11px;
-      color: #777;
-    }
-    .question-actions button {
-      font-size: 11px;
-      padding: 3px 6px;
-    }
-    .hint {
-      font-size: 12px;
-      color: #777;
-    }
-    .pill {
-      font-size: 11px;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: #eeeeee;
-      margin-right: 4px;
-    }
-    .flex {
+
+    /* 單選 多選 */
+    .options label {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      margin-bottom: 4px;
     }
-    .flex-between {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+
+    /* 按鈕 */
+    button {
+      padding: 10px 16px;
+      border-radius: 6px;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s;
     }
-    .mt8 { margin-top: 8px; }
-    .mt12 { margin-top: 12px; }
-    .hidden { display: none; }
+    button.primary {
+      background: #1976d2;
+      color: white;
+    }
+    button.primary:hover {
+      background: #0f5ea5;
+    }
+    button.secondary {
+      background: #e0e0e0;
+      color: #333;
+    }
   </style>
-
-  <!-- Firebase JS SDK v9 (compat 版，方便在一個檔案裡直接用) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
+
 <body>
-  <header>
-    <div>
-      <h1>問卷管理系統</h1>
-      <small>Firebase Firestore 後端 · 圖形化介面</small>
+  <!-- 主內容 -->
+  <div id="main">
+
+    <header id="headerTitle">請選擇左側問卷</header>
+
+    <!-- Tabs -->
+    <div id="tabs">
+      <div id="tabFill" class="active">📝 填寫問卷</div>
+      <div id="tabResult">📊 統計分析</div>
     </div>
-    <div id="statusText" style="font-size: 12px; opacity: 0.85;">
-      尚未初始化 Firebase
+
+    <!-- 填答頁 Tab -->
+    <div id="pageFill" class="tabPage active">
+
+      <div class="card" id="fillInfo" style="display:none;">
+        <h3>問卷說明</h3>
+        <p><strong>標題：</strong> <span id="fillTitle"></span></p>
+        <p><strong>描述：</strong> <span id="fillDesc"></span></p>
+        <p><strong>是否匿名：</strong> <span id="fillAnon"></span></p>
+      </div>
+
+      <div class="card" id="fillFormCard" style="display:none;">
+        <h3>填寫區</h3>
+        <form id="fillForm"></form>
+        <button class="primary" id="submitBtn">送出問卷</button>
+        <div id="submitMsg" style="margin-top:10px;"></div>
+      </div>
+
     </div>
-  </header>
 
-  <main>
-    <!-- 左側：問卷列表 -->
-    <aside>
-      <div class="sidebar-header">
-        <strong>問卷列表</strong>
-        <button class="btn btn-primary" id="newSurveyBtn">＋ 新增問卷</button>
+    <!-- 統計頁 Tab -->
+    <div id="pageResult" class="tabPage">
+
+      <div class="card" id="resultInfo" style="display:none;">
+        <h3>問卷資訊</h3>
+        <p><strong>標題：</strong> <span id="resultTitle"></span></p>
+        <p><strong>回覆數量：</strong> <span id="resultCount"></span></p>
       </div>
-      <input type="text" id="surveySearch" placeholder="搜尋問卷標題..." />
-      <ul id="surveyList"></ul>
-    </aside>
 
-    <!-- 右側：問卷編輯 & 題目管理 -->
-    <section>
-      <!-- 問卷基本資料 -->
-      <div class="card">
-        <div class="card-header">
-          <h3>問卷基本資料</h3>
-          <div>
-            <button class="btn btn-secondary" id="duplicateSurveyBtn" disabled>複製問卷</button>
-            <button class="btn btn-danger" id="deleteSurveyBtn" disabled>刪除問卷</button>
-            <button class="btn btn-primary" id="saveSurveyBtn">儲存問卷</button>
-          </div>
-        </div>
-        <div class="tagline">
-          填完後按「儲存問卷」，左側列表會即時更新。
+      <div class="card" id="analysisCard" style="display:none;">
+        <h3>題目統計</h3>
+
+        <label>選擇題目：</label>
+        <select id="questionSelect"><option>請先選擇問卷</option></select>
+
+        <div style="margin-top:12px;">
+          <button class="secondary" id="barChartBtn" disabled>長條圖</button>
+          <button class="secondary" id="pieChartBtn" disabled>圓餅圖</button>
         </div>
 
-        <label>問卷標題 <span style="color:red">*</span>
-          <input type="text" id="surveyTitle" placeholder="例如：113學年度交通安全問卷" />
-        </label>
-
-        <label>問卷說明
-          <textarea id="surveyDescription" rows="3" placeholder="給填答者看的簡短說明，例如：本問卷為匿名調查，僅供學校教學與研究使用。"></textarea>
-        </label>
-
-        <div class="row">
-          <div class="col">
-            <label>狀態
-              <select id="surveyStatus">
-                <option value="draft">草稿（尚未發佈）</option>
-                <option value="published">已發佈（可以填答）</option>
-                <option value="archived">已封存（不再使用）</option>
-              </select>
-            </label>
-          </div>
-          <div class="col">
-            <label>問卷類別（選填）
-              <input type="text" id="surveyCategory" placeholder="例如：交通安全、視力保健、健康促進..." />
-            </label>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col">
-            <label>對象（選填）
-              <input type="text" id="surveyTarget" placeholder="例如：學生、家長、教師..." />
-            </label>
-          </div>
-          <div class="col" style="padding-top: 10px;">
-            <label>
-              <input type="checkbox" id="surveyIsAnonymous" />
-              此問卷為匿名填答（不收集身分資料）
-            </label>
-          </div>
-        </div>
-
-        <div class="hint">
-          ✨ 建議流程：先把問卷維持在「草稿」，編好題目後，發佈前再改為「已發佈」。
-        </div>
-
-        <!-- 問卷填答網址（自動產生） -->
-        <div class="mt8">
-          <label>問卷填答網址（自動產生）</label>
-          <div class="flex">
-            <input type="text" id="surveyLinkInput" readonly />
-            <button class="btn btn-secondary" id="copySurveyLinkBtn" disabled>複製</button>
-          </div>
-          <div class="hint">
-            這個網址可以給學生 / 家長填答，例如：<code>respond.html?surveyId=...</code>
-          </div>
+        <div id="chartContainer">
+          <canvas id="chartCanvas" height="260"></canvas>
         </div>
       </div>
 
-      <!-- 題目管理 -->
-      <div class="card">
-        <div class="card-header">
-          <h3>題目管理</h3>
-          <div class="hint">
-            先選擇或儲存一份問卷後才能新增題目。
-          </div>
-        </div>
+    </div>
 
-        <!-- 題目列表 -->
-        <div id="questionListContainer" class="mt8">
-          <strong>已設定題目：</strong>
-          <div id="noQuestionHint" class="hint">目前尚未新增任何題目。</div>
-          <div id="questionList"></div>
-        </div>
+  </div>
 
-        <hr class="mt12" />
+</body>
 
-        <!-- 題目編輯表單 -->
-        <div>
-          <div class="flex-between">
-            <strong id="questionFormTitle">新增題目</strong>
-            <span class="hint" id="editingQuestionHint" style="display:none;">
-              正在編輯題目，修改後請按「儲存題目」。
-            </span>
-          </div>
-
-          <label>題目內容 <span style="color:red">*</span>
-            <textarea id="questionText" rows="2" placeholder="例如：上、放學時，你最常使用哪一種交通方式？"></textarea>
-          </label>
-
-          <div class="row">
-            <div class="col">
-              <label>題型
-                <select id="questionType">
-                  <option value="single">單選題</option>
-                  <option value="multiple">多選題</option>
-                  <option value="scale">量表題（例如 1–5 分同意程度）</option>
-                  <option value="text">開放式問答</option>
-                </select>
-              </label>
-            </div>
-            <div class="col" style="padding-top: 10px;">
-              <label>
-                <input type="checkbox" id="questionRequired" />
-                此題為必填
-              </label>
-            </div>
-          </div>
-
-          <div id="optionsField">
-            <label>選項（以逗號 , 分隔）
-              <input type="text" id="questionOptions" placeholder="例：非常同意,同意,普通,不同意,非常不同意" />
-            </label>
-          </div>
-
-          <div id="scaleField" class="hidden">
-            <div class="row">
-              <div class="col">
-                <label>量表最小值
-                  <input type="number" id="scaleMin" value="1" />
-                </label>
-              </div>
-              <div class="col">
-                <label>量表最大值
-                  <input type="number" id="scaleMax" value="5" />
-                </label>
-              </div>
-            </div>
-            <div class="hint">
-              例：1 = 非常不同意，5 = 非常同意（實際說明可以在題目內容裡寫清楚）。
-            </div>
-          </div>
-
-          <div class="mt8">
-            <button class="btn btn-primary" id="saveQuestionBtn">儲存題目</button>
-            <button class="btn btn-secondary" id="cancelEditQuestionBtn" style="display:none;">取消編輯</button>
-          </div>
-
-          <hr class="mt12" />
-
-          <!-- 額外加分功能：批次新增多題 -->
-          <div>
-            <div class="flex-between">
-              <strong>批次新增多題（可選）</strong>
-              <span class="hint">每一行會變成一題「開放式問答」題型。</span>
-            </div>
-            <textarea id="bulkQuestions" rows="3" placeholder="在這裡貼上多行題目，每一行會自動變成一題。"></textarea>
-            <div class="mt8">
-              <button class="btn btn-secondary" id="addBulkQuestionsBtn">一鍵加入多題</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 小提示／預留位置 -->
-      <div class="card">
-        <strong>之後可以再加的功能（已預留欄位）：</strong>
-        <ul class="hint">
-          <li>問卷填答網址產生（例如：<code>/respond.html?surveyId=...</code>）</li>
-          <li>即時統計圖表（長條圖、圓餅圖）</li>
-          <li>匯出填答結果成 CSV / Excel（搭配 <code>responses</code> 集合）</li>
-        </ul>
-      </div>
-    </section>
-  </main>
-
-  <script>
-    // ========================
-    // 1. 初始化 Firebase
-    // ========================
-    const firebaseConfig = {
+<script>
+/* ----------------------------------------------------
+   🔥 1. 初始化 Firebase（替換成你的設定）
+----------------------------------------------------- */
+const firebaseConfig = {
   apiKey: "AIzaSyAexk_JbIOQWV1Jw7hqfiZDDZYY9YF-Sdk",
   authDomain: "survey-49e8d.firebaseapp.com",
   projectId: "survey-49e8d",
@@ -438,607 +235,392 @@
   messagingSenderId: "547257703502",
   appId: "1:547257703502:web:85e147bed62333b11c771f"
 };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const serverTimestamp = firebase.firestore.FieldValue.serverTimestamp();
+/* ----------------------------------------------------
+   2. Tabs 切換
+----------------------------------------------------- */
+const tabFill = document.getElementById("tabFill");
+const tabResult = document.getElementById("tabResult");
+const pageFill = document.getElementById("pageFill");
+const pageResult = document.getElementById("pageResult");
 
-    const statusText = document.getElementById('statusText');
-    statusText.textContent = 'Firebase 已初始化，正在載入問卷…';
+function switchTab(who) {
+  tabFill.classList.remove("active");
+  tabResult.classList.remove("active");
+  pageFill.classList.remove("active");
+  pageResult.classList.remove("active");
 
-    // ========================
-    // 2. 全域狀態 & DOM
-    // ========================
-    let selectedSurveyId = null;
-    let selectedSurveyData = null;
-    let editingQuestionId = null;
-    let questionsUnsubscribe = null;
-    let surveysUnsubscribe = null;
+  if (who === "fill") {
+    tabFill.classList.add("active");
+    pageFill.classList.add("active");
+  } else {
+    tabResult.classList.add("active");
+    pageResult.classList.add("active");
+  }
+}
 
-    const surveyLinkInput = document.getElementById('surveyLinkInput');
-    const copySurveyLinkBtn = document.getElementById('copySurveyLinkBtn');
+tabFill.addEventListener("click", () => switchTab("fill"));
+tabResult.addEventListener("click", () => switchTab("result"));
 
-    // ✅ 修正後：不管檔名叫什麼，都抓「同一個資料夾」底下的 respond.html
-    function updateSurveyLink() {
-      if (!selectedSurveyId) {
-        surveyLinkInput.value = '';
-        copySurveyLinkBtn.disabled = true;
-        return;
-      }
+/* ----------------------------------------------------
+   3. 左側：載入所有問卷列表
+----------------------------------------------------- */
+const surveyListEl = document.getElementById("surveyList");
+let selectedSurveyId = null;
+let selectedSurveyData = null;
+let surveyQuestions = [];
+let responses = [];
 
-      const path = location.pathname;                 // 例如 /VibeCoding/MENTOR/1141128MENTOR.html
-      const lastSlashIndex = path.lastIndexOf('/');   // 找到最後一個 /
-      const basePath = path.substring(0, lastSlashIndex + 1); // /VibeCoding/MENTOR/
+function loadSurveyList() {
+  db.collection("surveys").orderBy("createdAt", "desc").onSnapshot((snap) => {
+    surveyListEl.innerHTML = "";
+    snap.docs.forEach((doc) => {
+      const d = doc.data();
+      const li = document.createElement("li");
+      li.dataset.id = doc.id;
+      li.innerHTML = d.title || "未命名問卷";
 
-      const respondUrl = `${location.origin}${basePath}respond.html?surveyId=${selectedSurveyId}`;
-      surveyLinkInput.value = respondUrl;
-      copySurveyLinkBtn.disabled = false;
-    }
-
-    copySurveyLinkBtn.addEventListener('click', async () => {
-      if (!surveyLinkInput.value) return;
-      try {
-        await navigator.clipboard.writeText(surveyLinkInput.value);
-        alert('已複製問卷填答網址');
-      } catch (err) {
-        console.error(err);
-        alert('無法使用剪貼簿，請手動複製。');
-      }
-    });
-
-    // ========================
-    // 3. 問卷列表 & 搜尋
-    // ========================
-    const surveyListEl = document.getElementById('surveyList');
-    const surveySearchEl = document.getElementById('surveySearch');
-
-    function subscribeSurveys() {
-      if (surveysUnsubscribe) surveysUnsubscribe();
-
-      surveysUnsubscribe = db.collection('surveys')
-        .orderBy('createdAt', 'desc')
-        .onSnapshot(snapshot => {
-          renderSurveyList(snapshot.docs);
-          statusText.textContent = '問卷已同步（Realtime 更新）';
-        }, error => {
-          console.error(error);
-          statusText.textContent = '載入問卷時發生錯誤，請開 F12 console 查看。';
-        });
-    }
-
-    function renderSurveyList(docs) {
-      const keyword = surveySearchEl.value.trim().toLowerCase();
-      surveyListEl.innerHTML = '';
-
-      docs.forEach(doc => {
-        const data = doc.data();
-        const title = data.title || '(未命名問卷)';
-        if (keyword && !title.toLowerCase().includes(keyword)) return;
-
-        const li = document.createElement('li');
-        li.dataset.id = doc.id;
-
-        const titleSpan = document.createElement('span');
-        titleSpan.className = 'title';
-        titleSpan.textContent = title;
-
-        const badgeSpan = document.createElement('span');
-        badgeSpan.className = 'badge';
-        const status = data.status || 'draft';
-        if (status === 'draft') {
-          badgeSpan.classList.add('badge-draft');
-          badgeSpan.textContent = '草稿';
-        } else if (status === 'published') {
-          badgeSpan.classList.add('badge-published');
-          badgeSpan.textContent = '已發佈';
-        } else {
-          badgeSpan.classList.add('badge-archived');
-          badgeSpan.textContent = '已封存';
-        }
-
-        li.appendChild(titleSpan);
-        li.appendChild(badgeSpan);
-
-        if (doc.id === selectedSurveyId) {
-          li.classList.add('active');
-        }
-
-        li.addEventListener('click', () => {
-          selectSurvey(doc.id, data);
-        });
-
-        surveyListEl.appendChild(li);
+      li.addEventListener("click", () => {
+        selectSurvey(doc.id, d);
       });
 
-      if (selectedSurveyId && !docs.find(d => d.id === selectedSurveyId)) {
-        clearSurveyForm();
-        clearQuestionSection();
-      }
-    }
-
-    surveySearchEl.addEventListener('input', () => {
-      subscribeSurveys();
+      surveyListEl.appendChild(li);
     });
+  });
+}
+loadSurveyList();
 
-    // ========================
-    // 4. 問卷編輯表單
-    // ========================
-    const surveyTitleEl = document.getElementById('surveyTitle');
-    const surveyDescriptionEl = document.getElementById('surveyDescription');
-    const surveyStatusEl = document.getElementById('surveyStatus');
-    const surveyCategoryEl = document.getElementById('surveyCategory');
-    const surveyTargetEl = document.getElementById('surveyTarget');
-    const surveyIsAnonymousEl = document.getElementById('surveyIsAnonymous');
+/* ----------------------------------------------------
+   4. 選取問卷 → 載入題目 & 回覆
+----------------------------------------------------- */
+function selectSurvey(id, data) {
+  selectedSurveyId = id;
+  selectedSurveyData = data;
 
-    const newSurveyBtn = document.getElementById('newSurveyBtn');
-    const saveSurveyBtn = document.getElementById('saveSurveyBtn');
-    const deleteSurveyBtn = document.getElementById('deleteSurveyBtn');
-    const duplicateSurveyBtn = document.getElementById('duplicateSurveyBtn');
+  document.querySelectorAll("#surveyList li").forEach(li => {
+    li.classList.toggle("active", li.dataset.id === id);
+  });
 
-    function clearSurveyForm() {
-      selectedSurveyId = null;
-      selectedSurveyData = null;
-      surveyTitleEl.value = '';
-      surveyDescriptionEl.value = '';
-      surveyStatusEl.value = 'draft';
-      surveyCategoryEl.value = '';
-      surveyTargetEl.value = '';
-      surveyIsAnonymousEl.checked = false;
+  document.getElementById("headerTitle").textContent = data.title;
 
-      deleteSurveyBtn.disabled = true;
-      duplicateSurveyBtn.disabled = true;
+  switchTab("fill");
 
-      updateSurveyLink();
-    }
+  loadFillPage(id, data);
+  loadResultPage(id, data);
+}
 
-    newSurveyBtn.addEventListener('click', () => {
-      clearSurveyForm();
-      clearQuestionSection();
-      cancelQuestionEdit();
-    });
+/* ----------------------------------------------------
+   5. 載入填答區（respond）
+----------------------------------------------------- */
+async function loadFillPage(id, data) {
+  document.getElementById("fillInfo").style.display = "block";
+  document.getElementById("fillFormCard").style.display = "block";
 
-    saveSurveyBtn.addEventListener('click', async () => {
-      const title = surveyTitleEl.value.trim();
-      if (!title) {
-        alert('請輸入問卷標題');
-        return;
-      }
+  document.getElementById("fillTitle").textContent = data.title;
+  document.getElementById("fillDesc").textContent = data.description || "(無描述)";
+  document.getElementById("fillAnon").textContent = data.isAnonymous ? "是" : "否";
 
-      const data = {
-        title,
-        description: surveyDescriptionEl.value.trim(),
-        status: surveyStatusEl.value,
-        category: surveyCategoryEl.value.trim(),
-        targetGroup: surveyTargetEl.value.trim(),
-        isAnonymous: surveyIsAnonymousEl.checked,
-        updatedAt: serverTimestamp
-      };
+  const qSnap = await db.collection("surveys").doc(id)
+    .collection("questions")
+    .orderBy("order").get();
 
-      try {
-        if (!selectedSurveyId) {
-          data.createdAt = serverTimestamp;
-          const docRef = await db.collection('surveys').add(data);
-          selectedSurveyId = docRef.id;
-          selectedSurveyData = data;
-          statusText.textContent = '問卷已新增並儲存。';
-        } else {
-          await db.collection('surveys').doc(selectedSurveyId).update(data);
-          selectedSurveyData = { ...(selectedSurveyData || {}), ...data };
-          statusText.textContent = '問卷已更新。';
-        }
+  surveyQuestions = qSnap.docs.map(d => ({ id: d.id, data: d.data() }));
 
-        deleteSurveyBtn.disabled = false;
-        duplicateSurveyBtn.disabled = false;
+  const form = document.getElementById("fillForm");
+  form.innerHTML = "";
 
-        updateSurveyLink();
+  surveyQuestions.forEach(q => {
+    const div = document.createElement("div");
+    div.className = "question";
 
-        if (selectedSurveyId) {
-          subscribeQuestions(selectedSurveyId);
-        }
-      } catch (err) {
-        console.error(err);
-        alert('儲存問卷失敗，請稍後再試。');
-      }
-    });
+    div.innerHTML = `<div class="question-title">${q.data.text} ${q.data.required ? "<span style='color:red'>(必填)</span>" : ""}</div>`;
 
-    deleteSurveyBtn.addEventListener('click', async () => {
-      if (!selectedSurveyId) return;
-      if (!confirm('確定要刪除這份問卷與其所有題目嗎？此動作無法恢復。')) return;
-
-      try {
-        const qSnap = await db.collection('surveys').doc(selectedSurveyId)
-          .collection('questions').get();
-        const batch = db.batch();
-        qSnap.forEach(doc => batch.delete(doc.ref));
-        await batch.commit();
-
-        await db.collection('surveys').doc(selectedSurveyId).delete();
-
-        clearSurveyForm();
-        clearQuestionSection();
-        cancelQuestionEdit();
-        statusText.textContent = '問卷已刪除。';
-      } catch (err) {
-        console.error(err);
-        alert('刪除問卷失敗，請稍後再試。');
-      }
-    });
-
-    duplicateSurveyBtn.addEventListener('click', async () => {
-      if (!selectedSurveyId || !selectedSurveyData) return;
-
-      const newTitle = selectedSurveyData.title + '（複本）';
-      const baseData = {
-        ...selectedSurveyData,
-        title: newTitle,
-        status: 'draft',
-        createdAt: serverTimestamp,
-        updatedAt: serverTimestamp
-      };
-
-      try {
-        const newSurveyRef = await db.collection('surveys').add(baseData);
-
-        const qSnap = await db.collection('surveys').doc(selectedSurveyId)
-          .collection('questions').get();
-        const batch = db.batch();
-        qSnap.forEach(doc => {
-          const data = doc.data();
-          const newQRef = newSurveyRef.collection('questions').doc();
-          batch.set(newQRef, data);
-        });
-        await batch.commit();
-
-        statusText.textContent = '問卷已複製為草稿。';
-      } catch (err) {
-        console.error(err);
-        alert('複製問卷失敗，請稍後再試。');
-      }
-    });
-
-    function selectSurvey(id, data) {
-      selectedSurveyId = id;
-      selectedSurveyData = data || null;
-
-      Array.from(surveyListEl.children).forEach(li => {
-        li.classList.toggle('active', li.dataset.id === id);
+    if (q.data.type === "single") {
+      const optDiv = document.createElement("div");
+      optDiv.className = "options";
+      q.data.options.forEach(opt => {
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="radio" name="${q.id}" value="${opt}"> ${opt}`;
+        optDiv.appendChild(label);
       });
+      div.appendChild(optDiv);
 
-      surveyTitleEl.value = data.title || '';
-      surveyDescriptionEl.value = data.description || '';
-      surveyStatusEl.value = data.status || 'draft';
-      surveyCategoryEl.value = data.category || '';
-      surveyTargetEl.value = data.targetGroup || '';
-      surveyIsAnonymousEl.checked = !!data.isAnonymous;
+    } else if (q.data.type === "multiple") {
+      const optDiv = document.createElement("div");
+      optDiv.className = "options";
+      q.data.options.forEach(opt => {
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="checkbox" name="${q.id}" value="${opt}"> ${opt}`;
+        optDiv.appendChild(label);
+      });
+      div.appendChild(optDiv);
 
-      deleteSurveyBtn.disabled = false;
-      duplicateSurveyBtn.disabled = false;
-
-      updateSurveyLink();
-
-      subscribeQuestions(id);
-      cancelQuestionEdit();
-    }
-
-    // ========================
-    // 5. 題目管理
-    // ========================
-    const questionListEl = document.getElementById('questionList');
-    const noQuestionHintEl = document.getElementById('noQuestionHint');
-    const questionFormTitleEl = document.getElementById('questionFormTitle');
-    const editingQuestionHintEl = document.getElementById('editingQuestionHint');
-
-    const questionTextEl = document.getElementById('questionText');
-    const questionTypeEl = document.getElementById('questionType');
-    const questionRequiredEl = document.getElementById('questionRequired');
-    const questionOptionsEl = document.getElementById('questionOptions');
-    const scaleMinEl = document.getElementById('scaleMin');
-    const scaleMaxEl = document.getElementById('scaleMax');
-    const optionsFieldEl = document.getElementById('optionsField');
-    const scaleFieldEl = document.getElementById('scaleField');
-
-    const saveQuestionBtn = document.getElementById('saveQuestionBtn');
-    const cancelEditQuestionBtn = document.getElementById('cancelEditQuestionBtn');
-
-    const bulkQuestionsEl = document.getElementById('bulkQuestions');
-    const addBulkQuestionsBtn = document.getElementById('addBulkQuestionsBtn');
-
-    function updateQuestionTypeFields() {
-      const type = questionTypeEl.value;
-      if (type === 'single' || type === 'multiple') {
-        optionsFieldEl.classList.remove('hidden');
-        scaleFieldEl.classList.add('hidden');
-      } else if (type === 'scale') {
-        optionsFieldEl.classList.add('hidden');
-        scaleFieldEl.classList.remove('hidden');
-      } else {
-        optionsFieldEl.classList.add('hidden');
-        scaleFieldEl.classList.add('hidden');
+    } else if (q.data.type === "scale") {
+      const select = document.createElement("select");
+      select.name = q.id;
+      select.innerHTML = `<option value="">請選擇</option>`;
+      for (let i = q.data.scaleMin; i <= q.data.scaleMax; i++) {
+        select.innerHTML += `<option value="${i}">${i}</option>`;
       }
-    }
-    questionTypeEl.addEventListener('change', updateQuestionTypeFields);
-    updateQuestionTypeFields();
+      div.appendChild(select);
 
-    function clearQuestionForm() {
-      questionTextEl.value = '';
-      questionTypeEl.value = 'single';
-      questionRequiredEl.checked = false;
-      questionOptionsEl.value = '';
-      scaleMinEl.value = 1;
-      scaleMaxEl.value = 5;
-      updateQuestionTypeFields();
+    } else {
+      div.innerHTML += `<textarea name="${q.id}" rows="3" style="width:100%;"></textarea>`;
     }
 
-    function cancelQuestionEdit() {
-      editingQuestionId = null;
-      clearQuestionForm();
-      questionFormTitleEl.textContent = '新增題目';
-      editingQuestionHintEl.style.display = 'none';
-      cancelEditQuestionBtn.style.display = 'none';
+    form.appendChild(div);
+  });
+}
+
+/* ----------------------------------------------------
+   6. 捕捉送出填答
+----------------------------------------------------- */
+document.getElementById("submitBtn").addEventListener("click", async () => {
+  if (!selectedSurveyId) return;
+
+  const form = document.getElementById("fillForm");
+  const fd = new FormData(form);
+  const answerObj = {};
+
+  for (let q of surveyQuestions) {
+    let val = null;
+
+    if (q.data.type === "single") {
+      val = fd.get(q.id);
+
+    } else if (q.data.type === "multiple") {
+      val = fd.getAll(q.id);
+
+    } else {
+      val = fd.get(q.id);
     }
 
-    cancelEditQuestionBtn.addEventListener('click', () => {
-      cancelQuestionEdit();
+    if (q.data.required && (!val || val.length === 0)) {
+      alert("有必填題目未填寫");
+      return;
+    }
+
+    answerObj[q.id] = val;
+  }
+
+  await db.collection("responses").add({
+    surveyId: selectedSurveyId,
+    answers: answerObj,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  document.getElementById("submitMsg").innerHTML =
+    "<span style='color:green'>已成功送出，感謝您的填寫！</span>";
+
+  form.reset();
+});
+
+/* ----------------------------------------------------
+   7. 載入統計結果（results）
+----------------------------------------------------- */
+async function loadResultPage(id, data) {
+  const rSnap = await db.collection("responses")
+    .where("surveyId", "==", id)
+    .orderBy("createdAt").get();
+
+  responses = rSnap.docs.map(d => ({ id: d.id, data: d.data() }));
+
+  document.getElementById("resultInfo").style.display = "block";
+  document.getElementById("analysisCard").style.display = "block";
+
+  document.getElementById("resultTitle").textContent = data.title;
+  document.getElementById("resultCount").textContent = responses.length;
+
+  const qs = document.getElementById("questionSelect");
+  qs.innerHTML = "<option value=''>請選擇題目</option>";
+  surveyQuestions.forEach((q, i) => {
+    qs.innerHTML += `<option value="${q.id}">${i + 1}. ${q.data.text}</option>`;
+  });
+
+  document.getElementById("barChartBtn").disabled = false;
+  document.getElementById("pieChartBtn").disabled = false;
+}
+/* ----------------------------------------------------
+   8. 統計：計算每題的資料
+----------------------------------------------------- */
+function aggregateQuestion(qId) {
+  const q = surveyQuestions.find(q => q.id === qId);
+  if (!q) return null;
+
+  const type = q.data.type;
+
+  // 👉 單選題
+  if (type === "single") {
+    const map = {};
+    q.data.options.forEach(opt => map[opt] = 0);
+    let total = 0;
+
+    responses.forEach(r => {
+      const ans = r.data.answers[qId];
+      if (ans && map.hasOwnProperty(ans)) {
+        map[ans]++;
+        total++;
+      }
     });
 
-    function clearQuestionSection() {
-      questionListEl.innerHTML = '';
-      noQuestionHintEl.style.display = 'block';
-    }
+    return {
+      type,
+      labels: Object.keys(map),
+      values: Object.values(map),
+      total
+    };
+  }
 
-    function subscribeQuestions(surveyId) {
-      if (questionsUnsubscribe) questionsUnsubscribe();
+  // 👉 多選題
+  if (type === "multiple") {
+    const map = {};
+    q.data.options.forEach(opt => map[opt] = 0);
+    let total = 0;
 
-      questionsUnsubscribe = db.collection('surveys').doc(surveyId)
-        .collection('questions')
-        .orderBy('order', 'asc')
-        .onSnapshot(snapshot => {
-          renderQuestionList(snapshot.docs);
-        }, error => {
-          console.error(error);
-          statusText.textContent = '載入題目時發生錯誤。';
-        });
-    }
-
-    function renderQuestionList(docs) {
-      questionListEl.innerHTML = '';
-
-      if (docs.length === 0) {
-        noQuestionHintEl.style.display = 'block';
-        return;
-      }
-      noQuestionHintEl.style.display = 'none';
-
-      docs.forEach(doc => {
-        const data = doc.data();
-        const item = document.createElement('div');
-        item.className = 'question-item';
-
-        const main = document.createElement('div');
-        main.className = 'question-main';
-
-        const textDiv = document.createElement('div');
-        textDiv.textContent = data.text || '(未填寫題目內容)';
-
-        const metaDiv = document.createElement('div');
-        metaDiv.className = 'question-meta';
-
-        const typeMap = {
-          single: '單選題',
-          multiple: '多選題',
-          scale: '量表題',
-          text: '開放式'
-        };
-        const typeLabel = typeMap[data.type] || data.type || '題型不明';
-
-        const pills = [];
-        pills.push(`<span class="pill">${typeLabel}</span>`);
-        if (data.required) {
-          pills.push('<span class="pill">必填</span>');
-        }
-        if (Array.isArray(data.options) && data.options.length > 0) {
-          pills.push(`<span class="pill">選項數：${data.options.length}</span>`);
-        }
-        if (data.type === 'scale') {
-          pills.push(`<span class="pill">${data.scaleMin || 1}–${data.scaleMax || 5}</span>`);
-        }
-        metaDiv.innerHTML = pills.join('');
-
-        main.appendChild(textDiv);
-        main.appendChild(metaDiv);
-
-        const actions = document.createElement('div');
-        actions.className = 'question-actions';
-
-        const editBtn = document.createElement('button');
-        editBtn.className = 'btn btn-secondary';
-        editBtn.textContent = '編輯';
-        editBtn.addEventListener('click', () => {
-          startEditQuestion(doc.id, data);
-        });
-
-        const delBtn = document.createElement('button');
-        delBtn.className = 'btn btn-danger';
-        delBtn.textContent = '刪除';
-        delBtn.addEventListener('click', async () => {
-          if (!confirm('確定刪除此題？')) return;
-          try {
-            await db.collection('surveys').doc(selectedSurveyId)
-              .collection('questions').doc(doc.id).delete();
-          } catch (err) {
-            console.error(err);
-            alert('刪除題目失敗。');
+    responses.forEach(r => {
+      const arr = r.data.answers[qId];
+      if (Array.isArray(arr)) {
+        arr.forEach(a => {
+          if (map[b] !== undefined) {
+            map[a]++;
+            total++;
           }
         });
-
-        const upBtn = document.createElement('button');
-        upBtn.className = 'btn btn-secondary';
-        upBtn.textContent = '↑';
-        upBtn.addEventListener('click', () => {
-          changeQuestionOrder(doc, -1);
-        });
-
-        const downBtn = document.createElement('button');
-        downBtn.className = 'btn btn-secondary';
-        downBtn.textContent = '↓';
-        downBtn.addEventListener('click', () => {
-          changeQuestionOrder(doc, +1);
-        });
-
-        actions.appendChild(upBtn);
-        actions.appendChild(downBtn);
-        actions.appendChild(editBtn);
-        actions.appendChild(delBtn);
-
-        item.appendChild(main);
-        item.appendChild(actions);
-
-        questionListEl.appendChild(item);
-      });
-    }
-
-    async function changeQuestionOrder(docSnap, delta) {
-      if (!selectedSurveyId) return;
-      const data = docSnap.data();
-      const currentOrder = data.order || 0;
-      try {
-        await db.collection('surveys').doc(selectedSurveyId)
-          .collection('questions').doc(docSnap.id)
-          .update({ order: currentOrder + delta });
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    function startEditQuestion(id, data) {
-      editingQuestionId = id;
-      questionFormTitleEl.textContent = '編輯題目';
-      editingQuestionHintEl.style.display = 'inline';
-      cancelEditQuestionBtn.style.display = 'inline-flex';
-
-      questionTextEl.value = data.text || '';
-      questionTypeEl.value = data.type || 'single';
-      questionRequiredEl.checked = !!data.required;
-      questionOptionsEl.value = (data.options || []).join(',');
-      scaleMinEl.value = data.scaleMin || 1;
-      scaleMaxEl.value = data.scaleMax || 5;
-      updateQuestionTypeFields();
-    }
-
-    saveQuestionBtn.addEventListener('click', async () => {
-      if (!selectedSurveyId) {
-        alert('請先儲存一份問卷，再新增題目。');
-        return;
-      }
-      const text = questionTextEl.value.trim();
-      if (!text) {
-        alert('請輸入題目內容');
-        return;
-      }
-
-      const type = questionTypeEl.value;
-      const required = questionRequiredEl.checked;
-
-      let options = [];
-      let scaleMin = null;
-      let scaleMax = null;
-
-      if (type === 'single' || type === 'multiple') {
-        if (questionOptionsEl.value.trim()) {
-          options = questionOptionsEl.value.split(',')
-            .map(s => s.trim())
-            .filter(Boolean);
-        }
-        if (options.length === 0) {
-          alert('單選/多選題請至少輸入一個選項。');
-          return;
-        }
-      } else if (type === 'scale') {
-        scaleMin = Number(scaleMinEl.value) || 1;
-        scaleMax = Number(scaleMaxEl.value) || 5;
-        if (scaleMin >= scaleMax) {
-          alert('量表的最小值必須小於最大值。');
-          return;
-        }
-      }
-
-      const baseData = {
-        text,
-        type,
-        required,
-        options,
-        scaleMin,
-        scaleMax
-      };
-
-      try {
-        const questionsRef = db.collection('surveys').doc(selectedSurveyId)
-          .collection('questions');
-
-        if (!editingQuestionId) {
-          const snap = await questionsRef.get();
-          const newOrder = snap.size;
-
-          await questionsRef.add({
-            ...baseData,
-            order: newOrder
-          });
-        } else {
-          await questionsRef.doc(editingQuestionId).update(baseData);
-        }
-
-        cancelQuestionEdit();
-      } catch (err) {
-        console.error(err);
-        alert('儲存題目失敗。');
       }
     });
 
-    addBulkQuestionsBtn.addEventListener('click', async () => {
-      if (!selectedSurveyId) {
-        alert('請先儲存一份問卷，再批次新增題目。');
-        return;
-      }
-      const raw = bulkQuestionsEl.value.trim();
-      if (!raw) {
-        alert('請先在文字框輸入至少一行題目。');
-        return;
-      }
-      const lines = raw.split('\n').map(s => s.trim()).filter(Boolean);
-      if (lines.length === 0) {
-        alert('沒有有效的題目內容。');
-        return;
-      }
+    return {
+      type,
+      labels: Object.keys(map),
+      values: Object.values(map),
+      total
+    };
+  }
 
-      try {
-        const questionsRef = db.collection('surveys').doc(selectedSurveyId)
-          .collection('questions');
-        const snap = await questionsRef.get();
-        let baseOrder = snap.size;
+  // 👉 量表題
+  if (type === "scale") {
+    const map = {};
+    for (let i = q.data.scaleMin; i <= q.data.scaleMax; i++) {
+      map[i] = 0;
+    }
+    let total = 0;
 
-        const batch = db.batch();
-        lines.forEach(line => {
-          const docRef = questionsRef.doc();
-          batch.set(docRef, {
-            text: line,
-            type: 'text',
-            required: false,
-            options: [],
-            scaleMin: null,
-            scaleMax: null,
-            order: baseOrder++
-          });
-        });
-        await batch.commit();
-        bulkQuestionsEl.value = '';
-        alert(`已新增 ${lines.length} 題開放式題目。`);
-      } catch (err) {
-        console.error(err);
-        alert('批次新增題目失敗。');
+    responses.forEach(r => {
+      const ans = Number(r.data.answers[qId]);
+      if (!isNaN(ans) && map[ans] !== undefined) {
+        map[ans]++;
+        total++;
       }
     });
 
-    subscribeSurveys();
-  </script>
-</body>
+    return {
+      type,
+      labels: Object.keys(map),
+      values: Object.values(map),
+      total
+    };
+  }
+
+  // 👉 開放式：僅計算填答數
+  if (type === "text") {
+    let count = 0;
+    responses.forEach(r => {
+      const ans = r.data.answers[qId];
+      if (ans && String(ans).trim() !== "") count++;
+    });
+    return {
+      type: "text",
+      count
+    };
+  }
+
+  return null;
+}
+
+/* ----------------------------------------------------
+   9. 題目選擇後，清除現有圖表
+----------------------------------------------------- */
+let chartInstance = null;
+document.getElementById("questionSelect").addEventListener("change", () => {
+  if (chartInstance) {
+    chartInstance.destroy();
+    chartInstance = null;
+  }
+});
+
+/* ----------------------------------------------------
+   10. 按鈕：畫長條圖
+----------------------------------------------------- */
+document.getElementById("barChartBtn").addEventListener("click", () => {
+  drawChart("bar");
+});
+
+/* ----------------------------------------------------
+   11. 按鈕：畫圓餅圖
+----------------------------------------------------- */
+document.getElementById("pieChartBtn").addEventListener("click", () => {
+  drawChart("pie");
+});
+
+/* ----------------------------------------------------
+   12. Chart.js 視覺化
+----------------------------------------------------- */
+function drawChart(mode) {
+  const qId = document.getElementById("questionSelect").value;
+  if (!qId) {
+    alert("請先選擇題目");
+    return;
+  }
+
+  const agg = aggregateQuestion(qId);
+
+  const ctx = document.getElementById("chartCanvas").getContext("2d");
+
+  if (chartInstance) chartInstance.destroy();
+
+  // 👉 開放式不畫圖
+  if (agg.type === "text") {
+    chartInstance = null;
+    document.getElementById("chartContainer").innerHTML = `
+      <div style="padding:20px;text-align:center;color:#888;">
+        此題為開放式題目，共有 ${agg.count} 則文字回答。
+      </div>
+    `;
+    return;
+  }
+
+  // 重建 canvas
+  document.getElementById("chartContainer").innerHTML =
+    `<canvas id="chartCanvas" height="260"></canvas>`;
+  const ctxNew = document.getElementById("chartCanvas").getContext("2d");
+
+  chartInstance = new Chart(ctxNew, {
+    type: mode,
+    data: {
+      labels: agg.labels,
+      datasets: [{
+        label: "回答數",
+        data: agg.values,
+        backgroundColor: [
+          "#42a5f5", "#66bb6a", "#ffca28",
+          "#ef5350", "#ab47bc", "#26c6da",
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: mode === "pie" }
+      },
+      scales: mode === "bar"
+        ? { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        : {}
+    }
+  });
+}
+
+</script>
+
 </html>
