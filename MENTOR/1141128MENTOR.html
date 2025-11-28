@@ -28,12 +28,12 @@ setLogLevel('Debug');
 // --- HARDCODED FIREBASE CONFIGURATION START ---
 // 這裡假設環境變數未提供，因此硬編碼您的最新配置
 const firebaseConfig = {
-  apiKey: "AIzaSyA6FogyEdAk3FurxCje3viTHBdToqyONE0",
-  authDomain: "mentor-6b6ff.firebaseapp.com",
-  projectId: "mentor-6b6ff",
-  storageBucket: "mentor-6b6ff.firebasestorage.app",
-  messagingSenderId: "463036433182",
-  appId: "1:463036433182:web:486beace3c636ff97fff0f"
+    apiKey: "AIzaSyA6FogyEdAk3FurxCje3viTHBdToqyONE0",
+    authDomain: "mentor-6b6ff.firebaseapp.com",
+    projectId: "mentor-6b6ff",
+    storageBucket: "mentor-6b6ff.firebasestorage.app",
+    messagingSenderId: "463036433182",
+    appId: "1:463036433182:web:486beace3c636ff97fff0f"
 };
 const appId = firebaseConfig.projectId; 
 const initialAuthToken = null; 
@@ -170,8 +170,17 @@ const App = () => {
                     }
                 } catch (error) {
                     console.error("Firebase 認證失敗:", error);
-                    // 顯示明確訊息，讓用戶知道需要啟用匿名認證
-                    showToast('系統認證失敗: 請檢查 Firebase 匿名認證是否已啟用。', 'error');
+                    
+                    let authErrorMsg = '系統認證失敗: ';
+                    if (error.code === 'auth/api-key-not-valid') {
+                        authErrorMsg += 'API 金鑰無效。請檢查您的 Firebase API Key。';
+                    } else if (error.code === 'auth/admin-restricted-operation') {
+                        authErrorMsg += '匿名登入未啟用。請在 Firebase Authentication 中啟用匿名登入。';
+                    } else {
+                        authErrorMsg += '請檢查 Firebase 設定或網路。';
+                    }
+                    
+                    showToast(authErrorMsg, 'error');
                     
                     // 關鍵修復：如果登入失敗，設置 isAuthReady 但不設置 userId，防止後續操作崩潰
                     setIsAuthReady(true);
