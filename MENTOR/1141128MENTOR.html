@@ -305,20 +305,18 @@
         <div class="hint">
           ✨ 建議流程：先把問卷維持在「草稿」，編好題目後，發佈前再改為「已發佈」。
         </div>
-<div class="mt8">
-  <label>問卷填答網址（自動產生）</label>
-  <div class="flex">
-    <input type="text" id="surveyLinkInput" readonly />
-    <button class="btn btn-secondary" id="copySurveyLinkBtn">複製</button>
-  </div>
-  <div class="hint">
-    這個網址可以給學生 / 家長填答，例如：<code>respond.html?surveyId=...</code>
-  </div>
-</div>
 
-
-
-        
+        <!-- 問卷填答網址（自動產生） -->
+        <div class="mt8">
+          <label>問卷填答網址（自動產生）</label>
+          <div class="flex">
+            <input type="text" id="surveyLinkInput" readonly />
+            <button class="btn btn-secondary" id="copySurveyLinkBtn" disabled>複製</button>
+          </div>
+          <div class="hint">
+            這個網址可以給學生 / 家長填答，例如：<code>respond.html?surveyId=...</code>
+          </div>
+        </div>
       </div>
 
       <!-- 題目管理 -->
@@ -433,7 +431,7 @@
     // 1. 初始化 Firebase
     // ========================
     // 👉 這裡把 YOUR_XXXX 換成你在 Firebase 專案設定裡的 config
-   const firebaseConfig = {
+    const firebaseConfig = {
   apiKey: "AIzaSyAexk_JbIOQWV1Jw7hqfiZDDZYY9YF-Sdk",
   authDomain: "survey-49e8d.firebaseapp.com",
   projectId: "survey-49e8d",
@@ -450,13 +448,42 @@
     statusText.textContent = 'Firebase 已初始化，正在載入問卷…';
 
     // ========================
-    // 2. 全域狀態
+    // 2. 全域狀態 & DOM
     // ========================
     let selectedSurveyId = null;
     let selectedSurveyData = null;
     let editingQuestionId = null;
     let questionsUnsubscribe = null;
     let surveysUnsubscribe = null;
+
+    const surveyLinkInput = document.getElementById('surveyLinkInput');
+    const copySurveyLinkBtn = document.getElementById('copySurveyLinkBtn');
+
+    // 更新問卷填答網址
+    function updateSurveyLink() {
+      if (!selectedSurveyId) {
+        surveyLinkInput.value = '';
+        copySurveyLinkBtn.disabled = true;
+        return;
+      }
+
+      // 假設 respond.html 跟 index.html 在同一層
+      const basePath = location.pathname.replace('index.html', '');
+      const respondUrl = `${location.origin}${basePath}respond.html?surveyId=${selectedSurveyId}`;
+      surveyLinkInput.value = respondUrl;
+      copySurveyLinkBtn.disabled = false;
+    }
+
+    copySurveyLinkBtn.addEventListener('click', async () => {
+      if (!surveyLinkInput.value) return;
+      try {
+        await navigator.clipboard.writeText(surveyLinkInput.value);
+        alert('已複製問卷填答網址');
+      } catch (err) {
+        console.error(err);
+        alert('無法使用剪貼簿，請手動複製。');
+      }
+    });
 
     // ========================
     // 3. 問卷列表 & 搜尋
@@ -531,7 +558,6 @@
     }
 
     surveySearchEl.addEventListener('input', () => {
-      // 重新 render（現在的 docs 在 onSnapshot 裡才有，所以這裡只觸發事件即可）
       subscribeSurveys();
     });
 
@@ -562,6 +588,8 @@
 
       deleteSurveyBtn.disabled = true;
       duplicateSurveyBtn.disabled = true;
+
+      updateSurveyLink();
     }
 
     newSurveyBtn.addEventListener('click', () => {
@@ -604,6 +632,8 @@
 
         deleteSurveyBtn.disabled = false;
         duplicateSurveyBtn.disabled = false;
+
+        updateSurveyLink();
 
         // 問卷儲存後，開始載入題目
         if (selectedSurveyId) {
@@ -652,7 +682,6 @@
         createdAt: serverTimestamp,
         updatedAt: serverTimestamp
       };
-      delete baseData.createdAt; // 保險起見（避免舊的 serverTimestamp 被覆蓋）
 
       try {
         // 1) 新建一個問卷
@@ -695,6 +724,8 @@
 
       deleteSurveyBtn.disabled = false;
       duplicateSurveyBtn.disabled = false;
+
+      updateSurveyLink();
 
       // 載入題目
       subscribeQuestions(id);
@@ -981,7 +1012,7 @@
       }
     });
 
-    // 批次新增多題：每一行一題，全部當作開放式題型 & 非必填（你可以再改）
+    // 批次新增多題：每一行一題，全部當作開放式題型 & 非必填
     addBulkQuestionsBtn.addEventListener('click', async () => {
       if (!selectedSurveyId) {
         alert('請先儲存一份問卷，再批次新增題目。');
@@ -1031,4 +1062,3 @@
   </script>
 </body>
 </html>
-
