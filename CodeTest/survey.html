@@ -52,7 +52,7 @@
             </div>
         </div>
 
-        <!-- Login View (New) -->
+        <!-- Login View -->
         <div id="login-view" class="hidden absolute inset-0 flex items-center justify-center bg-gray-100 z-40 fade-in">
             <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
                 <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -76,19 +76,9 @@
                         登入
                     </button>
                     <button onclick="app.registerWithEmail()" class="flex-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 rounded-xl transition">
-                        註冊新帳號
+                        註冊
                     </button>
                 </div>
-
-                <div class="relative mt-8 mb-4">
-                    <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
-                    <div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">或</span></div>
-                </div>
-                
-                <button onclick="app.loginWithGoogle()" class="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google">
-                    使用 Google 帳號登入
-                </button>
             </div>
         </div>
 
@@ -118,9 +108,16 @@
 
         <!-- Editor View -->
         <div id="editor-view" class="hidden max-w-4xl mx-auto fade-in pb-20">
-            <button onclick="app.showDashboard()" class="text-gray-500 hover:text-blue-600 mb-4 flex items-center gap-2 transition">
-                <i class="fa-solid fa-arrow-left"></i> 返回列表
-            </button>
+            <div class="flex justify-between items-center mb-4">
+                <button onclick="app.showDashboard()" class="text-gray-500 hover:text-blue-600 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-arrow-left"></i> 返回列表
+                </button>
+                
+                <!-- 新增：批量匯入按鈕 -->
+                <button onclick="app.openBatchModal()" class="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-200 transition">
+                    <i class="fa-solid fa-bolt mr-1"></i> 批量匯入題目
+                </button>
+            </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="border-b border-gray-100 p-6 bg-gray-50">
@@ -143,7 +140,7 @@
                         <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition">
                             <i class="fa-solid fa-plus"></i>
                         </div>
-                        <span class="text-gray-500 font-medium group-hover:text-blue-600">新增題目</span>
+                        <span class="text-gray-500 font-medium group-hover:text-blue-600">新增單一題目</span>
                     </button>
                 </div>
             </div>
@@ -159,7 +156,6 @@
         </div>
 
         <!-- ================= PUBLIC VIEW (RESPONDENT) ================= -->
-        
         <div id="public-view" class="hidden max-w-3xl mx-auto fade-in pb-10">
             <!-- Survey Header -->
             <div class="bg-blue-600 text-white p-8 rounded-t-2xl shadow-lg relative overflow-hidden">
@@ -181,59 +177,112 @@
                 </div>
             </form>
 
-            <!-- Thank You Message -->
             <div id="thank-you-view" class="hidden bg-white shadow-lg rounded-2xl p-12 text-center mt-4">
                 <div class="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
                     <i class="fa-solid fa-check text-4xl"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-gray-800 mb-2">感謝您的填寫！</h2>
-                <p class="text-gray-500">您的意見對我們非常重要。</p>
                 <button onclick="location.reload()" class="mt-8 text-blue-600 hover:underline">填寫另一份</button>
             </div>
         </div>
-
     </main>
+
+    <!-- Modal (Batch Import) -->
+    <div id="batch-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800"><i class="fa-solid fa-bolt text-yellow-500 mr-2"></i>批量新增題目</h3>
+                <button onclick="document.getElementById('batch-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="overflow-y-auto flex-1 pr-2">
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">題目列表 (一行一題)</label>
+                    <textarea id="batch-text" rows="8" class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500" placeholder="例如：
+您對環境滿意嗎？
+服務人員態度如何？
+餐點口味是否符合預期？"></textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">設定這些題目的類型</label>
+                    <select id="batch-type" onchange="app.toggleBatchSettings()" class="w-full border-gray-300 rounded-lg p-2.5 border bg-white">
+                        <option value="text">全部設為：簡答題</option>
+                        <option value="likert">全部設為：滿意度量表 (Likert)</option>
+                        <option value="radio">全部設為：單選題 (需後續手動補選項)</option>
+                    </select>
+                </div>
+
+                <!-- Likert Settings -->
+                <div id="batch-likert-settings" class="hidden bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+                    <label class="block text-xs font-bold text-blue-700 uppercase mb-2">量表設定</label>
+                    <div class="flex gap-4 items-center">
+                        <div class="flex-1">
+                            <span class="text-sm text-gray-600 block mb-1">等級數</span>
+                            <select id="likert-scale" class="w-full border border-blue-200 rounded p-1.5 text-sm">
+                                <option value="3">3 點量表 (1-3)</option>
+                                <option value="5" selected>5 點量表 (1-5)</option>
+                                <option value="7">7 點量表 (1-7)</option>
+                                <option value="10">10 點量表 (1-10)</option>
+                            </select>
+                        </div>
+                        <div class="flex-1">
+                             <span class="text-sm text-gray-600 block mb-1">文字標籤</span>
+                             <div class="text-xs text-gray-500">
+                                 自動產生：<br>
+                                 1 (非常不滿意) ... 5 (非常滿意)
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-gray-100 flex justify-end gap-2">
+                <button onclick="document.getElementById('batch-modal').classList.add('hidden')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
+                <button onclick="app.processBatchImport()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow">開始匯入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal (View Results) -->
+    <div id="results-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-4xl w-full mx-4 flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+                <h3 class="text-xl font-bold text-gray-800"><i class="fa-solid fa-chart-bar text-blue-500 mr-2"></i>問卷統計結果</h3>
+                <button onclick="document.getElementById('results-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <div id="results-content" class="overflow-y-auto flex-1 space-y-6 p-2">
+                <div class="text-center text-gray-500 py-10">載入中...</div>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal (Share Link) -->
     <div id="share-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in">
         <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-gray-800">發布問卷</h3>
-                <button onclick="document.getElementById('share-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <p class="text-sm text-gray-500 mb-4">將此連結傳送給填答者，他們即可開始填寫問卷。</p>
-            
+            <h3 class="text-lg font-bold text-gray-800 mb-2">發布問卷</h3>
+            <p class="text-sm text-gray-500 mb-4">將此連結傳送給填答者。</p>
             <div class="flex gap-2 mb-4">
-                <input type="text" id="share-link-input" readonly class="w-full bg-gray-50 border border-gray-300 text-gray-600 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5">
-                <button onclick="app.copyLink()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg text-sm font-medium transition whitespace-nowrap">
-                    <i class="fa-regular fa-copy"></i> 複製
-                </button>
-            </div>
-            
-            <div class="bg-yellow-50 text-yellow-800 text-xs p-3 rounded border border-yellow-200">
-                <i class="fa-solid fa-triangle-exclamation mr-1"></i> 請記得更新 Firestore 安全規則以允許外部存取。
+                <input type="text" id="share-link-input" readonly class="w-full bg-gray-50 border border-gray-300 text-gray-600 text-sm rounded-lg p-2.5">
+                <button onclick="app.copyLink()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg text-sm font-medium">複製</button>
             </div>
         </div>
     </div>
 
     <!-- Modal (Confirm Delete) -->
     <div id="delete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in">
-        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4">
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fa-solid fa-trash-can text-2xl"></i>
-                </div>
-                <h3 class="text-lg font-bold text-gray-800">確定要刪除嗎？</h3>
-                <p class="text-gray-500 mt-2 text-sm">此動作無法復原，該問卷所有資料將會消失。</p>
-            </div>
-            <div class="flex gap-3">
-                <button onclick="document.getElementById('delete-modal').classList.add('hidden')" class="flex-1 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 font-medium">取消</button>
-                <button id="confirm-delete-btn" class="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium shadow-md">確認刪除</button>
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 text-center">
+            <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-trash-can text-2xl"></i></div>
+            <h3 class="text-lg font-bold text-gray-800">確定刪除？</h3>
+            <div class="flex gap-3 mt-6">
+                <button onclick="document.getElementById('delete-modal').classList.add('hidden')" class="flex-1 py-2 border border-gray-300 rounded-lg">取消</button>
+                <button id="confirm-delete-btn" class="flex-1 py-2 bg-red-500 text-white rounded-lg">確認刪除</button>
             </div>
         </div>
     </div>
 
-    <!-- Notification Toast -->
+    <!-- Toast -->
     <div id="toast" class="fixed top-20 right-5 transform translate-x-full transition-transform duration-300 z-50 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
         <i id="toast-icon" class="fa-solid fa-check-circle text-green-400"></i>
         <span id="toast-msg">操作成功</span>
@@ -241,7 +290,6 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // 新增 createUserWithEmailAndPassword, signInWithEmailAndPassword
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, GoogleAuthProvider, signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -258,10 +306,9 @@
         
         let db, auth, user;
         let currentSurveyId = null;
-        let publicSurveyOwnerId = null; // Used for public view
-        let surveysCache = {}; // 新增：用來暫存問卷資料，解決特殊字元導致無法編輯的問題
+        let publicSurveyOwnerId = null;
+        let surveysCache = {};
 
-        // Parse URL params for Public Mode
         const urlParams = new URLSearchParams(window.location.search);
         const publicModeSurveyId = urlParams.get('s');
         const publicModeOwnerId = urlParams.get('u');
@@ -272,36 +319,21 @@
             auth = getAuth(app);
             db = getFirestore(app);
             
-            // Start Auth Logic
-            // 1. 如果是 Canvas 環境，使用 custom token
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                 signInWithCustomToken(auth, __initial_auth_token);
-            } 
-            // 2. 如果是公眾填寫模式，使用匿名登入 (讓他們可以讀取/寫入)
-            else if (isPublicMode) {
+            } else if (isPublicMode) {
                 signInAnonymously(auth);
             }
-            // 3. 一般管理員模式：不自動登入，等待使用者點擊 Google Login
-            else {
-                // Do nothing, UI will show login screen based on auth state
-            }
-
-        } catch (e) {
-            console.error("Init failed", e);
-        }
+        } catch (e) { console.error("Init failed", e); }
 
         onAuthStateChanged(auth, (currentUser) => {
             document.getElementById('loading-view').classList.add('hidden');
-            
             if (currentUser) {
                 user = currentUser;
                 document.getElementById('login-view').classList.add('hidden');
-
                 if (isPublicMode) {
-                    // Public Respondent Mode
                     loadPublicSurvey(publicModeSurveyId, publicModeOwnerId);
                 } else {
-                    // Admin Dashboard Mode
                     document.getElementById('admin-nav').classList.remove('hidden');
                     document.getElementById('user-info').textContent = `Hi, ${user.displayName || user.email || 'User'}`;
                     document.getElementById('user-info').classList.remove('opacity-0');
@@ -309,11 +341,7 @@
                     document.getElementById('dashboard-view').classList.remove('hidden');
                 }
             } else {
-                // No User
-                if (isPublicMode) {
-                    // 如果是 Public Mode 但沒登入 (可能初始化延遲)，通常 initAuth 已經觸發 signInAnonymously
-                } else {
-                    // Admin Mode: Show Login Screen
+                if (!isPublicMode) {
                     document.getElementById('admin-nav').classList.add('hidden');
                     document.getElementById('dashboard-view').classList.add('hidden');
                     document.getElementById('editor-view').classList.add('hidden');
@@ -323,68 +351,27 @@
         });
 
         window.app = {
-            // --- Auth (New) ---
             loginWithEmail: async () => {
                 const email = document.getElementById('auth-email').value;
                 const password = document.getElementById('auth-password').value;
-                if (!email || !password) return showToast("請輸入帳號密碼", "error");
-                
-                try {
-                    await signInWithEmailAndPassword(auth, email, password);
-                } catch (error) {
-                    console.error(error);
-                    let msg = "登入失敗";
-                    if (error.code === 'auth/invalid-credential') msg = "帳號或密碼錯誤";
-                    if (error.code === 'auth/invalid-email') msg = "Email 格式錯誤";
-                    showToast(msg, "error");
-                }
+                try { await signInWithEmailAndPassword(auth, email, password); } 
+                catch (error) { showToast("登入失敗: " + error.code, "error"); }
             },
-
             registerWithEmail: async () => {
                 const email = document.getElementById('auth-email').value;
                 const password = document.getElementById('auth-password').value;
-                if (!email || !password) return showToast("請輸入帳號密碼", "error");
-                if (password.length < 6) return showToast("密碼至少需 6 個字元", "error");
-
-                try {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                    showToast("註冊成功！已自動登入");
-                } catch (error) {
-                    console.error(error);
-                    let msg = "註冊失敗";
-                    if (error.code === 'auth/email-already-in-use') msg = "此 Email 已被註冊";
-                    if (error.code === 'auth/weak-password') msg = "密碼太弱";
-                    showToast(msg, "error");
-                }
+                try { await createUserWithEmailAndPassword(auth, email, password); showToast("註冊成功"); } 
+                catch (error) { showToast("註冊失敗: " + error.code, "error"); }
             },
+            logout: async () => { await signOut(auth); location.reload(); },
 
-            loginWithGoogle: async () => {
-                const provider = new GoogleAuthProvider();
-                try {
-                    await signInWithPopup(auth, provider);
-                } catch (error) {
-                    console.error("Login failed", error);
-                    showToast("登入失敗: " + error.message, "error");
-                }
-            },
-
-            logout: async () => {
-                try {
-                    await signOut(auth);
-                    location.reload(); // Reload to clear state
-                } catch (error) {
-                    console.error("Logout failed", error);
-                }
-            },
-
-            // --- Navigation (Admin) ---
+            // --- Navigation ---
             showDashboard: () => {
                 document.getElementById('editor-view').classList.add('hidden');
                 document.getElementById('dashboard-view').classList.remove('hidden');
                 loadSurveys();
                 currentSurveyId = null;
             },
-
             createNewSurvey: () => {
                 currentSurveyId = crypto.randomUUID();
                 document.getElementById('survey-title').value = '';
@@ -394,29 +381,161 @@
                 document.getElementById('dashboard-view').classList.add('hidden');
                 document.getElementById('editor-view').classList.remove('hidden');
             },
-
-            // 修改：只接收 surveyId，資料從 cache 讀取
             editSurvey: (surveyId) => {
                 const survey = surveysCache[surveyId];
-                if (!survey) {
-                    showToast("讀取資料失敗，請重整頁面", "error");
-                    return;
-                }
-
+                if (!survey) return showToast("讀取失敗", "error");
                 currentSurveyId = surveyId;
                 document.getElementById('survey-title').value = survey.title || '';
                 document.getElementById('survey-desc').value = survey.description || '';
-                
                 const container = document.getElementById('questions-container');
                 container.innerHTML = '';
-                
                 (survey.questions || []).forEach(q => window.app.addQuestionUI(q));
-
                 document.getElementById('dashboard-view').classList.add('hidden');
                 document.getElementById('editor-view').classList.remove('hidden');
             },
 
-            // --- UI Manipulation (Admin) ---
+            // --- BATCH IMPORT FEATURES ---
+            openBatchModal: () => {
+                document.getElementById('batch-modal').classList.remove('hidden');
+                document.getElementById('batch-text').value = '';
+                document.getElementById('batch-type').value = 'text';
+                window.app.toggleBatchSettings();
+            },
+            toggleBatchSettings: () => {
+                const type = document.getElementById('batch-type').value;
+                const settingDiv = document.getElementById('batch-likert-settings');
+                if(type === 'likert') settingDiv.classList.remove('hidden');
+                else settingDiv.classList.add('hidden');
+            },
+            processBatchImport: () => {
+                const text = document.getElementById('batch-text').value;
+                const type = document.getElementById('batch-type').value;
+                const scale = parseInt(document.getElementById('likert-scale').value);
+                
+                if(!text.trim()) return showToast("請輸入題目", "error");
+
+                const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+                
+                lines.forEach(line => {
+                    let qData = { text: line, type: 'text', options: [] };
+                    
+                    if(type === 'radio') {
+                        qData.type = 'radio';
+                        qData.options = ['選項1', '選項2']; // Placeholder
+                    } else if(type === 'likert') {
+                        qData.type = 'radio';
+                        qData.options = [];
+                        for(let i=1; i<=scale; i++) {
+                            let label = i.toString();
+                            if(i === 1) label += " (非常不滿意)";
+                            if(i === scale) label += " (非常滿意)";
+                            qData.options.push(label);
+                        }
+                    }
+                    window.app.addQuestionUI(qData);
+                });
+
+                document.getElementById('batch-modal').classList.add('hidden');
+                showToast(`已新增 ${lines.length} 個題目`);
+                setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+            },
+
+            // --- RESULTS FEATURES ---
+            viewResults: async (surveyId) => {
+                const survey = surveysCache[surveyId];
+                const modal = document.getElementById('results-modal');
+                const content = document.getElementById('results-content');
+                modal.classList.remove('hidden');
+                content.innerHTML = '<div class="text-center py-10"><i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-500"></i><br>正在計算數據...</div>';
+
+                try {
+                    // Fetch all responses
+                    const resRef = collection(db, 'artifacts', appId, 'users', user.uid, 'surveys', surveyId, 'responses');
+                    const snapshot = await getDocs(resRef);
+                    
+                    if(snapshot.empty) {
+                        content.innerHTML = '<div class="text-center py-10 text-gray-500">目前還沒有人填寫這份問卷。</div>';
+                        return;
+                    }
+
+                    // Process Data
+                    let totalResponses = snapshot.size;
+                    let stats = {}; // { qIndex: { total: 0, counts: { opt: num }, answers: [] } }
+                    
+                    // Init stats structure based on questions
+                    (survey.questions || []).forEach((q, idx) => {
+                        stats[idx] = { type: q.type, question: q.text, counts: {}, answers: [] };
+                        if(q.options) q.options.forEach(opt => stats[idx].counts[opt] = 0);
+                    });
+
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const answers = data.answers || {};
+                        
+                        Object.keys(answers).forEach(qIdx => {
+                            const val = answers[qIdx];
+                            if(!stats[qIdx]) return;
+
+                            if(stats[qIdx].type === 'text') {
+                                if(val) stats[qIdx].answers.push(val);
+                            } else if (Array.isArray(val)) {
+                                // Checkbox
+                                val.forEach(v => {
+                                    if(stats[qIdx].counts[v] !== undefined) stats[qIdx].counts[v]++;
+                                });
+                            } else {
+                                // Radio
+                                if(stats[qIdx].counts[val] !== undefined) stats[qIdx].counts[val]++;
+                            }
+                        });
+                    });
+
+                    // Render
+                    let html = `<div class="mb-6 bg-blue-50 p-4 rounded-lg text-center font-bold text-blue-800">總填答人數：${totalResponses} 人</div>`;
+                    
+                    Object.keys(stats).sort((a,b) => parseInt(a)-parseInt(b)).forEach(idx => {
+                        const item = stats[idx];
+                        html += `<div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                    <h4 class="font-bold text-gray-800 mb-3"><span class="bg-blue-200 text-blue-800 text-xs px-2 py-0.5 rounded mr-2">Q${parseInt(idx)+1}</span> ${item.question}</h4>`;
+                        
+                        if(item.type === 'text') {
+                            html += `<div class="max-h-40 overflow-y-auto space-y-2">`;
+                            if(item.answers.length === 0) html += `<div class="text-sm text-gray-400 italic">無回應</div>`;
+                            item.answers.forEach(ans => {
+                                html += `<div class="text-sm bg-white p-2 rounded border border-gray-100 text-gray-600">${ans}</div>`;
+                            });
+                            html += `</div>`;
+                        } else {
+                            // Bar chart visualization
+                            html += `<div class="space-y-3">`;
+                            Object.keys(item.counts).forEach(opt => {
+                                const count = item.counts[opt];
+                                const percent = totalResponses > 0 ? Math.round((count / totalResponses) * 100) : 0;
+                                html += `
+                                    <div>
+                                        <div class="flex justify-between text-xs text-gray-600 mb-1">
+                                            <span>${opt}</span>
+                                            <span>${count} 票 (${percent}%)</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                            <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${percent}%"></div>
+                                        </div>
+                                    </div>`;
+                            });
+                            html += `</div>`;
+                        }
+                        html += `</div>`;
+                    });
+
+                    content.innerHTML = html;
+
+                } catch (e) {
+                    console.error(e);
+                    content.innerHTML = '<div class="text-red-500 text-center">載入統計失敗</div>';
+                }
+            },
+
+            // --- UI Manipulation ---
             addQuestionUI: (data = null) => {
                 const container = document.getElementById('questions-container');
                 const id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
@@ -451,159 +570,98 @@
                 </div>`;
                 container.insertAdjacentHTML('beforeend', questionHTML);
             },
-
-            renumberQuestions: () => {
-                document.querySelectorAll('.question-card .bg-blue-100').forEach((badge, index) => badge.textContent = `題目 ${index + 1}`);
-            },
-
+            renumberQuestions: () => { document.querySelectorAll('.question-card .bg-blue-100').forEach((badge, index) => badge.textContent = `題目 ${index + 1}`); },
             toggleOptions: (selectEl) => {
                 const card = selectEl.closest('.question-card');
                 const optionsArea = card.querySelector('.options-area');
                 if (selectEl.value === 'text') optionsArea.classList.add('hidden');
                 else optionsArea.classList.remove('hidden');
             },
-
-            // --- Firestore (Admin) ---
             saveSurvey: async () => {
                 if (!user) return;
                 const saveBtn = document.getElementById('save-btn');
                 const originalBtnText = saveBtn.innerHTML;
                 saveBtn.disabled = true;
                 saveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 儲存中...';
-
                 try {
                     const title = document.getElementById('survey-title').value.trim();
                     const description = document.getElementById('survey-desc').value.trim();
                     if (!title) { showToast("請輸入問卷標題", "error"); throw new Error("Title required"); }
-
                     const cards = document.querySelectorAll('.question-card');
                     const questions = Array.from(cards).map(card => {
                         const type = card.querySelector('.question-type').value;
                         const text = card.querySelector('.question-input').value.trim();
                         let options = [];
-                        if (type !== 'text') {
-                            options = card.querySelector('.question-options').value.split('\n').map(o => o.trim()).filter(o => o);
-                        }
+                        if (type !== 'text') options = card.querySelector('.question-options').value.split('\n').map(o => o.trim()).filter(o => o);
                         return { type, text, options };
                     });
-
                     const surveyData = { title, description, questions, updatedAt: serverTimestamp() };
                     const surveyRef = doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', currentSurveyId);
                     await setDoc(surveyRef, surveyData, { merge: true });
-
-                    showToast("問卷儲存成功！");
+                    showToast("儲存成功");
                     setTimeout(() => window.app.showDashboard(), 1000);
-                } catch (e) {
-                    if (e.message !== "Title required") showToast("儲存失敗", "error");
-                } finally {
-                    saveBtn.disabled = false;
-                    saveBtn.innerHTML = originalBtnText;
-                }
+                } catch (e) { if (e.message !== "Title required") showToast("儲存失敗", "error"); } finally { saveBtn.disabled = false; saveBtn.innerHTML = originalBtnText; }
             },
-
             deleteSurvey: async (id) => {
-                try {
-                    await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', id));
-                    showToast("問卷已刪除");
-                    loadSurveys();
-                } catch (e) { showToast("刪除失敗", "error"); }
+                try { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', id)); showToast("刪除成功"); loadSurveys(); } catch (e) { showToast("刪除失敗", "error"); }
             },
-
             requestDelete: (id) => {
                 const modal = document.getElementById('delete-modal');
                 const confirmBtn = document.getElementById('confirm-delete-btn');
                 modal.classList.remove('hidden');
                 const newBtn = confirmBtn.cloneNode(true);
                 confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
-                newBtn.addEventListener('click', async () => {
-                    modal.classList.add('hidden');
-                    await window.app.deleteSurvey(id);
-                });
+                newBtn.addEventListener('click', async () => { modal.classList.add('hidden'); await window.app.deleteSurvey(id); });
             },
-
-            // --- Sharing Logic ---
             openShareModal: (id) => {
                 const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${user.uid}`;
                 document.getElementById('share-link-input').value = link;
                 document.getElementById('share-modal').classList.remove('hidden');
             },
-
             copyLink: () => {
                 const input = document.getElementById('share-link-input');
                 input.select();
-                document.execCommand('copy'); // Legacy fallback for iframes
+                document.execCommand('copy');
                 showToast("連結已複製");
             },
-
-            // --- Public Respondent Logic ---
             submitResponse: async () => {
                 const submitBtn = document.getElementById('submit-btn');
                 submitBtn.disabled = true;
                 submitBtn.innerText = "提交中...";
-
                 try {
                     const form = document.getElementById('public-form');
                     const formData = new FormData(form);
                     const answers = {};
-
-                    // Extract answers based on question indices
                     document.querySelectorAll('.public-q-item').forEach((div, idx) => {
                         const type = div.dataset.type;
                         const name = `q_${idx}`;
-                        
-                        if (type === 'checkbox') {
-                            answers[idx] = formData.getAll(name);
-                        } else {
-                            answers[idx] = formData.get(name);
-                        }
+                        if (type === 'checkbox') answers[idx] = formData.getAll(name);
+                        else answers[idx] = formData.get(name);
                     });
-
-                    // Save to subcollection: users/{ownerId}/surveys/{surveyId}/responses
-                    await addDoc(collection(db, 'artifacts', appId, 'users', publicModeOwnerId, 'surveys', publicModeSurveyId, 'responses'), {
-                        answers: answers,
-                        submittedAt: serverTimestamp()
-                    });
-
+                    await addDoc(collection(db, 'artifacts', appId, 'users', publicModeOwnerId, 'surveys', publicModeSurveyId, 'responses'), { answers: answers, submittedAt: serverTimestamp() });
                     document.getElementById('public-form').classList.add('hidden');
                     document.getElementById('thank-you-view').classList.remove('hidden');
-
-                } catch (e) {
-                    console.error(e);
-                    showToast("提交失敗，請重試", "error");
-                    submitBtn.disabled = false;
-                    submitBtn.innerText = "送出問卷";
-                }
+                } catch (e) { console.error(e); showToast("提交失敗", "error"); submitBtn.disabled = false; submitBtn.innerText = "送出問卷"; }
             }
         };
 
-        // --- Helper Functions ---
         async function loadSurveys() {
             if (!user) return;
             const q = collection(db, 'artifacts', appId, 'users', user.uid, 'surveys');
             const snapshot = await getDocs(q);
             const listContainer = document.getElementById('survey-list');
             const emptyState = document.getElementById('empty-state');
-            
             listContainer.innerHTML = '';
-            surveysCache = {}; // 重置快取
-
-            if (snapshot.empty) {
-                emptyState.classList.remove('hidden');
-            } else {
+            surveysCache = {};
+            if (snapshot.empty) { emptyState.classList.remove('hidden'); } 
+            else {
                 emptyState.classList.add('hidden');
                 let surveys = [];
-                snapshot.forEach(doc => {
-                    const data = { id: doc.id, ...doc.data() };
-                    surveys.push(data);
-                    surveysCache[doc.id] = data; // 將資料存入快取
-                });
+                snapshot.forEach(doc => { const data = { id: doc.id, ...doc.data() }; surveys.push(data); surveysCache[doc.id] = data; });
                 surveys.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
-
                 surveys.forEach(survey => {
                     const qCount = survey.questions ? survey.questions.length : 0;
-                    // 移除 safeQuestions 轉換邏輯，因為不再需要放在 HTML 裡
                     const date = survey.updatedAt ? new Date(survey.updatedAt.seconds * 1000).toLocaleDateString('zh-TW') : '剛剛';
-                    
                     const card = `
                     <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition p-5 border border-gray-200 flex flex-col h-full">
                         <div class="flex-1">
@@ -614,85 +672,48 @@
                                 <span><i class="fa-regular fa-clock mr-1"></i> ${date}</span>
                             </div>
                         </div>
-                        <div class="mt-5 pt-4 border-t border-gray-100 flex justify-end gap-2">
-                             <button onclick="window.app.openShareModal('${survey.id}')" 
-                                class="text-green-600 hover:bg-green-50 px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1">
-                                <i class="fa-solid fa-share-nodes"></i> 發布
+                        <div class="mt-5 pt-4 border-t border-gray-100 flex justify-between gap-2 items-center">
+                            <button onclick="window.app.viewResults('${survey.id}')" class="text-gray-600 hover:bg-gray-100 px-3 py-1.5 rounded-lg text-sm font-medium transition" title="查看結果">
+                                <i class="fa-solid fa-chart-simple"></i> 統計
                             </button>
-                            <!-- 修改：onclick 簡化為只傳 ID -->
-                            <button onclick="window.app.editSurvey('${survey.id}')" 
-                                class="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition">
-                                編輯
-                            </button>
-                            <button onclick="window.app.requestDelete('${survey.id}')" 
-                                class="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition">
-                                刪除
-                            </button>
+                            <div class="flex gap-2">
+                                <button onclick="window.app.openShareModal('${survey.id}')" class="text-green-600 hover:bg-green-50 px-3 py-1.5 rounded-lg text-sm font-medium transition"><i class="fa-solid fa-share-nodes"></i> 發布</button>
+                                <button onclick="window.app.editSurvey('${survey.id}')" class="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition">編輯</button>
+                                <button onclick="window.app.requestDelete('${survey.id}')" class="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition">刪除</button>
+                            </div>
                         </div>
                     </div>`;
                     listContainer.innerHTML += card;
                 });
             }
         }
-
         async function loadPublicSurvey(surveyId, ownerId) {
             try {
                 const docRef = doc(db, 'artifacts', appId, 'users', ownerId, 'surveys', surveyId);
                 const docSnap = await getDoc(docRef);
-
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     document.getElementById('public-title').textContent = data.title;
                     document.getElementById('public-desc').textContent = data.description || "請回答以下問題";
-                    
                     const container = document.getElementById('public-questions');
                     container.innerHTML = '';
-
                     (data.questions || []).forEach((q, idx) => {
                         let inputHtml = '';
                         const name = `q_${idx}`;
-
-                        if (q.type === 'text') {
-                            inputHtml = `<input type="text" name="${name}" required class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="請輸入您的答案...">`;
-                        } else if (q.type === 'radio') {
-                            inputHtml = `<div class="space-y-2">` + 
-                                q.options.map(opt => `
-                                    <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                        <input type="radio" name="${name}" value="${opt}" required class="w-4 h-4 text-blue-600 focus:ring-blue-500">
-                                        <span class="text-gray-700">${opt}</span>
-                                    </label>
-                                `).join('') + `</div>`;
-                        } else if (q.type === 'checkbox') {
-                            inputHtml = `<div class="space-y-2">` + 
-                                q.options.map(opt => `
-                                    <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                        <input type="checkbox" name="${name}" value="${opt}" class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded">
-                                        <span class="text-gray-700">${opt}</span>
-                                    </label>
-                                `).join('') + `</div>`;
-                        }
-
-                        const qHtml = `
-                        <div class="public-q-item space-y-3" data-type="${q.type}">
-                            <h3 class="font-bold text-lg text-gray-800"><span class="text-blue-600 mr-2">${idx + 1}.</span> ${q.text}</h3>
-                            ${inputHtml}
-                        </div>`;
+                        if (q.type === 'text') inputHtml = `<input type="text" name="${name}" required class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="請輸入您的答案...">`;
+                        else if (q.type === 'radio') inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"><input type="radio" name="${name}" value="${opt}" required class="w-4 h-4 text-blue-600 focus:ring-blue-500"><span class="text-gray-700">${opt}</span></label>`).join('') + `</div>`;
+                        else if (q.type === 'checkbox') inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"><input type="checkbox" name="${name}" value="${opt}" class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded"><span class="text-gray-700">${opt}</span></label>`).join('') + `</div>`;
+                        const qHtml = `<div class="public-q-item space-y-3" data-type="${q.type}"><h3 class="font-bold text-lg text-gray-800"><span class="text-blue-600 mr-2">${idx + 1}.</span> ${q.text}</h3>${inputHtml}</div>`;
                         container.insertAdjacentHTML('beforeend', qHtml);
                     });
-
                     document.getElementById('public-view').classList.remove('hidden');
                 } else {
                     document.getElementById('public-title').textContent = "找不到問卷";
-                    document.getElementById('public-desc').textContent = "此問卷可能已被刪除或連結錯誤。";
                     document.getElementById('public-view').classList.remove('hidden');
                     document.getElementById('public-form').classList.add('hidden');
                 }
-            } catch (e) {
-                console.error("Public load error", e);
-                showToast("載入失敗", "error");
-            }
+            } catch (e) { console.error("Public load error", e); showToast("載入失敗", "error"); }
         }
-
         function showToast(msg, type = 'success') {
             const toast = document.getElementById('toast');
             const icon = document.getElementById('toast-icon');
