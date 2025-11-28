@@ -30,8 +30,13 @@
                 <i class="fa-solid fa-clipboard-list text-2xl"></i>
                 <h1 class="text-xl font-bold tracking-wide">問卷大師 <span class="text-xs font-normal opacity-80 ml-2">管理後台</span></h1>
             </div>
-            <div id="user-info" class="text-sm bg-blue-700 px-3 py-1 rounded-full opacity-0 transition-opacity duration-300">
-                載入中...
+            <div class="flex items-center gap-4">
+                <div id="user-info" class="text-sm bg-blue-700 px-3 py-1 rounded-full opacity-0 transition-opacity duration-300">
+                    載入中...
+                </div>
+                <button onclick="app.logout()" class="text-white hover:text-blue-200 transition text-sm">
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i> 登出
+                </button>
             </div>
         </div>
     </nav>
@@ -44,6 +49,22 @@
             <div class="text-center">
                 <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500 mb-4"></i>
                 <p class="text-gray-500">正在連接...</p>
+            </div>
+        </div>
+
+        <!-- Login View (New) -->
+        <div id="login-view" class="hidden absolute inset-0 flex items-center justify-center bg-gray-100 z-40 fade-in">
+            <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
+                <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fa-solid fa-user-lock text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">歡迎使用問卷大師</h2>
+                <p class="text-gray-500 mb-8">請登入以管理您的問卷資料，資料將雲端同步。</p>
+                
+                <button onclick="app.loginWithGoogle()" class="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 px-4 rounded-xl shadow-sm transition flex items-center justify-center gap-3">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-6 h-6" alt="Google">
+                    使用 Google 帳號登入
+                </button>
             </div>
         </div>
 
@@ -196,7 +217,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // 新增 GoogleAuthProvider, signInWithPopup, signOut
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Configuration
@@ -225,11 +247,18 @@
             auth = getAuth(app);
             db = getFirestore(app);
             
-            // Start Auth
+            // Start Auth Logic
+            // 1. 如果是 Canvas 環境，使用 custom token
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                 signInWithCustomToken(auth, __initial_auth_token);
-            } else {
+            } 
+            // 2. 如果是公眾填寫模式，使用匿名登入 (讓他們可以讀取/寫入)
+            else if (isPublicMode) {
                 signInAnonymously(auth);
+            }
+            // 3. 一般管理員模式：不自動登入，等待使用者點擊 Google Login
+            else {
+                // Do nothing, UI will show login screen based on auth state
             }
 
         } catch (e) {
@@ -237,9 +266,11 @@
         }
 
         onAuthStateChanged(auth, (currentUser) => {
+            document.getElementById('loading-view').classList.add('hidden');
+            
             if (currentUser) {
                 user = currentUser;
-                document.getElementById('loading-view').classList.add('hidden');
+                document.getElementById('login-view').classList.add('hidden');
 
                 if (isPublicMode) {
                     // Public Respondent Mode
@@ -247,15 +278,46 @@
                 } else {
                     // Admin Dashboard Mode
                     document.getElementById('admin-nav').classList.remove('hidden');
-                    document.getElementById('user-info').textContent = `User: ${user.uid.substring(0, 6)}...`;
+                    document.getElementById('user-info').textContent = `Hi, ${user.displayName || user.email || 'User'}`;
                     document.getElementById('user-info').classList.remove('opacity-0');
                     loadSurveys();
                     document.getElementById('dashboard-view').classList.remove('hidden');
+                }
+            } else {
+                // No User
+                if (isPublicMode) {
+                    // 如果是 Public Mode 但沒登入 (可能初始化延遲)，通常 initAuth 已經觸發 signInAnonymously
+                } else {
+                    // Admin Mode: Show Login Screen
+                    document.getElementById('admin-nav').classList.add('hidden');
+                    document.getElementById('dashboard-view').classList.add('hidden');
+                    document.getElementById('editor-view').classList.add('hidden');
+                    document.getElementById('login-view').classList.remove('hidden');
                 }
             }
         });
 
         window.app = {
+            // --- Auth (New) ---
+            loginWithGoogle: async () => {
+                const provider = new GoogleAuthProvider();
+                try {
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
+                    console.error("Login failed", error);
+                    showToast("登入失敗: " + error.message, "error");
+                }
+            },
+
+            logout: async () => {
+                try {
+                    await signOut(auth);
+                    location.reload(); // Reload to clear state
+                } catch (error) {
+                    console.error("Logout failed", error);
+                }
+            },
+
             // --- Navigation (Admin) ---
             showDashboard: () => {
                 document.getElementById('editor-view').classList.add('hidden');
