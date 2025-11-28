@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase 問卷管理系統</title>
+    <title>Firebase 問卷系統</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -14,7 +14,7 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f3f4f6; }
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        /* Custom scrollbar for better UX */
+        /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -23,8 +23,8 @@
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- Navbar -->
-    <nav class="bg-blue-600 text-white shadow-lg shrink-0 z-10">
+    <!-- Navbar (Admin Only) -->
+    <nav id="admin-nav" class="bg-blue-600 text-white shadow-lg shrink-0 z-10 hidden">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <i class="fa-solid fa-clipboard-list text-2xl"></i>
@@ -43,9 +43,11 @@
         <div id="loading-view" class="absolute inset-0 flex items-center justify-center bg-gray-100 z-50">
             <div class="text-center">
                 <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500 mb-4"></i>
-                <p class="text-gray-500">正在連接資料庫...</p>
+                <p class="text-gray-500">正在連接...</p>
             </div>
         </div>
+
+        <!-- ================= ADMIN VIEWS ================= -->
 
         <!-- Dashboard View (Survey List) -->
         <div id="dashboard-view" class="hidden max-w-5xl mx-auto fade-in">
@@ -60,7 +62,7 @@
             </div>
 
             <div id="survey-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Survey Cards will be injected here -->
+                <!-- Survey Cards injected here -->
             </div>
             
             <div id="empty-state" class="hidden text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
@@ -71,18 +73,16 @@
 
         <!-- Editor View -->
         <div id="editor-view" class="hidden max-w-4xl mx-auto fade-in pb-20">
-            <!-- Breadcrumb -->
             <button onclick="app.showDashboard()" class="text-gray-500 hover:text-blue-600 mb-4 flex items-center gap-2 transition">
                 <i class="fa-solid fa-arrow-left"></i> 返回列表
             </button>
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <!-- Editor Header -->
                 <div class="border-b border-gray-100 p-6 bg-gray-50">
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">問卷標題</label>
-                            <input type="text" id="survey-title" class="w-full text-xl font-bold border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2" placeholder="請輸入問卷標題 (例如：2025 年度滿意度調查)">
+                            <input type="text" id="survey-title" class="w-full text-xl font-bold border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2" placeholder="請輸入問卷標題">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">問卷說明</label>
@@ -91,12 +91,8 @@
                     </div>
                 </div>
 
-                <!-- Questions Container -->
-                <div id="questions-container" class="p-6 space-y-6 bg-gray-50/50 min-h-[300px]">
-                    <!-- Question items will be injected here -->
-                </div>
+                <div id="questions-container" class="p-6 space-y-6 bg-gray-50/50 min-h-[300px]"></div>
 
-                <!-- Add Question Button Area -->
                 <div class="p-6 border-t border-gray-200 bg-white flex justify-center">
                     <button onclick="app.addQuestionUI()" class="group flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition w-full max-w-md">
                         <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition">
@@ -107,7 +103,6 @@
                 </div>
             </div>
             
-            <!-- Sticky Footer Action Bar -->
             <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                 <div class="max-w-4xl mx-auto flex justify-end gap-3">
                     <button onclick="app.showDashboard()" class="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition">取消</button>
@@ -118,7 +113,63 @@
             </div>
         </div>
 
+        <!-- ================= PUBLIC VIEW (RESPONDENT) ================= -->
+        
+        <div id="public-view" class="hidden max-w-3xl mx-auto fade-in pb-10">
+            <!-- Survey Header -->
+            <div class="bg-blue-600 text-white p-8 rounded-t-2xl shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-8 opacity-10"><i class="fa-solid fa-clipboard-question text-9xl"></i></div>
+                <h1 id="public-title" class="text-3xl font-bold relative z-10 mb-2">載入中...</h1>
+                <p id="public-desc" class="text-blue-100 relative z-10">請稍候</p>
+            </div>
+
+            <!-- Survey Form -->
+            <form id="public-form" class="bg-white shadow-lg rounded-b-2xl p-8 space-y-8" onsubmit="event.preventDefault(); app.submitResponse();">
+                <div id="public-questions" class="space-y-8">
+                    <!-- Questions injected here -->
+                </div>
+
+                <div class="pt-6 border-t border-gray-100">
+                    <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 transition transform active:scale-95 text-lg">
+                        送出問卷
+                    </button>
+                </div>
+            </form>
+
+            <!-- Thank You Message -->
+            <div id="thank-you-view" class="hidden bg-white shadow-lg rounded-2xl p-12 text-center mt-4">
+                <div class="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fa-solid fa-check text-4xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">感謝您的填寫！</h2>
+                <p class="text-gray-500">您的意見對我們非常重要。</p>
+                <button onclick="location.reload()" class="mt-8 text-blue-600 hover:underline">填寫另一份</button>
+            </div>
+        </div>
+
     </main>
+
+    <!-- Modal (Share Link) -->
+    <div id="share-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800">發布問卷</h3>
+                <button onclick="document.getElementById('share-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">將此連結傳送給填答者，他們即可開始填寫問卷。</p>
+            
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="share-link-input" readonly class="w-full bg-gray-50 border border-gray-300 text-gray-600 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5">
+                <button onclick="app.copyLink()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg text-sm font-medium transition whitespace-nowrap">
+                    <i class="fa-regular fa-copy"></i> 複製
+                </button>
+            </div>
+            
+            <div class="bg-yellow-50 text-yellow-800 text-xs p-3 rounded border border-yellow-200">
+                <i class="fa-solid fa-triangle-exclamation mr-1"></i> 請記得更新 Firestore 安全規則以允許外部存取。
+            </div>
+        </div>
+    </div>
 
     <!-- Modal (Confirm Delete) -->
     <div id="delete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in">
@@ -144,83 +195,81 @@
     </div>
 
     <script type="module">
-        // Import Firebase Functions directly using ES Modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Configuration & Init ---
-        // 修改：直接填入您的 Firebase 設定
+        // Configuration
         const firebaseConfig = {
-          apiKey: "AIzaSyAexk_JbIOQWV1Jw7hqfiZDDZYY9YF-Sdk",
-          authDomain: "survey-49e8d.firebaseapp.com",
-          projectId: "survey-49e8d",
-          storageBucket: "survey-49e8d.firebasestorage.app",
-          messagingSenderId: "547257703502",
-          appId: "1:547257703502:web:85e147bed62333b11c771f"
-        };
-
-        // 設定一個固定的 App ID (原本是自動生成的，現在固定為 'survey-app')
+  apiKey: "AIzaSyAexk_JbIOQWV1Jw7hqfiZDDZYY9YF-Sdk",
+  authDomain: "survey-49e8d.firebaseapp.com",
+  projectId: "survey-49e8d",
+  storageBucket: "survey-49e8d.firebasestorage.app",
+  messagingSenderId: "547257703502",
+  appId: "1:547257703502:web:85e147bed62333b11c771f"
+};
         const appId = 'survey-app';
         
         let db, auth, user;
         let currentSurveyId = null;
+        let publicSurveyOwnerId = null; // Used for public view
 
-        // Initialize App (直接初始化，不再檢查環境變數)
+        // Parse URL params for Public Mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const publicModeSurveyId = urlParams.get('s');
+        const publicModeOwnerId = urlParams.get('u');
+        const isPublicMode = publicModeSurveyId && publicModeOwnerId;
+
         try {
             const app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
-            initAuth();
-        } catch (e) {
-            console.error("Firebase init failed:", e);
-            document.getElementById('loading-view').innerHTML = '<div class="text-red-500 p-4">Firebase 初始化失敗，請檢查 Console。</div>';
-        }
-
-        async function initAuth() {
-            try {
-                // Use custom token if available (standard for this env), else anon
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (e) {
-                console.error("Auth failed", e);
-                showToast("登入失敗", "error");
+            
+            // Start Auth
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                signInAnonymously(auth);
             }
+
+        } catch (e) {
+            console.error("Init failed", e);
         }
 
-        // Auth Listener
         onAuthStateChanged(auth, (currentUser) => {
             if (currentUser) {
                 user = currentUser;
-                document.getElementById('user-info').textContent = `User: ${user.uid.substring(0, 6)}...`;
-                document.getElementById('user-info').classList.remove('opacity-0');
-                loadSurveys(); // Load data once authed
+                document.getElementById('loading-view').classList.add('hidden');
+
+                if (isPublicMode) {
+                    // Public Respondent Mode
+                    loadPublicSurvey(publicModeSurveyId, publicModeOwnerId);
+                } else {
+                    // Admin Dashboard Mode
+                    document.getElementById('admin-nav').classList.remove('hidden');
+                    document.getElementById('user-info').textContent = `User: ${user.uid.substring(0, 6)}...`;
+                    document.getElementById('user-info').classList.remove('opacity-0');
+                    loadSurveys();
+                    document.getElementById('dashboard-view').classList.remove('hidden');
+                }
             }
         });
 
-        // --- Core Application Logic (Global Scope for HTML access) ---
         window.app = {
-            
-            // --- Navigation ---
+            // --- Navigation (Admin) ---
             showDashboard: () => {
                 document.getElementById('editor-view').classList.add('hidden');
                 document.getElementById('dashboard-view').classList.remove('hidden');
-                loadSurveys(); // Refresh list
+                loadSurveys();
                 currentSurveyId = null;
             },
 
             createNewSurvey: () => {
-                currentSurveyId = crypto.randomUUID(); // Generate client-side ID for new doc
+                currentSurveyId = crypto.randomUUID();
                 document.getElementById('survey-title').value = '';
                 document.getElementById('survey-desc').value = '';
                 document.getElementById('questions-container').innerHTML = '';
-                
-                // Add one default question
                 window.app.addQuestionUI();
-
                 document.getElementById('dashboard-view').classList.add('hidden');
                 document.getElementById('editor-view').classList.remove('hidden');
             },
@@ -229,94 +278,64 @@
                 currentSurveyId = surveyId;
                 document.getElementById('survey-title').value = title;
                 document.getElementById('survey-desc').value = desc;
-                
                 const questions = JSON.parse(decodeURIComponent(questionsDataEncoded));
                 const container = document.getElementById('questions-container');
                 container.innerHTML = '';
-                
                 questions.forEach(q => window.app.addQuestionUI(q));
-
                 document.getElementById('dashboard-view').classList.add('hidden');
                 document.getElementById('editor-view').classList.remove('hidden');
             },
 
-            // --- UI Manipulation ---
+            // --- UI Manipulation (Admin) ---
             addQuestionUI: (data = null) => {
                 const container = document.getElementById('questions-container');
                 const id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-                
                 const type = data ? data.type : 'text';
                 const text = data ? data.text : '';
                 const options = data && data.options ? data.options.join('\n') : '';
 
                 const questionHTML = `
                 <div class="question-card bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative group hover:shadow-md transition duration-200" id="q-${id}">
-                    <!-- Drag/Delete Handle -->
                     <div class="flex justify-between items-start mb-4">
                         <div class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">題目 ${container.children.length + 1}</div>
-                        <button onclick="document.getElementById('q-${id}').remove(); window.app.renumberQuestions();" class="text-gray-400 hover:text-red-500 p-1 transition" title="刪除題目">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
+                        <button onclick="document.getElementById('q-${id}').remove(); window.app.renumberQuestions();" class="text-gray-400 hover:text-red-500 p-1 transition"><i class="fa-solid fa-trash"></i></button>
                     </div>
-
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-                        <!-- Question Text -->
                         <div class="md:col-span-8">
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">題目內容</label>
-                            <input type="text" class="question-input w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border bg-gray-50 focus:bg-white transition" 
-                                placeholder="例如：您對今天的服務滿意嗎？" value="${text}">
+                            <input type="text" class="question-input w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border bg-gray-50 focus:bg-white transition" placeholder="例如：您對今天的服務滿意嗎？" value="${text}">
                         </div>
-
-                        <!-- Question Type -->
                         <div class="md:col-span-4">
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">題型</label>
                             <select class="question-type w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border bg-white" onchange="window.app.toggleOptions(this)">
-                                <option value="text" ${type === 'text' ? 'selected' : ''}>簡答題 (Text)</option>
-                                <option value="radio" ${type === 'radio' ? 'selected' : ''}>單選題 (Radio)</option>
-                                <option value="checkbox" ${type === 'checkbox' ? 'selected' : ''}>多選題 (Checkbox)</option>
+                                <option value="text" ${type === 'text' ? 'selected' : ''}>簡答題</option>
+                                <option value="radio" ${type === 'radio' ? 'selected' : ''}>單選題</option>
+                                <option value="checkbox" ${type === 'checkbox' ? 'selected' : ''}>多選題</option>
                             </select>
                         </div>
                     </div>
-
-                    <!-- Options Area (Hidden for Text type) -->
                     <div class="options-area mt-4 ${type === 'text' ? 'hidden' : ''}">
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">
-                            選項 (每行一個選項)
-                        </label>
-                        <textarea class="question-options w-full border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 border bg-yellow-50 font-mono text-sm" 
-                            rows="3" placeholder="非常滿意&#10;普通&#10;不滿意">${options}</textarea>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">選項 (每行一個)</label>
+                        <textarea class="question-options w-full border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 border bg-yellow-50 font-mono text-sm" rows="3" placeholder="非常滿意&#10;普通&#10;不滿意">${options}</textarea>
                     </div>
-                </div>
-                `;
+                </div>`;
                 container.insertAdjacentHTML('beforeend', questionHTML);
-                
-                // Scroll to bottom if adding new
-                if(!data) {
-                    setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
-                }
             },
 
             renumberQuestions: () => {
-                const badges = document.querySelectorAll('.question-card .bg-blue-100');
-                badges.forEach((badge, index) => {
-                    badge.textContent = `題目 ${index + 1}`;
-                });
+                document.querySelectorAll('.question-card .bg-blue-100').forEach((badge, index) => badge.textContent = `題目 ${index + 1}`);
             },
 
             toggleOptions: (selectEl) => {
                 const card = selectEl.closest('.question-card');
                 const optionsArea = card.querySelector('.options-area');
-                if (selectEl.value === 'text') {
-                    optionsArea.classList.add('hidden');
-                } else {
-                    optionsArea.classList.remove('hidden');
-                }
+                if (selectEl.value === 'text') optionsArea.classList.add('hidden');
+                else optionsArea.classList.remove('hidden');
             },
 
-            // --- Firestore Operations ---
+            // --- Firestore (Admin) ---
             saveSurvey: async () => {
                 if (!user) return;
-                
                 const saveBtn = document.getElementById('save-btn');
                 const originalBtnText = saveBtn.innerHTML;
                 saveBtn.disabled = true;
@@ -325,64 +344,31 @@
                 try {
                     const title = document.getElementById('survey-title').value.trim();
                     const description = document.getElementById('survey-desc').value.trim();
-                    
-                    if (!title) {
-                        showToast("請輸入問卷標題", "error");
-                        throw new Error("Title required");
-                    }
+                    if (!title) { showToast("請輸入問卷標題", "error"); throw new Error("Title required"); }
 
-                    // Collect Questions
                     const cards = document.querySelectorAll('.question-card');
                     const questions = Array.from(cards).map(card => {
                         const type = card.querySelector('.question-type').value;
                         const text = card.querySelector('.question-input').value.trim();
                         let options = [];
-                        
                         if (type !== 'text') {
-                            const rawOptions = card.querySelector('.question-options').value;
-                            options = rawOptions.split('\n').map(o => o.trim()).filter(o => o);
+                            options = card.querySelector('.question-options').value.split('\n').map(o => o.trim()).filter(o => o);
                         }
-
                         return { type, text, options };
                     });
 
-                    const surveyData = {
-                        title,
-                        description,
-                        questions,
-                        updatedAt: serverTimestamp()
-                    };
-
-                    // Path: artifacts/{appId}/users/{userId}/surveys/{surveyId}
+                    const surveyData = { title, description, questions, updatedAt: serverTimestamp() };
                     const surveyRef = doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', currentSurveyId);
                     await setDoc(surveyRef, surveyData, { merge: true });
 
                     showToast("問卷儲存成功！");
                     setTimeout(() => window.app.showDashboard(), 1000);
-
                 } catch (e) {
-                    console.error("Save error:", e);
-                    if(e.message !== "Title required") showToast("儲存失敗", "error");
+                    if (e.message !== "Title required") showToast("儲存失敗", "error");
                 } finally {
                     saveBtn.disabled = false;
                     saveBtn.innerHTML = originalBtnText;
                 }
-            },
-
-            requestDelete: (id) => {
-                const modal = document.getElementById('delete-modal');
-                const confirmBtn = document.getElementById('confirm-delete-btn');
-                
-                modal.classList.remove('hidden');
-                
-                // Remove old listeners to prevent stacking
-                const newBtn = confirmBtn.cloneNode(true);
-                confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
-                
-                newBtn.addEventListener('click', async () => {
-                    modal.classList.add('hidden');
-                    await window.app.deleteSurvey(id);
-                });
             },
 
             deleteSurvey: async (id) => {
@@ -390,9 +376,72 @@
                     await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', id));
                     showToast("問卷已刪除");
                     loadSurveys();
+                } catch (e) { showToast("刪除失敗", "error"); }
+            },
+
+            requestDelete: (id) => {
+                const modal = document.getElementById('delete-modal');
+                const confirmBtn = document.getElementById('confirm-delete-btn');
+                modal.classList.remove('hidden');
+                const newBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+                newBtn.addEventListener('click', async () => {
+                    modal.classList.add('hidden');
+                    await window.app.deleteSurvey(id);
+                });
+            },
+
+            // --- Sharing Logic ---
+            openShareModal: (id) => {
+                const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${user.uid}`;
+                document.getElementById('share-link-input').value = link;
+                document.getElementById('share-modal').classList.remove('hidden');
+            },
+
+            copyLink: () => {
+                const input = document.getElementById('share-link-input');
+                input.select();
+                document.execCommand('copy'); // Legacy fallback for iframes
+                showToast("連結已複製");
+            },
+
+            // --- Public Respondent Logic ---
+            submitResponse: async () => {
+                const submitBtn = document.getElementById('submit-btn');
+                submitBtn.disabled = true;
+                submitBtn.innerText = "提交中...";
+
+                try {
+                    const form = document.getElementById('public-form');
+                    const formData = new FormData(form);
+                    const answers = {};
+
+                    // Extract answers based on question indices
+                    document.querySelectorAll('.public-q-item').forEach((div, idx) => {
+                        const type = div.dataset.type;
+                        const name = `q_${idx}`;
+                        
+                        if (type === 'checkbox') {
+                            answers[idx] = formData.getAll(name);
+                        } else {
+                            answers[idx] = formData.get(name);
+                        }
+                    });
+
+                    // Save to subcollection: users/{ownerId}/surveys/{surveyId}/responses
+                    await addDoc(collection(db, 'artifacts', appId, 'users', publicModeOwnerId, 'surveys', publicModeSurveyId, 'responses'), {
+                        answers: answers,
+                        submittedAt: serverTimestamp()
+                    });
+
+                    document.getElementById('public-form').classList.add('hidden');
+                    document.getElementById('thank-you-view').classList.remove('hidden');
+
                 } catch (e) {
-                    console.error("Delete error", e);
-                    showToast("刪除失敗", "error");
+                    console.error(e);
+                    showToast("提交失敗，請重試", "error");
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "送出問卷";
                 }
             }
         };
@@ -400,69 +449,110 @@
         // --- Helper Functions ---
         async function loadSurveys() {
             if (!user) return;
-            const loading = document.getElementById('loading-view');
-            const dashboard = document.getElementById('dashboard-view');
+            const q = collection(db, 'artifacts', appId, 'users', user.uid, 'surveys');
+            const snapshot = await getDocs(q);
+            const listContainer = document.getElementById('survey-list');
+            const emptyState = document.getElementById('empty-state');
             
-            try {
-                // Rule: No complex queries initially, but sorting by updated is nice. 
-                // However, without composite index, orderBy might fail.
-                // Let's do simple collection fetch and client-side sort to be safe for this prototype.
-                const q = collection(db, 'artifacts', appId, 'users', user.uid, 'surveys');
-                const snapshot = await getDocs(q);
-                
-                const listContainer = document.getElementById('survey-list');
-                const emptyState = document.getElementById('empty-state');
-                
-                listContainer.innerHTML = '';
-                
-                if (snapshot.empty) {
-                    emptyState.classList.remove('hidden');
-                } else {
-                    emptyState.classList.add('hidden');
+            listContainer.innerHTML = '';
+            if (snapshot.empty) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                let surveys = [];
+                snapshot.forEach(doc => surveys.push({ id: doc.id, ...doc.data() }));
+                surveys.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
+
+                surveys.forEach(survey => {
+                    const qCount = survey.questions ? survey.questions.length : 0;
+                    const safeQuestions = encodeURIComponent(JSON.stringify(survey.questions || []));
+                    const date = survey.updatedAt ? new Date(survey.updatedAt.seconds * 1000).toLocaleDateString('zh-TW') : '剛剛';
                     
-                    let surveys = [];
-                    snapshot.forEach(doc => {
-                        surveys.push({ id: doc.id, ...doc.data() });
-                    });
-
-                    // Sort client side (Newest first)
-                    surveys.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
-
-                    surveys.forEach(survey => {
-                        const qCount = survey.questions ? survey.questions.length : 0;
-                        const date = survey.updatedAt ? new Date(survey.updatedAt.seconds * 1000).toLocaleDateString('zh-TW') : '剛剛';
-                        const safeQuestions = encodeURIComponent(JSON.stringify(survey.questions || []));
-                        
-                        const card = `
-                        <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition p-5 border border-gray-200 flex flex-col h-full group">
-                            <div class="flex-1">
-                                <h3 class="font-bold text-lg text-gray-800 mb-2 line-clamp-1">${survey.title || '未命名問卷'}</h3>
-                                <p class="text-gray-500 text-sm line-clamp-2 mb-4 h-10">${survey.description || '無描述'}</p>
-                                <div class="flex items-center gap-4 text-xs text-gray-400">
-                                    <span class="bg-gray-100 px-2 py-1 rounded"><i class="fa-solid fa-list-ol mr-1"></i> ${qCount} 題</span>
-                                    <span><i class="fa-regular fa-clock mr-1"></i> ${date}</span>
-                                </div>
-                            </div>
-                            <div class="mt-5 pt-4 border-t border-gray-100 flex justify-end gap-2">
-                                <button onclick="window.app.editSurvey('${survey.id}', '${survey.title.replace(/'/g, "\\'")}', '${(survey.description||'').replace(/'/g, "\\'")}', '${safeQuestions}')" 
-                                    class="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition">
-                                    編輯
-                                </button>
-                                <button onclick="window.app.requestDelete('${survey.id}')" 
-                                    class="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition">
-                                    刪除
-                                </button>
+                    const card = `
+                    <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition p-5 border border-gray-200 flex flex-col h-full">
+                        <div class="flex-1">
+                            <h3 class="font-bold text-lg text-gray-800 mb-2 line-clamp-1">${survey.title || '未命名'}</h3>
+                            <p class="text-gray-500 text-sm line-clamp-2 mb-4 h-10">${survey.description || '無描述'}</p>
+                            <div class="flex items-center gap-4 text-xs text-gray-400">
+                                <span class="bg-gray-100 px-2 py-1 rounded"><i class="fa-solid fa-list-ol mr-1"></i> ${qCount} 題</span>
+                                <span><i class="fa-regular fa-clock mr-1"></i> ${date}</span>
                             </div>
                         </div>
-                        `;
-                        listContainer.innerHTML += card;
+                        <div class="mt-5 pt-4 border-t border-gray-100 flex justify-end gap-2">
+                             <button onclick="window.app.openShareModal('${survey.id}')" 
+                                class="text-green-600 hover:bg-green-50 px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1">
+                                <i class="fa-solid fa-share-nodes"></i> 發布
+                            </button>
+                            <button onclick="window.app.editSurvey('${survey.id}', '${survey.title.replace(/'/g, "\\'")}', '${(survey.description||'').replace(/'/g, "\\'")}', '${safeQuestions}')" 
+                                class="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition">
+                                編輯
+                            </button>
+                            <button onclick="window.app.requestDelete('${survey.id}')" 
+                                class="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition">
+                                刪除
+                            </button>
+                        </div>
+                    </div>`;
+                    listContainer.innerHTML += card;
+                });
+            }
+        }
+
+        async function loadPublicSurvey(surveyId, ownerId) {
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'users', ownerId, 'surveys', surveyId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('public-title').textContent = data.title;
+                    document.getElementById('public-desc').textContent = data.description || "請回答以下問題";
+                    
+                    const container = document.getElementById('public-questions');
+                    container.innerHTML = '';
+
+                    (data.questions || []).forEach((q, idx) => {
+                        let inputHtml = '';
+                        const name = `q_${idx}`;
+
+                        if (q.type === 'text') {
+                            inputHtml = `<input type="text" name="${name}" required class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="請輸入您的答案...">`;
+                        } else if (q.type === 'radio') {
+                            inputHtml = `<div class="space-y-2">` + 
+                                q.options.map(opt => `
+                                    <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="radio" name="${name}" value="${opt}" required class="w-4 h-4 text-blue-600 focus:ring-blue-500">
+                                        <span class="text-gray-700">${opt}</span>
+                                    </label>
+                                `).join('') + `</div>`;
+                        } else if (q.type === 'checkbox') {
+                            inputHtml = `<div class="space-y-2">` + 
+                                q.options.map(opt => `
+                                    <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="checkbox" name="${name}" value="${opt}" class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded">
+                                        <span class="text-gray-700">${opt}</span>
+                                    </label>
+                                `).join('') + `</div>`;
+                        }
+
+                        const qHtml = `
+                        <div class="public-q-item space-y-3" data-type="${q.type}">
+                            <h3 class="font-bold text-lg text-gray-800"><span class="text-blue-600 mr-2">${idx + 1}.</span> ${q.text}</h3>
+                            ${inputHtml}
+                        </div>`;
+                        container.insertAdjacentHTML('beforeend', qHtml);
                     });
+
+                    document.getElementById('public-view').classList.remove('hidden');
+                } else {
+                    document.getElementById('public-title').textContent = "找不到問卷";
+                    document.getElementById('public-desc').textContent = "此問卷可能已被刪除或連結錯誤。";
+                    document.getElementById('public-view').classList.remove('hidden');
+                    document.getElementById('public-form').classList.add('hidden');
                 }
             } catch (e) {
-                console.error("Load failed", e);
-            } finally {
-                loading.classList.add('hidden');
-                dashboard.classList.remove('hidden');
+                console.error("Public load error", e);
+                showToast("載入失敗", "error");
             }
         }
 
@@ -470,18 +560,11 @@
             const toast = document.getElementById('toast');
             const icon = document.getElementById('toast-icon');
             const msgSpan = document.getElementById('toast-msg');
-            
             msgSpan.textContent = msg;
-            if (type === 'error') {
-                icon.className = 'fa-solid fa-circle-exclamation text-red-400';
-            } else {
-                icon.className = 'fa-solid fa-check-circle text-green-400';
-            }
-            
+            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation text-red-400' : 'fa-solid fa-check-circle text-green-400';
             toast.classList.remove('translate-x-full');
             setTimeout(() => toast.classList.add('translate-x-full'), 3000);
         }
-
     </script>
 </body>
 </html>
