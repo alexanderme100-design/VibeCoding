@@ -259,6 +259,7 @@
         let db, auth, user;
         let currentSurveyId = null;
         let publicSurveyOwnerId = null; // Used for public view
+        let surveysCache = {}; // 新增：用來暫存問卷資料，解決特殊字元導致無法編輯的問題
 
         // Parse URL params for Public Mode
         const urlParams = new URLSearchParams(window.location.search);
@@ -394,14 +395,23 @@
                 document.getElementById('editor-view').classList.remove('hidden');
             },
 
-            editSurvey: (surveyId, title, desc, questionsDataEncoded) => {
+            // 修改：只接收 surveyId，資料從 cache 讀取
+            editSurvey: (surveyId) => {
+                const survey = surveysCache[surveyId];
+                if (!survey) {
+                    showToast("讀取資料失敗，請重整頁面", "error");
+                    return;
+                }
+
                 currentSurveyId = surveyId;
-                document.getElementById('survey-title').value = title;
-                document.getElementById('survey-desc').value = desc;
-                const questions = JSON.parse(decodeURIComponent(questionsDataEncoded));
+                document.getElementById('survey-title').value = survey.title || '';
+                document.getElementById('survey-desc').value = survey.description || '';
+                
                 const container = document.getElementById('questions-container');
                 container.innerHTML = '';
-                questions.forEach(q => window.app.addQuestionUI(q));
+                
+                (survey.questions || []).forEach(q => window.app.addQuestionUI(q));
+
                 document.getElementById('dashboard-view').classList.add('hidden');
                 document.getElementById('editor-view').classList.remove('hidden');
             },
@@ -575,17 +585,23 @@
             const emptyState = document.getElementById('empty-state');
             
             listContainer.innerHTML = '';
+            surveysCache = {}; // 重置快取
+
             if (snapshot.empty) {
                 emptyState.classList.remove('hidden');
             } else {
                 emptyState.classList.add('hidden');
                 let surveys = [];
-                snapshot.forEach(doc => surveys.push({ id: doc.id, ...doc.data() }));
+                snapshot.forEach(doc => {
+                    const data = { id: doc.id, ...doc.data() };
+                    surveys.push(data);
+                    surveysCache[doc.id] = data; // 將資料存入快取
+                });
                 surveys.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
 
                 surveys.forEach(survey => {
                     const qCount = survey.questions ? survey.questions.length : 0;
-                    const safeQuestions = encodeURIComponent(JSON.stringify(survey.questions || []));
+                    // 移除 safeQuestions 轉換邏輯，因為不再需要放在 HTML 裡
                     const date = survey.updatedAt ? new Date(survey.updatedAt.seconds * 1000).toLocaleDateString('zh-TW') : '剛剛';
                     
                     const card = `
@@ -603,7 +619,8 @@
                                 class="text-green-600 hover:bg-green-50 px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1">
                                 <i class="fa-solid fa-share-nodes"></i> 發布
                             </button>
-                            <button onclick="window.app.editSurvey('${survey.id}', '${survey.title.replace(/'/g, "\\'")}', '${(survey.description||'').replace(/'/g, "\\'")}', '${safeQuestions}')" 
+                            <!-- 修改：onclick 簡化為只傳 ID -->
+                            <button onclick="window.app.editSurvey('${survey.id}')" 
                                 class="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition">
                                 編輯
                             </button>
