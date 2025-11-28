@@ -130,7 +130,6 @@
         );
 
         // --- 防禦性 Firebase 函式定義 (確保程式碼不因 CDN 載入失敗而崩潰) ---
-        // 檢查 window.firebase 是否存在，否則提供空操作 (no-op) 或錯誤函式
         const firebaseGlobal = window.firebase;
         
         const initializeApp = firebaseGlobal?.app?.initializeApp || (() => { console.error("Firebase App not available."); return {}; });
@@ -153,11 +152,9 @@
 
 
         // 設定 Firebase 登入資訊
-        // 預設為 'Debug' 模式
         setLogLevel('Debug'); 
 
         // --- HARDCODED FIREBASE CONFIGURATION START ---
-        // 這裡假設環境變數未提供，因此硬編碼您的最新配置
         const firebaseConfig = {
             apiKey: "AIzaSyDownMHSXgqlTDCe8rAcD_7cQv8AZdMBlM",
             authDomain: "score-401f6.firebaseapp.com",
@@ -178,13 +175,8 @@
             RESPONSES: `artifacts/${appId}/public/data/responses`,
         };
 
-        // 初始化 Firebase 服務 (在組件外部執行一次)
+        // 初始化 Firebase 服務的變數
         let app, db, auth;
-        if (Object.keys(firebaseConfig).length > 0 && firebaseGlobal) {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-        }
 
         // ====== 輔助函數 ======
 
@@ -827,8 +819,30 @@
             );
         };
 
-        // 將 React 應用程式渲染到 DOM 中
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        // 確保在所有外部資源（包括 Firebase SDKs）載入後才執行初始化和渲染
+        window.onload = function() {
+            // 重新初始化 Firebase 服務 (確保在 window.onload 之後執行)
+            if (Object.keys(firebaseConfig).length > 0 && firebaseGlobal) {
+                try {
+                    app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+                } catch (e) {
+                    console.error("Firebase Initialization Failed:", e);
+                    // 即使初始化失敗，也渲染 App，讓 Toast 顯示錯誤
+                    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+                    return;
+                }
+            } else {
+                 console.error("Firebase SDK 未載入或配置遺失。");
+                 // 即使初始化失敗，也渲染 App，讓 Toast 顯示錯誤
+                 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+                 return;
+            }
+
+            // 將 React 應用程式渲染到 DOM 中
+            ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        };
 
     </script>
 </body>
