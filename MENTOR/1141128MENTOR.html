@@ -1,707 +1,1019 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { initializeApp } from 'firebase/app';
-import { 
-    getAuth, 
-    signInAnonymously, 
-    signInWithCustomToken, 
-    onAuthStateChanged 
-} from 'firebase/auth';
-import { 
-    getFirestore, 
-    collection, 
-    query, 
-    getDocs, 
-    addDoc, 
-    setDoc, 
-    doc, 
-    deleteDoc, 
-    onSnapshot,
-    serverTimestamp,
-    setLogLevel
-} from 'firebase/firestore';
-import { Database, TrendingUp, User, Trash, Edit, Plus, Upload, Download, Clipboard } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>問卷管理系統 - Firebase Firestore</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-// 設定 Firebase 登入資訊
-// 預設為 'Debug' 模式
-setLogLevel('Debug'); 
+  <!-- 簡單內嵌樣式，你可以之後改成自己喜歡的設計 -->
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+      background: #f5f5f5;
+    }
+    header {
+      background: #1976d2;
+      color: #fff;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+    header small {
+      font-size: 12px;
+      opacity: 0.85;
+    }
+    main {
+      display: flex;
+      height: calc(100vh - 56px);
+    }
+    aside {
+      width: 280px;
+      border-right: 1px solid #ddd;
+      background: #fafafa;
+      padding: 12px;
+      overflow-y: auto;
+    }
+    section {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 18px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      transition: 0.15s;
+    }
+    .btn-primary {
+      background: #1976d2;
+      color: #fff;
+    }
+    .btn-secondary {
+      background: #e0e0e0;
+      color: #333;
+    }
+    .btn-danger {
+      background: #f44336;
+      color: #fff;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn + .btn {
+      margin-left: 8px;
+    }
+    input[type="text"],
+    input[type="number"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 6px 8px;
+      margin-top: 4px;
+      margin-bottom: 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    label {
+      font-size: 13px;
+      display: block;
+      margin-top: 4px;
+    }
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .sidebar-header button {
+      font-size: 13px;
+    }
+    #surveySearch {
+      margin-bottom: 8px;
+    }
+    #surveyList {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #surveyList li {
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      border: 1px solid transparent;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #surveyList li span.title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #surveyList li span.badge {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      margin-left: 4px;
+    }
+    #surveyList li.active {
+      background: #e3f2fd;
+      border-color: #1976d2;
+    }
+    #surveyList li:hover {
+      background: #eee;
+    }
+    .badge-draft { background: #fff9c4; }
+    .badge-published { background: #c8e6c9; }
+    .badge-archived { background: #eeeeee; }
 
-// --- HARDCODED FIREBASE CONFIGURATION START ---
-// 這裡假設環境變數未提供，因此硬編碼您的最新配置
-const firebaseConfig = {
-    apiKey: "AIzaSyA6FogyEdAk3FurxCje3viTHBdToqyONE0",
-    authDomain: "mentor-6b6ff.firebaseapp.com",
-    projectId: "mentor-6b6ff",
-    storageBucket: "mentor-6b6ff.firebasestorage.app",
-    messagingSenderId: "463036433182",
-    appId: "1:463036433182:web:486beace3c636ff97fff0f"
-};
-const appId = firebaseConfig.projectId; 
-const initialAuthToken = null; 
-// --- HARDCODED FIREBASE CONFIGURATION END ---
+    .card {
+      background: #fff;
+      border-radius: 6px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .card-header h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+    .tagline {
+      font-size: 12px;
+      color: #555;
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+    }
+    .col {
+      flex: 1;
+    }
+    .question-item {
+      border-bottom: 1px solid #eee;
+      padding: 6px 0;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .question-main {
+      flex: 1;
+    }
+    .question-meta {
+      font-size: 11px;
+      color: #777;
+    }
+    .question-actions button {
+      font-size: 11px;
+      padding: 3px 6px;
+    }
+    .hint {
+      font-size: 12px;
+      color: #777;
+    }
+    .pill {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #eeeeee;
+      margin-right: 4px;
+    }
+    .flex {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .flex-between {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .mt8 { margin-top: 8px; }
+    .mt12 { margin-top: 12px; }
+    .hidden { display: none; }
+  </style>
 
-const ADMIN_PASSWORD = 'admin1234'; // 演示密碼
+  <!-- Firebase JS SDK v9 (compat 版，方便在一個檔案裡直接用) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>問卷管理系統</h1>
+      <small>Firebase Firestore 後端 · 圖形化介面</small>
+    </div>
+    <div id="statusText" style="font-size: 12px; opacity: 0.85;">
+      尚未初始化 Firebase
+    </div>
+  </header>
 
-const COLLECTIONS = {
-    QUESTIONS: `artifacts/${appId}/public/data/questions`, 
-    RESPONSES: `artifacts/${appId}/public/data/responses`,
-};
+  <main>
+    <!-- 左側：問卷列表 -->
+    <aside>
+      <div class="sidebar-header">
+        <strong>問卷列表</strong>
+        <button class="btn btn-primary" id="newSurveyBtn">＋ 新增問卷</button>
+      </div>
+      <input type="text" id="surveySearch" placeholder="搜尋問卷標題..." />
+      <ul id="surveyList"></ul>
+    </aside>
 
-// 初始化 Firebase 服務 (在組件外部執行一次)
-let app, db, auth;
-if (Object.keys(firebaseConfig).length > 0) {
-    app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-    auth = getAuth(app);
-}
-
-// ====== 輔助函數 ======
-
-// 提示訊息組件 (取代原來的 showMessage)
-const Toast = ({ message, type, onClose }) => {
-    if (!message) return null;
-
-    const baseClasses = "fixed bottom-5 right-5 p-4 rounded-lg shadow-xl text-sm transition-all duration-300 transform";
-    const typeClasses = type === 'success' ? 'bg-green-500 text-white' : 
-                        type === 'error' ? 'bg-red-500 text-white' : 
-                        'bg-blue-500 text-white';
-
-    useEffect(() => {
-        const timer = setTimeout(onClose, 3000);
-        return () => clearTimeout(timer);
-    }, [message, onClose]);
-
-    return (
-        <div className={`${baseClasses} ${typeClasses}`}>
-            {message}
+    <!-- 右側：問卷編輯 & 題目管理 -->
+    <section>
+      <!-- 問卷基本資料 -->
+      <div class="card">
+        <div class="card-header">
+          <h3>問卷基本資料</h3>
+          <div>
+            <button class="btn btn-secondary" id="duplicateSurveyBtn" disabled>複製問卷</button>
+            <button class="btn btn-danger" id="deleteSurveyBtn" disabled>刪除問卷</button>
+            <button class="btn btn-primary" id="saveSurveyBtn">儲存問卷</button>
+          </div>
         </div>
-    );
+        <div class="tagline">
+          填完後按「儲存問卷」，左側列表會即時更新。
+        </div>
+
+        <label>問卷標題 <span style="color:red">*</span>
+          <input type="text" id="surveyTitle" placeholder="例如：113學年度交通安全問卷" />
+        </label>
+
+        <label>問卷說明
+          <textarea id="surveyDescription" rows="3" placeholder="給填答者看的簡短說明，例如：本問卷為匿名調查，僅供學校教學與研究使用。"></textarea>
+        </label>
+
+        <div class="row">
+          <div class="col">
+            <label>狀態
+              <select id="surveyStatus">
+                <option value="draft">草稿（尚未發佈）</option>
+                <option value="published">已發佈（可以填答）</option>
+                <option value="archived">已封存（不再使用）</option>
+              </select>
+            </label>
+          </div>
+          <div class="col">
+            <label>問卷類別（選填）
+              <input type="text" id="surveyCategory" placeholder="例如：交通安全、視力保健、健康促進..." />
+            </label>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label>對象（選填）
+              <input type="text" id="surveyTarget" placeholder="例如：學生、家長、教師..." />
+            </label>
+          </div>
+          <div class="col" style="padding-top: 10px;">
+            <label>
+              <input type="checkbox" id="surveyIsAnonymous" />
+              此問卷為匿名填答（不收集身分資料）
+            </label>
+          </div>
+        </div>
+
+        <div class="hint">
+          ✨ 建議流程：先把問卷維持在「草稿」，編好題目後，發佈前再改為「已發佈」。
+        </div>
+      </div>
+
+      <!-- 題目管理 -->
+      <div class="card">
+        <div class="card-header">
+          <h3>題目管理</h3>
+          <div class="hint">
+            先選擇或儲存一份問卷後才能新增題目。
+          </div>
+        </div>
+
+        <!-- 題目列表 -->
+        <div id="questionListContainer" class="mt8">
+          <strong>已設定題目：</strong>
+          <div id="noQuestionHint" class="hint">目前尚未新增任何題目。</div>
+          <div id="questionList"></div>
+        </div>
+
+        <hr class="mt12" />
+
+        <!-- 題目編輯表單 -->
+        <div>
+          <div class="flex-between">
+            <strong id="questionFormTitle">新增題目</strong>
+            <span class="hint" id="editingQuestionHint" style="display:none;">
+              正在編輯題目，修改後請按「儲存題目」。
+            </span>
+          </div>
+
+          <label>題目內容 <span style="color:red">*</span>
+            <textarea id="questionText" rows="2" placeholder="例如：上、放學時，你最常使用哪一種交通方式？"></textarea>
+          </label>
+
+          <div class="row">
+            <div class="col">
+              <label>題型
+                <select id="questionType">
+                  <option value="single">單選題</option>
+                  <option value="multiple">多選題</option>
+                  <option value="scale">量表題（例如 1–5 分同意程度）</option>
+                  <option value="text">開放式問答</option>
+                </select>
+              </label>
+            </div>
+            <div class="col" style="padding-top: 10px;">
+              <label>
+                <input type="checkbox" id="questionRequired" />
+                此題為必填
+              </label>
+            </div>
+          </div>
+
+          <div id="optionsField">
+            <label>選項（以逗號 , 分隔）
+              <input type="text" id="questionOptions" placeholder="例：非常同意,同意,普通,不同意,非常不同意" />
+            </label>
+          </div>
+
+          <div id="scaleField" class="hidden">
+            <div class="row">
+              <div class="col">
+                <label>量表最小值
+                  <input type="number" id="scaleMin" value="1" />
+                </label>
+              </div>
+              <div class="col">
+                <label>量表最大值
+                  <input type="number" id="scaleMax" value="5" />
+                </label>
+              </div>
+            </div>
+            <div class="hint">
+              例：1 = 非常不同意，5 = 非常同意（實際說明可以在題目內容裡寫清楚）。
+            </div>
+          </div>
+
+          <div class="mt8">
+            <button class="btn btn-primary" id="saveQuestionBtn">儲存題目</button>
+            <button class="btn btn-secondary" id="cancelEditQuestionBtn" style="display:none;">取消編輯</button>
+          </div>
+
+          <hr class="mt12" />
+
+          <!-- 額外加分功能：批次新增多題 -->
+          <div>
+            <div class="flex-between">
+              <strong>批次新增多題（可選）</strong>
+              <span class="hint">每一行會變成一題「開放式問答」題型。</span>
+            </div>
+            <textarea id="bulkQuestions" rows="3" placeholder="在這裡貼上多行題目，每一行會自動變成一題。"></textarea>
+            <div class="mt8">
+              <button class="btn btn-secondary" id="addBulkQuestionsBtn">一鍵加入多題</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 小提示／預留位置 -->
+      <div class="card">
+        <strong>之後可以再加的功能（已預留欄位）：</strong>
+        <ul class="hint">
+          <li>問卷填答網址產生（例如：<code>/respond.html?surveyId=...</code>）</li>
+          <li>即時統計圖表（長條圖、圓餅圖）</li>
+          <li>匯出填答結果成 CSV / Excel（搭配 <code>responses</code> 集合）</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ========================
+    // 1. 初始化 Firebase
+    // ========================
+    // 👉 這裡把 YOUR_XXXX 換成你在 Firebase 專案設定裡的 config
+   const firebaseConfig = {
+  apiKey: "AIzaSyAexk_JbIOQWV1Jw7hqfiZDDZYY9YF-Sdk",
+  authDomain: "survey-49e8d.firebaseapp.com",
+  projectId: "survey-49e8d",
+  storageBucket: "survey-49e8d.firebasestorage.app",
+  messagingSenderId: "547257703502",
+  appId: "1:547257703502:web:85e147bed62333b11c771f"
 };
 
-// 渲染單個量表選項
-const LikertOption = ({ questionId, value, points, labelText }) => (
-    <label className="flex flex-col items-center cursor-pointer p-2 sm:p-3 bg-white rounded-lg border border-gray-300 hover:bg-indigo-50 transition-colors duration-150 flex-grow basis-0">
-        <input 
-            type="radio" 
-            name={`q_${questionId}`} 
-            value={value} 
-            required 
-            className="hidden peer"
-        />
-        <span className="text-lg font-semibold text-gray-700 peer-checked:text-white peer-checked:bg-indigo-600 p-1 px-3 rounded-full transition-all duration-150">{value}</span>
-        <span className="text-xs text-gray-500 mt-1 hidden sm:block">
-            {labelText}
-        </span>
-    </label>
-);
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const serverTimestamp = firebase.firestore.FieldValue.serverTimestamp();
 
-// 渲染單個題目卡片
-const QuestionCard = ({ question, index, handleAnswerChange }) => {
-    const points = question.points;
-    const middle = Math.ceil(points / 2);
-    const options = [];
+    const statusText = document.getElementById('statusText');
+    statusText.textContent = 'Firebase 已初始化，正在載入問卷…';
 
-    for (let i = 1; i <= points; i++) {
-        let labelText = '';
-        if (i === 1) {
-            labelText = '非常不同意';
-        } else if (i === points) {
-            labelText = '非常同意';
-        } else if (i === middle) {
-            labelText = '中立';
-        }
-        
-        options.push(
-            <LikertOption 
-                key={i}
-                questionId={question.id}
-                value={i}
-                points={points}
-                labelText={labelText}
-            />
-        );
+    // ========================
+    // 2. 全域狀態
+    // ========================
+    let selectedSurveyId = null;
+    let selectedSurveyData = null;
+    let editingQuestionId = null;
+    let questionsUnsubscribe = null;
+    let surveysUnsubscribe = null;
+
+    // ========================
+    // 3. 問卷列表 & 搜尋
+    // ========================
+    const surveyListEl = document.getElementById('surveyList');
+    const surveySearchEl = document.getElementById('surveySearch');
+
+    function subscribeSurveys() {
+      if (surveysUnsubscribe) surveysUnsubscribe();
+
+      // 根據建立時間排序，最新的在上面
+      surveysUnsubscribe = db.collection('surveys')
+        .orderBy('createdAt', 'desc')
+        .onSnapshot(snapshot => {
+          renderSurveyList(snapshot.docs);
+          statusText.textContent = '問卷已同步（Realtime 更新）';
+        }, error => {
+          console.error(error);
+          statusText.textContent = '載入問卷時發生錯誤，請開 F12 console 查看。';
+        });
     }
 
-    return (
-        <div className="p-5 bg-white rounded-xl shadow-md hover:shadow-lg transition duration-200 border-l-4 border-indigo-500">
-            <p className="text-lg font-bold text-gray-700 mb-4">{index + 1}. {question.text} (量表: {points}點)</p>
-            <div className="flex flex-wrap justify-between gap-2 sm:gap-4" onChange={(e) => handleAnswerChange(question.id, parseInt(e.target.value))}>
-                {options}
-            </div>
-        </div>
-    );
-};
+    function renderSurveyList(docs) {
+      const keyword = surveySearchEl.value.trim().toLowerCase();
+      surveyListEl.innerHTML = '';
 
-// ====== 主要組件 ======
+      docs.forEach(doc => {
+        const data = doc.data();
+        const title = data.title || '(未命名問卷)';
+        if (keyword && !title.toLowerCase().includes(keyword)) return;
 
-const App = () => {
-    const [view, setView] = useState('survey');
-    const [questions, setQuestions] = useState([]);
-    const [answers, setAnswers] = useState({});
-    const [userId, setUserId] = useState(null);
-    const [isAuthReady, setIsAuthReady] = useState(false);
-    const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(sessionStorage.getItem('isAdminLoggedIn') === 'true');
-    const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
-    const [toast, setToast] = useState({ message: '', type: '' });
-    
-    // 手動新增/編輯表單狀態
-    const [manualForm, setManualForm] = useState({ 
-        id: null, 
-        text: '', 
-        points: 5, 
-        isOpen: false 
+        const li = document.createElement('li');
+        li.dataset.id = doc.id;
+
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'title';
+        titleSpan.textContent = title;
+
+        const badgeSpan = document.createElement('span');
+        badgeSpan.className = 'badge';
+        const status = data.status || 'draft';
+        if (status === 'draft') {
+          badgeSpan.classList.add('badge-draft');
+          badgeSpan.textContent = '草稿';
+        } else if (status === 'published') {
+          badgeSpan.classList.add('badge-published');
+          badgeSpan.textContent = '已發佈';
+        } else {
+          badgeSpan.classList.add('badge-archived');
+          badgeSpan.textContent = '已封存';
+        }
+
+        li.appendChild(titleSpan);
+        li.appendChild(badgeSpan);
+
+        if (doc.id === selectedSurveyId) {
+          li.classList.add('active');
+        }
+
+        li.addEventListener('click', () => {
+          selectSurvey(doc.id, data);
+        });
+
+        surveyListEl.appendChild(li);
+      });
+
+      // 若目前選中的問卷已被刪除，清空右側
+      if (selectedSurveyId && !docs.find(d => d.id === selectedSurveyId)) {
+        clearSurveyForm();
+        clearQuestionSection();
+      }
+    }
+
+    surveySearchEl.addEventListener('input', () => {
+      // 重新 render（現在的 docs 在 onSnapshot 裡才有，所以這裡只觸發事件即可）
+      subscribeSurveys();
     });
 
-    // 提示訊息函式
-    const showToast = useCallback((message, type) => {
-        setToast({ message, type });
-    }, []);
+    // ========================
+    // 4. 問卷編輯表單
+    // ========================
+    const surveyTitleEl = document.getElementById('surveyTitle');
+    const surveyDescriptionEl = document.getElementById('surveyDescription');
+    const surveyStatusEl = document.getElementById('surveyStatus');
+    const surveyCategoryEl = document.getElementById('surveyCategory');
+    const surveyTargetEl = document.getElementById('surveyTarget');
+    const surveyIsAnonymousEl = document.getElementById('surveyIsAnonymous');
 
-    // 認證邏輯 (修復 TypeError 和優雅處理 auth/admin-restricted-operation)
-    useEffect(() => {
-        if (!auth) return;
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                try {
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (error) {
-                    console.error("Firebase 認證失敗:", error);
-                    
-                    let authErrorMsg = '系統認證失敗: ';
-                    if (error.code === 'auth/api-key-not-valid') {
-                        authErrorMsg += 'API 金鑰無效。請檢查您的 Firebase API Key。';
-                    } else if (error.code === 'auth/admin-restricted-operation') {
-                        authErrorMsg += '匿名登入未啟用。請在 Firebase Authentication 中啟用匿名登入。';
-                    } else {
-                        authErrorMsg += '請檢查 Firebase 設定或網路。';
-                    }
-                    
-                    showToast(authErrorMsg, 'error');
-                    
-                    // 關鍵修復：如果登入失敗，設置 isAuthReady 但不設置 userId，防止後續操作崩潰
-                    setIsAuthReady(true);
-                    setLoading(false);
-                    return;
-                }
-            }
-            // 登入成功或已存在用戶
-            setUserId(auth.currentUser?.uid || null); // 使用 null 避免 TypeError
-            setIsAuthReady(true);
-            setLoading(false);
-        });
-        return () => unsubscribe();
-    }, [showToast]);
+    const newSurveyBtn = document.getElementById('newSurveyBtn');
+    const saveSurveyBtn = document.getElementById('saveSurveyBtn');
+    const deleteSurveyBtn = document.getElementById('deleteSurveyBtn');
+    const duplicateSurveyBtn = document.getElementById('duplicateSurveyBtn');
 
-    // 題目實時監聽器
-    useEffect(() => {
-        if (!isAuthReady || !db || !userId) {
-            // 只有在認證成功後才開始監聽 Firestore
-            return;
-        }
+    function clearSurveyForm() {
+      selectedSurveyId = null;
+      selectedSurveyData = null;
+      surveyTitleEl.value = '';
+      surveyDescriptionEl.value = '';
+      surveyStatusEl.value = 'draft';
+      surveyCategoryEl.value = '';
+      surveyTargetEl.value = '';
+      surveyIsAnonymousEl.checked = false;
 
-        const q = collection(db, COLLECTIONS.QUESTIONS);
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            let fetchedQuestions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            fetchedQuestions.sort((a, b) => (a.order || 999) - (b.order || 999));
-            setQuestions(fetchedQuestions);
-        }, (error) => {
-            console.error("監聽題目失敗:", error);
-            showToast('載入題目時發生錯誤。 (請檢查 Firebase 規則)', 'error');
-        });
+      deleteSurveyBtn.disabled = true;
+      duplicateSurveyBtn.disabled = true;
+    }
 
-        return () => unsubscribe();
-    }, [isAuthReady, userId, showToast]); // 加入 userId 作為依賴項，確保認證成功才啟動
+    newSurveyBtn.addEventListener('click', () => {
+      clearSurveyForm();
+      clearQuestionSection();
+      cancelQuestionEdit();
+    });
 
-    // 處理答案變更
-    const handleAnswerChange = (questionId, score) => {
-        setAnswers(prev => ({ ...prev, [questionId]: score }));
-    };
+    saveSurveyBtn.addEventListener('click', async () => {
+      const title = surveyTitleEl.value.trim();
+      if (!title) {
+        alert('請輸入問卷標題');
+        return;
+      }
 
-    // 視圖切換邏輯
-    const changeView = (newView) => {
-        if (newView === 'admin-login' && !isAdminLoggedIn) {
-            setView('admin-login');
-        } else if (newView === 'admin-login' && isAdminLoggedIn) {
-            setView('admin-panel');
+      const data = {
+        title,
+        description: surveyDescriptionEl.value.trim(),
+        status: surveyStatusEl.value,
+        category: surveyCategoryEl.value.trim(),
+        targetGroup: surveyTargetEl.value.trim(),
+        isAnonymous: surveyIsAnonymousEl.checked,
+        updatedAt: serverTimestamp
+      };
+
+      try {
+        if (!selectedSurveyId) {
+          // 新增問卷
+          data.createdAt = serverTimestamp;
+          const docRef = await db.collection('surveys').add(data);
+          selectedSurveyId = docRef.id;
+          selectedSurveyData = data;
+          statusText.textContent = '問卷已新增並儲存。';
         } else {
-            setView('survey');
-        }
-    };
-    
-    // 登入管理員
-    const loginAdmin = () => {
-        const password = document.getElementById('admin-password').value;
-        if (password === ADMIN_PASSWORD) {
-            sessionStorage.setItem('isAdminLoggedIn', 'true');
-            setIsAdminLoggedIn(true);
-            showToast('登入成功！', 'success');
-            document.getElementById('admin-password').value = '';
-            changeView('admin-panel');
-        } else {
-            showToast('密碼錯誤，請重試。', 'error');
-        }
-    };
-
-    // 登出管理員
-    const logoutAdmin = () => {
-        sessionStorage.removeItem('isAdminLoggedIn');
-        setIsAdminLoggedIn(false);
-        changeView('survey');
-    };
-
-    // 提交問卷
-    const submitSurvey = async () => {
-        if (!isAuthReady) {
-            showToast('系統正在初始化或認證失敗，請稍候。', 'error');
-            return;
-        }
-        if (!userId || submitting || questions.length === 0) {
-             showToast('請檢查題目或認證狀態。', 'error');
-             return;
-        }
-        
-        let allAnswered = questions.every(q => answers[q.id] !== undefined);
-
-        if (!allAnswered) {
-            showToast('請回答所有題目後再提交。', 'error');
-            return;
+          // 更新問卷
+          await db.collection('surveys').doc(selectedSurveyId).update(data);
+          selectedSurveyData = { ...(selectedSurveyData || {}), ...data };
+          statusText.textContent = '問卷已更新。';
         }
 
-        setSubmitting(true);
+        deleteSurveyBtn.disabled = false;
+        duplicateSurveyBtn.disabled = false;
 
-        const responseData = {
-            userId: userId, 
-            timestamp: serverTimestamp(),
-            answers: answers, 
+        // 問卷儲存後，開始載入題目
+        if (selectedSurveyId) {
+          subscribeQuestions(selectedSurveyId);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('儲存問卷失敗，請稍後再試。');
+      }
+    });
+
+    deleteSurveyBtn.addEventListener('click', async () => {
+      if (!selectedSurveyId) return;
+      if (!confirm('確定要刪除這份問卷與其所有題目嗎？此動作無法恢復。')) return;
+
+      try {
+        // 先刪除 questions 子集合
+        const qSnap = await db.collection('surveys').doc(selectedSurveyId)
+          .collection('questions').get();
+        const batch = db.batch();
+        qSnap.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+
+        // 再刪除問卷本身
+        await db.collection('surveys').doc(selectedSurveyId).delete();
+
+        clearSurveyForm();
+        clearQuestionSection();
+        cancelQuestionEdit();
+        statusText.textContent = '問卷已刪除。';
+      } catch (err) {
+        console.error(err);
+        alert('刪除問卷失敗，請稍後再試。');
+      }
+    });
+
+    // 額外功能：複製問卷（含題目）
+    duplicateSurveyBtn.addEventListener('click', async () => {
+      if (!selectedSurveyId || !selectedSurveyData) return;
+
+      const newTitle = selectedSurveyData.title + '（複本）';
+      const baseData = {
+        ...selectedSurveyData,
+        title: newTitle,
+        status: 'draft',
+        createdAt: serverTimestamp,
+        updatedAt: serverTimestamp
+      };
+      delete baseData.createdAt; // 保險起見（避免舊的 serverTimestamp 被覆蓋）
+
+      try {
+        // 1) 新建一個問卷
+        const newSurveyRef = await db.collection('surveys').add(baseData);
+
+        // 2) 複製子集合 questions
+        const qSnap = await db.collection('surveys').doc(selectedSurveyId)
+          .collection('questions').get();
+        const batch = db.batch();
+        qSnap.forEach(doc => {
+          const data = doc.data();
+          const newQRef = newSurveyRef.collection('questions').doc();
+          batch.set(newQRef, data);
+        });
+        await batch.commit();
+
+        statusText.textContent = '問卷已複製為草稿。';
+      } catch (err) {
+        console.error(err);
+        alert('複製問卷失敗，請稍後再試。');
+      }
+    });
+
+    function selectSurvey(id, data) {
+      selectedSurveyId = id;
+      selectedSurveyData = data || null;
+
+      // 更新左側 active 樣式
+      Array.from(surveyListEl.children).forEach(li => {
+        li.classList.toggle('active', li.dataset.id === id);
+      });
+
+      // 填入表單
+      surveyTitleEl.value = data.title || '';
+      surveyDescriptionEl.value = data.description || '';
+      surveyStatusEl.value = data.status || 'draft';
+      surveyCategoryEl.value = data.category || '';
+      surveyTargetEl.value = data.targetGroup || '';
+      surveyIsAnonymousEl.checked = !!data.isAnonymous;
+
+      deleteSurveyBtn.disabled = false;
+      duplicateSurveyBtn.disabled = false;
+
+      // 載入題目
+      subscribeQuestions(id);
+      cancelQuestionEdit();
+    }
+
+    // ========================
+    // 5. 題目管理
+    // ========================
+    const questionListEl = document.getElementById('questionList');
+    const noQuestionHintEl = document.getElementById('noQuestionHint');
+    const questionFormTitleEl = document.getElementById('questionFormTitle');
+    const editingQuestionHintEl = document.getElementById('editingQuestionHint');
+
+    const questionTextEl = document.getElementById('questionText');
+    const questionTypeEl = document.getElementById('questionType');
+    const questionRequiredEl = document.getElementById('questionRequired');
+    const questionOptionsEl = document.getElementById('questionOptions');
+    const scaleMinEl = document.getElementById('scaleMin');
+    const scaleMaxEl = document.getElementById('scaleMax');
+    const optionsFieldEl = document.getElementById('optionsField');
+    const scaleFieldEl = document.getElementById('scaleField');
+
+    const saveQuestionBtn = document.getElementById('saveQuestionBtn');
+    const cancelEditQuestionBtn = document.getElementById('cancelEditQuestionBtn');
+
+    const bulkQuestionsEl = document.getElementById('bulkQuestions');
+    const addBulkQuestionsBtn = document.getElementById('addBulkQuestionsBtn');
+
+    // 題型切換時，顯示不同欄位
+    function updateQuestionTypeFields() {
+      const type = questionTypeEl.value;
+      if (type === 'single' || type === 'multiple') {
+        optionsFieldEl.classList.remove('hidden');
+        scaleFieldEl.classList.add('hidden');
+      } else if (type === 'scale') {
+        optionsFieldEl.classList.add('hidden');
+        scaleFieldEl.classList.remove('hidden');
+      } else {
+        // text
+        optionsFieldEl.classList.add('hidden');
+        scaleFieldEl.classList.add('hidden');
+      }
+    }
+    questionTypeEl.addEventListener('change', updateQuestionTypeFields);
+    updateQuestionTypeFields();
+
+    function clearQuestionForm() {
+      questionTextEl.value = '';
+      questionTypeEl.value = 'single';
+      questionRequiredEl.checked = false;
+      questionOptionsEl.value = '';
+      scaleMinEl.value = 1;
+      scaleMaxEl.value = 5;
+      updateQuestionTypeFields();
+    }
+
+    function cancelQuestionEdit() {
+      editingQuestionId = null;
+      clearQuestionForm();
+      questionFormTitleEl.textContent = '新增題目';
+      editingQuestionHintEl.style.display = 'none';
+      cancelEditQuestionBtn.style.display = 'none';
+    }
+
+    cancelEditQuestionBtn.addEventListener('click', () => {
+      cancelQuestionEdit();
+    });
+
+    function clearQuestionSection() {
+      questionListEl.innerHTML = '';
+      noQuestionHintEl.style.display = 'block';
+    }
+
+    // 監聽指定問卷的題目
+    function subscribeQuestions(surveyId) {
+      if (questionsUnsubscribe) questionsUnsubscribe();
+
+      questionsUnsubscribe = db.collection('surveys').doc(surveyId)
+        .collection('questions')
+        .orderBy('order', 'asc')
+        .onSnapshot(snapshot => {
+          renderQuestionList(snapshot.docs);
+        }, error => {
+          console.error(error);
+          statusText.textContent = '載入題目時發生錯誤。';
+        });
+    }
+
+    function renderQuestionList(docs) {
+      questionListEl.innerHTML = '';
+
+      if (docs.length === 0) {
+        noQuestionHintEl.style.display = 'block';
+        return;
+      }
+      noQuestionHintEl.style.display = 'none';
+
+      docs.forEach(doc => {
+        const data = doc.data();
+        const item = document.createElement('div');
+        item.className = 'question-item';
+
+        const main = document.createElement('div');
+        main.className = 'question-main';
+
+        const textDiv = document.createElement('div');
+        textDiv.textContent = data.text || '(未填寫題目內容)';
+
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'question-meta';
+
+        const typeMap = {
+          single: '單選題',
+          multiple: '多選題',
+          scale: '量表題',
+          text: '開放式'
         };
+        const typeLabel = typeMap[data.type] || data.type || '題型不明';
 
-        try {
-            await addDoc(collection(db, COLLECTIONS.RESPONSES), responseData);
-            showToast('問卷提交成功！感謝您的填寫。', 'success');
-            setAnswers({}); // 清空答案
-            // 手動清空 radio button
-            document.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
-        } catch (e) {
-            console.error("提交答案失敗: ", e);
-            showToast('提交失敗，請檢查 Firebase 規則或網路。', 'error');
-        } finally {
-            setSubmitting(false);
+        const pills = [];
+        pills.push(`<span class="pill">${typeLabel}</span>`);
+        if (data.required) {
+          pills.push('<span class="pill">必填</span>');
         }
-    };
-
-    // CSV 匯入題目
-    const importQuestions = async () => {
-        const csvInput = document.getElementById('csv-input');
-        if (!csvInput) return;
-
-        const csvText = csvInput.value.trim();
-        if (!csvText) {
-            showToast('請貼上要匯入的 CSV 內容。', 'error');
-            return;
+        if (Array.isArray(data.options) && data.options.length > 0) {
+          pills.push(`<span class="pill">選項數：${data.options.length}</span>`);
         }
+        if (data.type === 'scale') {
+          pills.push(`<span class="pill">${data.scaleMin || 1}–${data.scaleMax || 5}</span>`);
+        }
+        metaDiv.innerHTML = pills.join('');
 
-        const lines = csvText.split('\n').filter(line => line.trim() !== '');
-        const newQuestions = [];
-        const currentQuestionCount = questions.length;
+        main.appendChild(textDiv);
+        main.appendChild(metaDiv);
 
-        lines.forEach((line, index) => {
-            const parts = line.split(','); 
-            const text = parts[0] ? parts[0].trim() : '';
-            const points = parts[1] ? parseInt(parts[1].trim()) : NaN;
+        const actions = document.createElement('div');
+        actions.className = 'question-actions';
 
-            if (text && !isNaN(points) && [5, 6, 7].includes(points)) {
-                const newOrder = currentQuestionCount + newQuestions.length + 1;
-                newQuestions.push({
-                    text: text,
-                    points: points,
-                    order: newOrder,
-                });
-            } else {
-                console.warn(`第 ${index + 1} 行資料格式錯誤或量表點數無效 (${line})，已跳過。`);
-            }
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn btn-secondary';
+        editBtn.textContent = '編輯';
+        editBtn.addEventListener('click', () => {
+          startEditQuestion(doc.id, data);
         });
 
-        if (newQuestions.length === 0) {
-            showToast('未解析到任何有效的新題目。', 'error');
-            return;
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn btn-danger';
+        delBtn.textContent = '刪除';
+        delBtn.addEventListener('click', async () => {
+          if (!confirm('確定刪除此題？')) return;
+          try {
+            await db.collection('surveys').doc(selectedSurveyId)
+              .collection('questions').doc(doc.id).delete();
+          } catch (err) {
+            console.error(err);
+            alert('刪除題目失敗。');
+          }
+        });
+
+        // 額外功能：上下移動排序
+        const upBtn = document.createElement('button');
+        upBtn.className = 'btn btn-secondary';
+        upBtn.textContent = '↑';
+        upBtn.addEventListener('click', () => {
+          changeQuestionOrder(doc, -1);
+        });
+
+        const downBtn = document.createElement('button');
+        downBtn.className = 'btn btn-secondary';
+        downBtn.textContent = '↓';
+        downBtn.addEventListener('click', () => {
+          changeQuestionOrder(doc, +1);
+        });
+
+        actions.appendChild(upBtn);
+        actions.appendChild(downBtn);
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+
+        item.appendChild(main);
+        item.appendChild(actions);
+
+        questionListEl.appendChild(item);
+      });
+    }
+
+    // 題目排序（簡單版：order ±1，實務上可以再加強）
+    async function changeQuestionOrder(docSnap, delta) {
+      if (!selectedSurveyId) return;
+      const data = docSnap.data();
+      const currentOrder = data.order || 0;
+      try {
+        await db.collection('surveys').doc(selectedSurveyId)
+          .collection('questions').doc(docSnap.id)
+          .update({ order: currentOrder + delta });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function startEditQuestion(id, data) {
+      editingQuestionId = id;
+      questionFormTitleEl.textContent = '編輯題目';
+      editingQuestionHintEl.style.display = 'inline';
+      cancelEditQuestionBtn.style.display = 'inline-flex';
+
+      questionTextEl.value = data.text || '';
+      questionTypeEl.value = data.type || 'single';
+      questionRequiredEl.checked = !!data.required;
+      questionOptionsEl.value = (data.options || []).join(',');
+      scaleMinEl.value = data.scaleMin || 1;
+      scaleMaxEl.value = data.scaleMax || 5;
+      updateQuestionTypeFields();
+    }
+
+    saveQuestionBtn.addEventListener('click', async () => {
+      if (!selectedSurveyId) {
+        alert('請先儲存一份問卷，再新增題目。');
+        return;
+      }
+      const text = questionTextEl.value.trim();
+      if (!text) {
+        alert('請輸入題目內容');
+        return;
+      }
+
+      const type = questionTypeEl.value;
+      const required = questionRequiredEl.checked;
+
+      let options = [];
+      let scaleMin = null;
+      let scaleMax = null;
+
+      if (type === 'single' || type === 'multiple') {
+        if (questionOptionsEl.value.trim()) {
+          options = questionOptionsEl.value.split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
         }
-        
-        showToast(`正在匯入 ${newQuestions.length} 題，請稍候...`, 'info');
-
-        try {
-            const batchPromises = newQuestions.map(q => {
-                return addDoc(collection(db, COLLECTIONS.QUESTIONS), q);
-            });
-            await Promise.all(batchPromises);
-
-            csvInput.value = '';
-            showToast(`成功匯入 ${newQuestions.length} 題。`, 'success');
-        } catch (e) {
-            console.error("批量匯入題目失敗: ", e);
-            showToast('批量匯入失敗，請檢查網路或權限。', 'error');
+        if (options.length === 0) {
+          alert('單選/多選題請至少輸入一個選項。');
+          return;
         }
-    };
+      } else if (type === 'scale') {
+        scaleMin = Number(scaleMinEl.value) || 1;
+        scaleMax = Number(scaleMaxEl.value) || 5;
+        if (scaleMin >= scaleMax) {
+          alert('量表的最小值必須小於最大值。');
+          return;
+        }
+      }
 
-    // 儲存/更新題目
-    const saveQuestion = async () => {
-        const { id, text, points } = manualForm;
-        const textTrimmed = text.trim();
+      const baseData = {
+        text,
+        type,
+        required,
+        options,
+        scaleMin,
+        scaleMax
+      };
 
-        if (!textTrimmed || ![5, 6, 7].includes(points)) {
-            showToast('請填寫完整的題目文字，並選擇 5, 6, 或 7 點量表。', 'error');
-            return;
+      try {
+        const questionsRef = db.collection('surveys').doc(selectedSurveyId)
+          .collection('questions');
+
+        if (!editingQuestionId) {
+          // 新增題目時，order 用目前的數量（簡單作法）
+          const snap = await questionsRef.get();
+          const newOrder = snap.size;
+
+          await questionsRef.add({
+            ...baseData,
+            order: newOrder
+          });
+        } else {
+          await questionsRef.doc(editingQuestionId).update(baseData);
         }
 
-        const questionData = { text: textTrimmed, points };
-        const isEditing = !!id;
-        const action = isEditing ? '更新' : '新增';
+        cancelQuestionEdit();
+      } catch (err) {
+        console.error(err);
+        alert('儲存題目失敗。');
+      }
+    });
 
-        try {
-            if (isEditing) {
-                await setDoc(doc(db, COLLECTIONS.QUESTIONS, id), questionData, { merge: true });
-            } else {
-                questionData.order = questions.length + 1;
-                await addDoc(collection(db, COLLECTIONS.QUESTIONS), questionData);
-            }
+    // 批次新增多題：每一行一題，全部當作開放式題型 & 非必填（你可以再改）
+    addBulkQuestionsBtn.addEventListener('click', async () => {
+      if (!selectedSurveyId) {
+        alert('請先儲存一份問卷，再批次新增題目。');
+        return;
+      }
+      const raw = bulkQuestionsEl.value.trim();
+      if (!raw) {
+        alert('請先在文字框輸入至少一行題目。');
+        return;
+      }
+      const lines = raw.split('\n').map(s => s.trim()).filter(Boolean);
+      if (lines.length === 0) {
+        alert('沒有有效的題目內容。');
+        return;
+      }
 
-            showToast(`${action}題目成功！`, 'success');
-            setManualForm(prev => ({ ...prev, isOpen: false }));
-        } catch (e) {
-            console.error(`${action}題目失敗: `, e);
-            showToast(`${action}題目失敗，請稍後再試。`, 'error');
-        }
-    };
-    
-    // 刪除題目
-    const deleteQuestion = async (id) => {
-        if (!window.confirm('確定要刪除這道題目嗎？請注意，這不會影響已收集到的答案資料。')) return;
-        try {
-            await deleteDoc(doc(db, COLLECTIONS.QUESTIONS, id));
-            showToast('題目刪除成功！', 'success');
-        } catch (e) {
-            console.error("刪除題目失敗: ", e);
-            showToast('刪除失敗，請檢查權限。', 'error');
-        }
-    };
+      try {
+        const questionsRef = db.collection('surveys').doc(selectedSurveyId)
+          .collection('questions');
+        const snap = await questionsRef.get();
+        let baseOrder = snap.size;
 
-    // 導出所有答案 (SPSS 格式)
-    const exportResponses = async () => {
-        if (questions.length === 0) {
-            showToast('目前沒有題目，無法導出。', 'error');
-            return;
-        }
-        
-        const exportStatus = document.getElementById('export-status');
-        if (!exportStatus) return; // 檢查 DOM 元素
+        const batch = db.batch();
+        lines.forEach(line => {
+          const docRef = questionsRef.doc();
+          batch.set(docRef, {
+            text: line,
+            type: 'text',
+            required: false,
+            options: [],
+            scaleMin: null,
+            scaleMax: null,
+            order: baseOrder++
+          });
+        });
+        await batch.commit();
+        bulkQuestionsEl.value = '';
+        alert(`已新增 ${lines.length} 題開放式題目。`);
+      } catch (err) {
+        console.error(err);
+        alert('批次新增題目失敗。');
+      }
+    });
 
-        exportStatus.textContent = '正在獲取資料，請稍候...';
-
-        try {
-            const snapshot = await getDocs(collection(db, COLLECTIONS.RESPONSES));
-            const responses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            if (responses.length === 0) {
-                showToast('目前沒有任何填答資料。', 'info');
-                exportStatus.textContent = '目前沒有任何填答資料。';
-                return;
-            }
-
-            // 1. 建立 CSV 標頭
-            const headers = ['ResponseID', 'UserID', 'Timestamp'];
-            
-            questions.forEach((q, index) => {
-                const qName = `Q${index + 1}_${q.id.substring(0, 4)}`; 
-                headers.push(qName);
-            });
-            
-            let csvContent = headers.join(',') + '\n';
-
-            // 2. 建立資料行
-            responses.forEach(r => {
-                const row = [];
-                row.push(r.id);
-                row.push(r.userId);
-                const timestampStr = r.timestamp && r.timestamp.toDate ? r.timestamp.toDate().toISOString() : 'N/A';
-                row.push(timestampStr); 
-
-                questions.forEach(q => {
-                    const score = r.answers ? (r.answers[q.id] || '') : '';
-                    row.push(score);
-                });
-
-                csvContent += row.map(cell => {
-                    let content = String(cell);
-                    if (content.includes(',') || content.includes('\n')) {
-                        return `"${content.replace(/"/g, '""')}"`; 
-                    }
-                    return content;
-                }).join(',') + '\n';
-            });
-
-            // 3. 下載 CSV 檔案 (處理中文亂碼問題)
-            const BOM = "\uFEFF"; 
-            const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('href', url);
-            const date = new Date().toISOString().substring(0, 10);
-            a.setAttribute('download', `survey_spss_export_${date}.csv`);
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-
-            exportStatus.textContent = `成功導出 ${responses.length} 筆資料。`;
-            showToast('資料已下載為 CSV 檔案！', 'success');
-
-        } catch (e) {
-            console.error("導出答案失敗: ", e);
-            exportStatus.textContent = '導出失敗。';
-            showToast('導出資料時發生錯誤。', 'error');
-        } finally {
-             setTimeout(() => exportStatus.textContent = '', 5000);
-        }
-    };
-    
-    // ====== 渲染組件 ======
-
-    const RenderAdminPanel = () => (
-        <div id="admin-panel-view" className="space-y-8">
-            <h2 className="text-3xl font-bold text-gray-800 flex items-center">
-                <Database className="w-6 h-6 mr-2 text-indigo-600"/>
-                後台管理與導出
-            </h2>
-
-            {/* 匯入區塊 */}
-            <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-200 shadow-md">
-                <h3 className="text-xl font-semibold text-indigo-800 mb-4 flex items-center">
-                    <Upload className="w-5 h-5 mr-2"/>
-                    題目匯入（CSV / Excel 貼上）
-                </h3>
-                <p className="text-sm text-indigo-700 mb-4">格式範例 (每行一題): <span className="font-mono bg-indigo-100 p-1 rounded">問題文字,量表點數(5/6/7)</span></p>
-                <textarea 
-                    id="csv-input" 
-                    rows="5" 
-                    placeholder="請貼上 CSV 格式的題目資料..." 
-                    className="w-full p-3 border border-indigo-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 mb-4"
-                    defaultValue={`工作環境的氛圍讓我感到舒適且支持,5
-我對目前的工作內容感到滿意,7
-我認為公司的溝通機制是透明且有效的,6
-我樂意向朋友推薦這間公司,7`}
-                ></textarea>
-                <button 
-                    onClick={importQuestions} 
-                    className="py-2 px-5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-200 shadow-md flex items-center"
-                >
-                    <Clipboard className="w-4 h-4 mr-2"/>
-                    解析並匯入題目 (覆蓋現有)
-                </button>
-            </div>
-
-            {/* 手動新增/編輯表單 */}
-            {manualForm.isOpen && (
-                <div id="manual-add-form" className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-                    <h4 className="text-lg font-bold mb-4 text-blue-700">{manualForm.id ? '編輯題目' : '新增題目'}</h4>
-                    <textarea 
-                        id="manual-question-text" 
-                        placeholder="輸入問題文字" 
-                        value={manualForm.text}
-                        onChange={(e) => setManualForm(prev => ({ ...prev, text: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 mb-3"
-                    />
-                    <select 
-                        id="manual-scale-points" 
-                        value={manualForm.points}
-                        onChange={(e) => setManualForm(prev => ({ ...prev, points: parseInt(e.target.value) }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 mb-4"
-                    >
-                        <option value={5}>5點量表 (1-5)</option>
-                        <option value={6}>6點量表 (1-6)</option>
-                        <option value={7}>7點量表 (1-7)</option>
-                    </select>
-                    <div className="flex space-x-3">
-                        <button onClick={saveQuestion} className="py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-200 shadow-md">
-                            儲存題目
-                        </button>
-                        <button onClick={() => setManualForm(prev => ({ ...prev, isOpen: false }))} className="py-2 px-4 bg-gray-400 text-white font-semibold rounded-lg hover:bg-gray-500 transition duration-200">
-                            取消
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* 題目列表管理 */}
-            <div className="mb-8">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                    <Database className="w-5 h-5 mr-2"/>
-                    現有題目列表
-                </h3>
-                <div id="admin-questions-list" className="space-y-3 custom-scrollbar max-h-96 overflow-y-auto p-2 border border-gray-200 rounded-lg">
-                    {questions.length === 0 ? (
-                        <p className="text-center text-gray-500 py-4">請使用上方匯入或手動新增題目。</p>
-                    ) : (
-                        questions.map((q, index) => (
-                            <div key={q.id} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm border border-gray-100">
-                                <span className="text-sm font-medium text-gray-700 truncate mr-4">
-                                    {index + 1}. [{q.points}點] {q.text}
-                                </span>
-                                <div className="flex space-x-2 flex-shrink-0">
-                                    <button 
-                                        onClick={() => setManualForm({ id: q.id, text: q.text, points: q.points, isOpen: true })}
-                                        className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition duration-150" 
-                                        title="編輯"
-                                    >
-                                        <Edit className="w-5 h-5" />
-                                    </button>
-                                    <button 
-                                        onClick={() => deleteQuestion(q.id)}
-                                        className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition duration-150" 
-                                        title="刪除"
-                                    >
-                                        <Trash className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-                <button 
-                    onClick={() => setManualForm({ id: null, text: '', points: 5, isOpen: true })}
-                    className="mt-4 py-2 px-4 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition duration-200 shadow-md flex items-center"
-                >
-                    <Plus className="w-4 h-4 mr-2"/>
-                    手動新增題目
-                </button>
-            </div>
-
-            {/* 答案導出區塊 */}
-            <div className="bg-teal-50 p-6 rounded-xl border border-teal-200 shadow-md">
-                <h3 className="text-xl font-semibold text-teal-800 mb-4 flex items-center">
-                    <Download className="w-5 h-5 mr-2"/>
-                    答案資料導出 (SPSS 格式)
-                </h3>
-                <p className="text-sm text-teal-700 mb-4">點擊按鈕獲取所有填答資料的 CSV 檔案。資料欄位為：Timestamp, UserID, Q1_Score, Q2_Score...</p>
-                <button 
-                    onClick={exportResponses} 
-                    className="py-3 px-6 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-700 transition duration-200 shadow-lg flex items-center"
-                >
-                    <Download className="w-5 h-5 mr-2"/>
-                    導出所有答案 (.csv)
-                </button>
-                <p id="export-status" className="mt-3 text-sm text-teal-600 font-medium"></p>
-            </div>
-            
-            <button onClick={logoutAdmin} className="mt-4 py-2 px-4 bg-gray-500 text-white font-semibold rounded-lg hover:bg-gray-600 transition duration-200">
-                登出並返回問卷
-            </button>
-        </div>
-    );
-
-    const RenderSurveyView = () => (
-        <div id="survey-view" className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center">
-                <Clipboard className="w-6 h-6 mr-2 text-indigo-600"/>
-                問卷填寫
-            </h2>
-            <div id="questions-list" className="space-y-8 p-4 bg-gray-100 rounded-xl shadow-inner min-h-[150px]">
-                {loading ? (
-                    <p className="text-center text-gray-500 py-10">正在載入題目...</p>
-                ) : questions.length === 0 ? (
-                    <p className="text-center text-gray-500 py-10">目前沒有題目，請等待管理者匯入。</p>
-                ) : (
-                    questions.map((q, index) => (
-                        <QuestionCard 
-                            key={q.id} 
-                            question={q} 
-                            index={index} 
-                            handleAnswerChange={handleAnswerChange} 
-                        />
-                    ))
-                )}
-            </div>
-            <button 
-                onClick={submitSurvey} 
-                id="submit-btn" 
-                disabled={submitting || questions.length === 0}
-                className="w-full py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center"
-            >
-                {submitting ? '提交中...' : '提交問卷'}
-            </button>
-        </div>
-    );
-
-    const RenderLoginView = () => (
-        <div id="admin-login-view" className="p-8 border border-gray-200 rounded-xl max-w-md mx-auto shadow-lg bg-white">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                <User className="w-6 h-6 mr-2 text-indigo-600"/>
-                管理者登入
-            </h2>
-            <p className="text-sm text-red-600 mb-4">請輸入密碼。**演示密碼：admin1234**</p>
-            <input 
-                type="password" 
-                id="admin-password" 
-                placeholder="輸入管理者密碼" 
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 mb-4"
-            />
-            <button 
-                onClick={loginAdmin} 
-                className="w-full py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition duration-200 shadow-lg"
-            >
-                登入
-            </button>
-        </div>
-    );
-
-    // 選擇渲染哪個視圖
-    const renderContent = () => {
-        switch (view) {
-            case 'admin-panel':
-                return <RenderAdminPanel />;
-            case 'admin-login':
-                return <RenderLoginView />;
-            case 'survey':
-            default:
-                return <RenderSurveyView />;
-        }
-    };
-
-    return (
-        <div className="w-full max-w-4xl bg-white shadow-2xl rounded-xl p-6 sm:p-10 transition-all duration-300">
-            {/* 頂部標題和切換按鈕 */}
-            <header className="mb-8 border-b pb-4">
-                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center">
-                    <TrendingUp className="w-8 h-8 mr-2 text-indigo-600"/>
-                    動態問卷調查系統 (React/Firebase)
-                </h1>
-                <p className="text-sm text-gray-500 mt-1">使用者 ID: <span id="user-id-display" className="font-mono text-xs bg-gray-100 p-1 rounded-sm">{userId || '載入中...'}</span></p>
-                <div className="mt-4 flex space-x-3">
-                    <button 
-                        onClick={() => changeView('survey')} 
-                        className={`px-5 py-2 font-semibold text-sm rounded-lg transition duration-150 shadow-md ${view === 'survey' ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300'}`}
-                    >
-                        填寫問卷
-                    </button>
-                    <button 
-                        onClick={() => changeView('admin-login')} 
-                        className={`px-5 py-2 font-semibold text-sm rounded-lg transition duration-150 shadow-md ${(view === 'admin-panel' || view === 'admin-login') ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300'}`}
-                    >
-                        管理者後台
-                    </button>
-                </div>
-            </header>
-
-            {/* 視圖內容 */}
-            <div id="view-container">
-                {renderContent()}
-            </div>
-
-            {/* 訊息提示 */}
-            <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: '' })} />
-        </div>
-    );
-};
-
-export default App;
+    // 一開始就訂閱問卷列表
+    subscribeSurveys();
+  </script>
+</body>
+</html>
