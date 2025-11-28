@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Firebase 問卷系統</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,44 +11,61 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
     <style>
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f3f4f6; }
+        /* 基礎設定 */
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            background-color: #f3f4f6; 
+            /* 修正手機版面高度問題，改用 min-h-screen */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
+
         /* 選項卡片被選中時的動畫 */
-        input:checked + div { transform: scale(1.02); }
+        input:checked + div { 
+            transform: scale(1.02); 
+            border-color: #2563eb; /* blue-600 */
+            background-color: #eff6ff; /* blue-50 */
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1), 0 2px 4px -1px rgba(37, 99, 235, 0.06);
+        }
+
+        /* 手機優化：點擊區域 */
+        .tap-target {
+            min-height: 44px; /* iOS 建議最小點擊高度 */
+        }
     </style>
 </head>
-<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+<body class="text-gray-800">
 
     <!-- Navbar (Admin Only) -->
-    <nav id="admin-nav" class="bg-blue-600 text-white shadow-lg shrink-0 z-10 hidden">
+    <!-- 改為 sticky top-0 以確保在手機滾動時固定在頂部，但不遮擋內容 -->
+    <nav id="admin-nav" class="bg-blue-600 text-white shadow-lg sticky top-0 z-50 hidden">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <i class="fa-solid fa-clipboard-list text-2xl"></i>
-                <h1 class="text-xl font-bold tracking-wide">問卷大師 <span class="text-xs font-normal opacity-80 ml-2">管理後台</span></h1>
+                <h1 class="text-xl font-bold tracking-wide hidden md:block">問卷大師 <span class="text-xs font-normal opacity-80 ml-2">管理後台</span></h1>
+                <h1 class="text-lg font-bold tracking-wide md:hidden">問卷後台</h1>
             </div>
             <div class="flex items-center gap-4">
-                <div id="user-info" class="text-sm bg-blue-700 px-3 py-1 rounded-full opacity-0 transition-opacity duration-300">
+                <div id="user-info" class="text-sm bg-blue-700 px-3 py-1 rounded-full opacity-0 transition-opacity duration-300 hidden md:block">
                     載入中...
                 </div>
-                <button onclick="app.logout()" class="text-white hover:text-blue-200 transition text-sm">
-                    <i class="fa-solid fa-right-from-bracket mr-1"></i> 登出
+                <button onclick="app.logout()" class="text-white hover:text-blue-200 transition text-sm flex items-center gap-1">
+                    <i class="fa-solid fa-right-from-bracket"></i> <span class="hidden md:inline">登出</span>
                 </button>
             </div>
         </div>
     </nav>
 
     <!-- Main Content Area -->
-    <main class="flex-1 overflow-y-auto p-4 md:p-8 relative" id="main-container">
+    <!-- 移除 overflow-hidden 與 h-screen，改讓 body 自然捲動 -->
+    <main class="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 relative" id="main-container">
         
         <!-- Loading State -->
-        <div id="loading-view" class="absolute inset-0 flex items-center justify-center bg-gray-100 z-50">
+        <div id="loading-view" class="fixed inset-0 flex items-center justify-center bg-gray-100 z-50">
             <div class="text-center">
                 <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500 mb-4"></i>
                 <p class="text-gray-500">正在連接...</p>
@@ -56,8 +73,8 @@
         </div>
 
         <!-- Login View -->
-        <div id="login-view" class="hidden absolute inset-0 flex items-center justify-center bg-gray-100 z-40 fade-in">
-            <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
+        <div id="login-view" class="hidden fixed inset-0 flex items-center justify-center bg-gray-100 z-40 fade-in p-4">
+            <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
                 <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i class="fa-solid fa-user-shield text-3xl"></i>
                 </div>
@@ -88,45 +105,45 @@
         <!-- ================= ADMIN VIEWS ================= -->
 
         <!-- Dashboard View (Survey List) -->
-        <div id="dashboard-view" class="hidden max-w-5xl mx-auto fade-in">
-            <div class="flex justify-between items-center mb-8">
+        <div id="dashboard-view" class="hidden fade-in">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800">我的問卷</h2>
                     <p class="text-gray-500 text-sm mt-1">管理與發布您的調查問卷</p>
                 </div>
-                <button onclick="app.createNewSurvey()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg shadow transition flex items-center gap-2">
+                <button onclick="app.createNewSurvey()" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg shadow transition flex items-center justify-center gap-2 tap-target">
                     <i class="fa-solid fa-plus"></i> 建立新問卷
                 </button>
             </div>
 
-            <div id="survey-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div id="survey-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 <!-- Survey Cards injected here -->
             </div>
             
-            <div id="empty-state" class="hidden text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
+            <div id="empty-state" class="hidden text-center py-20 bg-white rounded-xl border border-dashed border-gray-300 mx-auto max-w-lg">
                 <i class="fa-regular fa-folder-open text-5xl text-gray-300 mb-4"></i>
-                <p class="text-gray-500">目前沒有問卷，點擊右上方按鈕建立第一個問卷！</p>
+                <p class="text-gray-500">目前沒有問卷，點擊上方按鈕建立第一個問卷！</p>
             </div>
         </div>
 
         <!-- Editor View -->
-        <div id="editor-view" class="hidden max-w-4xl mx-auto fade-in pb-20">
-            <div class="flex justify-between items-center mb-4">
-                <button onclick="app.showDashboard()" class="text-gray-500 hover:text-blue-600 flex items-center gap-2 transition">
-                    <i class="fa-solid fa-arrow-left"></i> 返回列表
+        <div id="editor-view" class="hidden fade-in pb-20 max-w-4xl mx-auto">
+            <div class="flex justify-between items-center mb-4 sticky top-[60px] z-20 bg-[#f3f4f6] py-2">
+                <button onclick="app.showDashboard()" class="text-gray-500 hover:text-blue-600 flex items-center gap-2 transition px-2 py-1">
+                    <i class="fa-solid fa-arrow-left"></i> <span class="hidden md:inline">返回列表</span>
                 </button>
                 
-                <button onclick="app.openBatchModal()" class="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-200 transition">
-                    <i class="fa-solid fa-bolt mr-1"></i> 批量匯入題目
+                <button onclick="app.openBatchModal()" class="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-200 transition bg-white shadow-sm">
+                    <i class="fa-solid fa-bolt mr-1"></i> 批量匯入
                 </button>
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="border-b border-gray-100 p-6 bg-gray-50">
+                <div class="border-b border-gray-100 p-4 md:p-6 bg-gray-50">
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">問卷標題</label>
-                            <input type="text" id="survey-title" class="w-full text-xl font-bold border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2" placeholder="請輸入問卷標題">
+                            <input type="text" id="survey-title" class="w-full text-lg md:text-xl font-bold border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2" placeholder="請輸入問卷標題">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">問卷說明</label>
@@ -135,10 +152,10 @@
                     </div>
                 </div>
 
-                <div id="questions-container" class="p-6 space-y-6 bg-gray-50/50 min-h-[300px]"></div>
+                <div id="questions-container" class="p-4 md:p-6 space-y-6 bg-gray-50/50 min-h-[300px]"></div>
 
-                <div class="p-6 border-t border-gray-200 bg-white flex justify-center">
-                    <button onclick="app.addQuestionUI()" class="group flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition w-full max-w-md">
+                <div class="p-4 md:p-6 border-t border-gray-200 bg-white flex justify-center">
+                    <button onclick="app.addQuestionUI()" class="group flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition w-full max-w-md tap-target">
                         <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition">
                             <i class="fa-solid fa-plus"></i>
                         </div>
@@ -147,93 +164,87 @@
                 </div>
             </div>
             
-            <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+            <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                 <div class="max-w-4xl mx-auto flex justify-end gap-3">
                     <button onclick="app.showDashboard()" class="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition">取消</button>
                     <button onclick="app.saveSurvey()" id="save-btn" class="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg shadow-blue-200 transition flex items-center gap-2">
-                        <i class="fa-solid fa-save"></i> 儲存問卷
+                        <i class="fa-solid fa-save"></i> 儲存
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- ================= PUBLIC VIEW (RESPONDENT) ================= -->
-        <div id="public-view" class="hidden max-w-3xl mx-auto fade-in pb-10">
+        <!-- ================= PUBLIC VIEW (RESPONDENT - Mobile Optimized) ================= -->
+        <div id="public-view" class="hidden w-full max-w-3xl mx-auto fade-in pb-10">
             <!-- Survey Header -->
-            <div class="bg-blue-600 text-white p-8 rounded-t-2xl shadow-lg relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-8 opacity-10"><i class="fa-solid fa-clipboard-question text-9xl"></i></div>
-                <h1 id="public-title" class="text-3xl font-bold relative z-10 mb-2">載入中...</h1>
-                <p id="public-desc" class="text-blue-100 relative z-10">請稍候</p>
+            <!-- 手機版 Padding 縮小 (p-6)，電腦版加大 (md:p-8) -->
+            <div class="bg-blue-600 text-white p-6 md:p-8 rounded-b-2xl md:rounded-t-2xl shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-8 opacity-10 pointer-events-none"><i class="fa-solid fa-clipboard-question text-9xl"></i></div>
+                <h1 id="public-title" class="text-2xl md:text-3xl font-bold relative z-10 mb-2 break-words">載入中...</h1>
+                <p id="public-desc" class="text-blue-100 relative z-10 text-sm md:text-base break-words">請稍候</p>
             </div>
 
             <!-- Survey Form -->
-            <form id="public-form" class="bg-white shadow-lg rounded-b-2xl p-8 space-y-8" onsubmit="event.preventDefault(); app.submitResponse();">
+            <!-- 手機版移除上方圓角，讓視覺延伸；Padding 調整為 p-5 -->
+            <form id="public-form" class="bg-white shadow-lg md:rounded-b-2xl p-5 md:p-8 space-y-6 md:space-y-8 mt-4 md:mt-0 rounded-xl md:rounded-none" onsubmit="event.preventDefault(); app.submitResponse();">
                 <div id="public-questions" class="space-y-8">
                     <!-- Questions injected here -->
                 </div>
 
                 <div class="pt-6 border-t border-gray-100">
-                    <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 transition transform active:scale-95 text-lg">
+                    <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 transition transform active:scale-[0.98] text-lg tap-target">
                         送出問卷
                     </button>
                 </div>
             </form>
 
-            <div id="thank-you-view" class="hidden bg-white shadow-lg rounded-2xl p-12 text-center mt-4">
+            <div id="thank-you-view" class="hidden bg-white shadow-lg rounded-2xl p-8 md:p-12 text-center mt-4 mx-4 md:mx-0">
                 <div class="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
                     <i class="fa-solid fa-check text-4xl"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-gray-800 mb-2">感謝您的填寫！</h2>
-                <button onclick="location.reload()" class="mt-8 text-blue-600 hover:underline">填寫另一份</button>
+                <p class="text-gray-500 mb-8">您的意見對我們非常重要。</p>
+                <button onclick="location.reload()" class="text-blue-600 hover:underline tap-target">填寫另一份</button>
             </div>
         </div>
     </main>
 
     <!-- Modal (Batch Import) -->
-    <div id="batch-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in">
-        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 flex flex-col max-h-[90vh]">
+    <div id="batch-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full flex flex-col max-h-[90vh]">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-gray-800"><i class="fa-solid fa-bolt text-yellow-500 mr-2"></i>批量新增題目</h3>
-                <button onclick="document.getElementById('batch-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
+                <h3 class="text-lg font-bold text-gray-800"><i class="fa-solid fa-bolt text-yellow-500 mr-2"></i>批量新增</h3>
+                <button onclick="document.getElementById('batch-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             
             <div class="overflow-y-auto flex-1 pr-2">
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-700 mb-1">題目列表 (一行一題)</label>
-                    <textarea id="batch-text" rows="8" class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500" placeholder="例如：
+                    <textarea id="batch-text" rows="6" class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 text-sm" placeholder="例如：
 您對環境滿意嗎？
-服務人員態度如何？
-餐點口味是否符合預期？"></textarea>
+服務人員態度如何？"></textarea>
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-sm font-bold text-gray-700 mb-1">設定這些題目的類型</label>
-                    <select id="batch-type" onchange="app.toggleBatchSettings()" class="w-full border-gray-300 rounded-lg p-2.5 border bg-white">
-                        <option value="text">全部設為：簡答題</option>
-                        <option value="likert">全部設為：滿意度量表 (Likert)</option>
-                        <option value="radio">全部設為：單選題 (需後續手動補選項)</option>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">類型</label>
+                    <select id="batch-type" onchange="app.toggleBatchSettings()" class="w-full border-gray-300 rounded-lg p-2.5 border bg-white text-sm">
+                        <option value="text">簡答題</option>
+                        <option value="likert">滿意度量表 (Likert)</option>
+                        <option value="radio">單選題</option>
                     </select>
                 </div>
 
                 <!-- Likert Settings -->
                 <div id="batch-likert-settings" class="hidden bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
-                    <label class="block text-xs font-bold text-blue-700 uppercase mb-2">量表設定</label>
                     <div class="flex gap-4 items-center">
                         <div class="flex-1">
                             <span class="text-sm text-gray-600 block mb-1">等級數</span>
                             <select id="likert-scale" class="w-full border border-blue-200 rounded p-1.5 text-sm">
-                                <option value="3">3 點量表 (1-3)</option>
-                                <option value="5" selected>5 點量表 (1-5)</option>
-                                <option value="7">7 點量表 (1-7)</option>
-                                <option value="10">10 點量表 (1-10)</option>
+                                <option value="3">3 (1-3)</option>
+                                <option value="5" selected>5 (1-5)</option>
+                                <option value="7">7 (1-7)</option>
+                                <option value="10">10 (1-10)</option>
                             </select>
-                        </div>
-                        <div class="flex-1">
-                             <span class="text-sm text-gray-600 block mb-1">文字標籤</span>
-                             <div class="text-xs text-gray-500">
-                                 自動產生：<br>
-                                 1 (非常不滿意) ... 5 (非常滿意)
-                             </div>
                         </div>
                     </div>
                 </div>
@@ -241,22 +252,21 @@
 
             <div class="pt-4 border-t border-gray-100 flex justify-end gap-2">
                 <button onclick="document.getElementById('batch-modal').classList.add('hidden')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
-                <button onclick="app.processBatchImport()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow">開始匯入</button>
+                <button onclick="app.processBatchImport()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow">匯入</button>
             </div>
         </div>
     </div>
 
     <!-- Modal (View Results) -->
-    <div id="results-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in">
-        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-4xl w-full mx-4 flex flex-col max-h-[90vh]">
+    <div id="results-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-4 md:p-6 max-w-4xl w-full flex flex-col max-h-[90vh]">
             <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-                <h3 class="text-xl font-bold text-gray-800"><i class="fa-solid fa-chart-bar text-blue-500 mr-2"></i>問卷統計結果</h3>
+                <h3 class="text-lg md:text-xl font-bold text-gray-800"><i class="fa-solid fa-chart-bar text-blue-500 mr-2"></i>統計結果</h3>
                 <div class="flex gap-2">
-                    <!-- 新增：匯出 CSV 按鈕 -->
-                    <button id="export-btn" class="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition shadow">
-                        <i class="fa-solid fa-file-csv"></i> 匯出 Excel/CSV
+                    <button id="export-btn" class="text-xs md:text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition shadow whitespace-nowrap">
+                        <i class="fa-solid fa-file-csv"></i> <span class="hidden md:inline">匯出 Excel</span><span class="md:hidden">匯出</span>
                     </button>
-                    <button onclick="document.getElementById('results-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 ml-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+                    <button onclick="document.getElementById('results-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 ml-2 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
                 </div>
             </div>
             
@@ -267,20 +277,21 @@
     </div>
 
     <!-- Modal (Share Link) -->
-    <div id="share-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in">
-        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+    <div id="share-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full">
             <h3 class="text-lg font-bold text-gray-800 mb-2">發布問卷</h3>
             <p class="text-sm text-gray-500 mb-4">將此連結傳送給填答者。</p>
             <div class="flex gap-2 mb-4">
                 <input type="text" id="share-link-input" readonly class="w-full bg-gray-50 border border-gray-300 text-gray-600 text-sm rounded-lg p-2.5">
-                <button onclick="app.copyLink()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg text-sm font-medium">複製</button>
+                <button onclick="app.copyLink()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg text-sm font-medium whitespace-nowrap">複製</button>
             </div>
+            <button onclick="document.getElementById('share-modal').classList.add('hidden')" class="w-full py-2 text-gray-500 hover:bg-gray-50 rounded-lg">關閉</button>
         </div>
     </div>
 
     <!-- Modal (Confirm Delete) -->
-    <div id="delete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in">
-        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 text-center">
+    <div id="delete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center">
             <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-trash-can text-2xl"></i></div>
             <h3 class="text-lg font-bold text-gray-800">確定刪除？</h3>
             <div class="flex gap-3 mt-6">
@@ -291,7 +302,7 @@
     </div>
 
     <!-- Toast -->
-    <div id="toast" class="fixed top-20 right-5 transform translate-x-full transition-transform duration-300 z-50 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
+    <div id="toast" class="fixed top-20 right-5 transform translate-x-full transition-transform duration-300 z-[60] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
         <i id="toast-icon" class="fa-solid fa-check-circle text-green-400"></i>
         <span id="toast-msg">操作成功</span>
     </div>
@@ -360,37 +371,23 @@
 
         // Helper to get emoji for Likert scale
         function getEmojiForScale(text, index, total) {
-            // Simple heuristic mapping
-            const emojis = ['😡', '😠', '🙁', '😐', '🙂', '😊', '🤩'];
-            
-            // Try to find a number at the start: "(1)", "1.", "1"
             const match = text.match(/^[\(]?(\d+)[\)\.]?/);
             if (match) {
                 let num = parseInt(match[1]);
-                // Map 1..N to emoji array. 
-                // E.g. Scale 1-5: 1->0, 5->6? Or just distribute.
-                // Simplest: Map standard 5 or 7 point scales.
                 if (total <= 5) {
-                    // Map 1-5 to 5 emojis from bad to good
                     const map5 = ['😡', '🙁', '😐', '😊', '🤩'];
                     if (num >= 1 && num <= 5) return map5[num-1];
                 } else if (total <= 7) {
+                    const emojis = ['😡', '😠', '🙁', '😐', '🙂', '😊', '🤩'];
                     if (num >= 1 && num <= 7) return emojis[num-1];
-                } else if (total <= 10) {
-                     // For 10 point, just return star for high, angry for low? 
-                     // Let's just return a default based on relative position
-                     if (num <= 2) return '😡';
-                     if (num >= 9) return '🤩';
                 }
             }
-            // Default icons if no number match but keywords exist
             if (text.includes('非常不') || text.includes('極不')) return '😡';
             if (text.includes('不滿') || text.includes('不同意')) return '🙁';
             if (text.includes('普通') || text.includes('沒意見')) return '😐';
             if (text.includes('非常') || text.includes('極')) return '🤩';
             if (text.includes('滿意') || text.includes('同意')) return '😊';
-            
-            return null; // No emoji
+            return null; 
         }
 
         window.app = {
@@ -414,6 +411,7 @@
                 document.getElementById('dashboard-view').classList.remove('hidden');
                 loadSurveys();
                 currentSurveyId = null;
+                window.scrollTo(0, 0);
             },
             createNewSurvey: () => {
                 currentSurveyId = crypto.randomUUID();
@@ -423,6 +421,7 @@
                 window.app.addQuestionUI();
                 document.getElementById('dashboard-view').classList.add('hidden');
                 document.getElementById('editor-view').classList.remove('hidden');
+                window.scrollTo(0, 0);
             },
             editSurvey: (surveyId) => {
                 const survey = surveysCache[surveyId];
@@ -435,6 +434,7 @@
                 (survey.questions || []).forEach(q => window.app.addQuestionUI(q));
                 document.getElementById('dashboard-view').classList.add('hidden');
                 document.getElementById('editor-view').classList.remove('hidden');
+                window.scrollTo(0, 0);
             },
 
             // --- BATCH IMPORT FEATURES ---
@@ -460,11 +460,11 @@
                 const lines = text.split('\n').map(l => l.trim()).filter(l => l);
                 
                 lines.forEach(line => {
-                    let qData = { text: line, type: 'text', options: [], required: true }; // Default required
+                    let qData = { text: line, type: 'text', options: [], required: true };
                     
                     if(type === 'radio') {
                         qData.type = 'radio';
-                        qData.options = ['選項1', '選項2']; // Placeholder
+                        qData.options = ['選項1', '選項2']; 
                     } else if(type === 'likert') {
                         qData.type = 'radio';
                         qData.options = [];
@@ -482,7 +482,6 @@
 
                 document.getElementById('batch-modal').classList.add('hidden');
                 showToast(`已新增 ${lines.length} 個題目`);
-                setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
             },
 
             // --- NEW FEATURES: Duplicate & Export ---
@@ -500,9 +499,8 @@
                         title: `${survey.title} (副本)`,
                         updatedAt: serverTimestamp()
                     };
-                    delete newData.id; // Remove ID, let Firestore/logic handle it
+                    delete newData.id; 
 
-                    // Save as new
                     await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', newId), newData);
                     showToast("複製成功！");
                     loadSurveys();
@@ -528,18 +526,14 @@
                         return;
                     }
 
-                    // 1. Build CSV Header
-                    // "Time", "Q1: Text...", "Q2: Text..."
-                    let csvContent = "\uFEFF"; // BOM for Excel chinese support
+                    let csvContent = "\uFEFF"; 
                     let headers = ["提交時間"];
                     survey.questions.forEach((q, idx) => {
-                        // Escape quotes in question text
                         const safeText = q.text.replace(/"/g, '""');
                         headers.push(`"Q${idx+1}: ${safeText}"`);
                     });
                     csvContent += headers.join(",") + "\n";
 
-                    // 2. Build Rows
                     snapshot.forEach(doc => {
                         const data = doc.data();
                         const time = data.submittedAt ? new Date(data.submittedAt.seconds * 1000).toLocaleString('zh-TW') : "未知時間";
@@ -548,15 +542,13 @@
                         survey.questions.forEach((q, idx) => {
                             let ans = data.answers && data.answers[idx];
                             if(!ans) ans = "";
-                            if(Array.isArray(ans)) ans = ans.join("; "); // Checkbox join with semicolon
-                            // Escape quotes in answer
+                            if(Array.isArray(ans)) ans = ans.join("; "); 
                             ans = String(ans).replace(/"/g, '""');
                             row.push(`"${ans}"`);
                         });
                         csvContent += row.join(",") + "\n";
                     });
 
-                    // 3. Trigger Download
                     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement("a");
@@ -582,13 +574,11 @@
                 const content = document.getElementById('results-content');
                 modal.classList.remove('hidden');
                 
-                // Bind export button to this survey ID
                 document.getElementById('export-btn').onclick = () => app.exportToCSV(surveyId);
 
                 content.innerHTML = '<div class="text-center py-10"><i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-500"></i><br>正在計算數據...</div>';
 
                 try {
-                    // Fetch all responses
                     const resRef = collection(db, 'artifacts', appId, 'users', user.uid, 'surveys', surveyId, 'responses');
                     const snapshot = await getDocs(resRef);
                     
@@ -597,11 +587,9 @@
                         return;
                     }
 
-                    // Process Data
                     let totalResponses = snapshot.size;
-                    let stats = {}; // { qIndex: { total: 0, counts: { opt: num }, answers: [] } }
+                    let stats = {}; 
                     
-                    // Init stats structure based on questions
                     (survey.questions || []).forEach((q, idx) => {
                         stats[idx] = { type: q.type, question: q.text, counts: {}, answers: [] };
                         if(q.options) q.options.forEach(opt => stats[idx].counts[opt] = 0);
@@ -618,18 +606,15 @@
                             if(stats[qIdx].type === 'text') {
                                 if(val) stats[qIdx].answers.push(val);
                             } else if (Array.isArray(val)) {
-                                // Checkbox
                                 val.forEach(v => {
                                     if(stats[qIdx].counts[v] !== undefined) stats[qIdx].counts[v]++;
                                 });
                             } else {
-                                // Radio
                                 if(stats[qIdx].counts[val] !== undefined) stats[qIdx].counts[val]++;
                             }
                         });
                     });
 
-                    // Render
                     let html = `<div class="mb-6 bg-blue-50 p-4 rounded-lg text-center font-bold text-blue-800">總填答人數：${totalResponses} 人</div>`;
                     
                     Object.keys(stats).sort((a,b) => parseInt(a)-parseInt(b)).forEach(idx => {
@@ -645,7 +630,6 @@
                             });
                             html += `</div>`;
                         } else {
-                            // Bar chart visualization
                             html += `<div class="space-y-3">`;
                             Object.keys(item.counts).forEach(opt => {
                                 const count = item.counts[opt];
@@ -681,15 +665,13 @@
                 const type = data ? data.type : 'text';
                 const text = data ? data.text : '';
                 const options = data && data.options ? data.options.join('\n') : '';
-                // NEW: Handle required field
-                const isRequired = (data && data.required !== undefined) ? data.required : true; // Default true
+                const isRequired = (data && data.required !== undefined) ? data.required : true; 
 
                 const questionHTML = `
-                <div class="question-card bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative group hover:shadow-md transition duration-200" id="q-${id}">
+                <div class="question-card bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm relative group hover:shadow-md transition duration-200" id="q-${id}">
                     <div class="flex justify-between items-start mb-4">
                         <div class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">題目 ${container.children.length + 1}</div>
                         <div class="flex items-center gap-2">
-                             <!-- Required Toggle -->
                              <label class="flex items-center cursor-pointer select-none">
                                 <div class="relative">
                                     <input type="checkbox" class="sr-only peer question-required" ${isRequired ? 'checked' : ''}>
@@ -743,7 +725,6 @@
                     const questions = Array.from(cards).map(card => {
                         const type = card.querySelector('.question-type').value;
                         const text = card.querySelector('.question-input').value.trim();
-                        // Get required status
                         const required = card.querySelector('.question-required').checked;
                         
                         let options = [];
@@ -796,6 +777,7 @@
                     await addDoc(collection(db, 'artifacts', appId, 'users', publicModeOwnerId, 'surveys', publicModeSurveyId, 'responses'), { answers: answers, submittedAt: serverTimestamp() });
                     document.getElementById('public-form').classList.add('hidden');
                     document.getElementById('thank-you-view').classList.remove('hidden');
+                    window.scrollTo(0, 0);
                 } catch (e) { console.error(e); showToast("提交失敗", "error"); submitBtn.disabled = false; submitBtn.innerText = "送出問卷"; }
             }
         };
@@ -829,10 +811,10 @@
                         </div>
                         <div class="mt-5 pt-4 border-t border-gray-100 flex flex-wrap justify-between gap-y-2 gap-x-1 items-center">
                             <button onclick="window.app.viewResults('${survey.id}')" class="text-gray-600 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition" title="查看結果">
-                                <i class="fa-solid fa-chart-simple text-blue-500"></i> 統計
+                                <i class="fa-solid fa-chart-simple text-blue-500"></i> <span class="hidden md:inline">統計</span>
                             </button>
                             <div class="flex gap-1 flex-wrap">
-                                <button onclick="window.app.duplicateSurvey('${survey.id}')" class="text-gray-500 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition" title="複製問卷"><i class="fa-regular fa-copy"></i></button>
+                                <button onclick="window.app.duplicateSurvey('${survey.id}')" class="text-gray-500 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition" title="複製"><i class="fa-regular fa-copy"></i></button>
                                 <button onclick="window.app.openShareModal('${survey.id}')" class="text-green-600 hover:bg-green-50 px-2 py-1.5 rounded-lg text-xs font-medium transition" title="發布"><i class="fa-solid fa-share-nodes"></i></button>
                                 <button onclick="window.app.editSurvey('${survey.id}')" class="text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded-lg text-xs font-medium transition" title="編輯"><i class="fa-solid fa-pen"></i></button>
                                 <button onclick="window.app.requestDelete('${survey.id}')" class="text-red-500 hover:bg-red-50 px-2 py-1.5 rounded-lg text-xs font-medium transition" title="刪除"><i class="fa-solid fa-trash"></i></button>
@@ -856,7 +838,6 @@
                     (data.questions || []).forEach((q, idx) => {
                         let inputHtml = '';
                         const name = `q_${idx}`;
-                        // Check requirement, default true if undefined for older data, or based on q.required
                         const isReq = (q.required !== undefined) ? q.required : true;
                         const reqAttr = isReq ? 'required' : '';
                         const reqMark = isReq ? '<span class="text-red-500 ml-1">*</span>' : '';
@@ -864,11 +845,17 @@
                         if (q.type === 'text') {
                             inputHtml = `<input type="text" name="${name}" ${reqAttr} class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="請輸入您的答案...">`;
                         } else if (q.type === 'radio') {
-                            // NEW: Card Style Layout for Radios
-                            // Check if emojis are applicable
                             const optionsCount = q.options.length;
                             
-                            inputHtml = `<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-${Math.min(optionsCount, 7)} gap-3">` + 
+                            // MOBILE OPTIMIZATION:
+                            // Use grid-cols-1 for mobile (vertical stack)
+                            // Use grid-cols-2 for tablets (sm)
+                            // Use grid-cols-X for desktop (lg)
+                            
+                            let gridClass = `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${Math.min(optionsCount, 5)} gap-3`;
+                            if(optionsCount > 5) gridClass = `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${Math.min(optionsCount, 7)} gap-3`;
+
+                            inputHtml = `<div class="${gridClass}">` + 
                                 q.options.map(opt => {
                                     const emoji = getEmojiForScale(opt, idx, optionsCount);
                                     const emojiHtml = emoji ? `<div class="text-3xl mb-2">${emoji}</div>` : '';
@@ -883,12 +870,11 @@
                                 `}).join('') + `</div>`;
 
                         } else if (q.type === 'checkbox') {
-                            // Keep checkboxes as list for now, or could be similar cards but checkable
-                             inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"><input type="checkbox" name="${name}" value="${opt}" class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded"><span class="text-gray-700">${opt}</span></label>`).join('') + `</div>`;
+                             inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"><input type="checkbox" name="${name}" value="${opt}" class="w-5 h-5 text-blue-600 focus:ring-blue-500 rounded"><span class="text-gray-700 text-base">${opt}</span></label>`).join('') + `</div>`;
                         }
                         
                         const qHtml = `<div class="public-q-item space-y-3" data-type="${q.type}">
-                            <h3 class="font-bold text-lg text-gray-800">
+                            <h3 class="font-bold text-lg md:text-xl text-gray-800 break-words leading-relaxed">
                                 <span class="text-blue-600 mr-2">${idx + 1}.</span> ${q.text} ${reqMark}
                             </h3>
                             ${inputHtml}
