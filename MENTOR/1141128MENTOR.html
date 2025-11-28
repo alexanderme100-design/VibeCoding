@@ -155,15 +155,15 @@
         setLogLevel('Debug'); 
 
         // --- HARDCODED FIREBASE CONFIGURATION START ---
-       const firebaseConfig = {
-  apiKey: "AIzaSyDownMHSXgqlTDCe8rAcD_7cQv8AZdMBlM",
-  authDomain: "score-401f6.firebaseapp.com",
-  projectId: "score-401f6",
-  storageBucket: "score-401f6.firebasestorage.app",
-  messagingSenderId: "277040199275",
-  appId: "1:277040199275:web:0cefac86741302cd2c232e",
-  measurementId: "G-1RCC7GT016"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyDownMHSXgqlTDCe8rAcD_7cQv8AZdMBlM",
+            authDomain: "score-401f6.firebaseapp.com",
+            projectId: "score-401f6",
+            storageBucket: "score-401f6.firebasestorage.app",
+            messagingSenderId: "277040199275",
+            appId: "1:277040199275:web:0cefac86741302cd2c232e",
+            measurementId: "G-1RCC7GT016"
+        };
         const appId = firebaseConfig.projectId; 
         const initialAuthToken = null; 
         // --- HARDCODED FIREBASE CONFIGURATION END ---
@@ -448,6 +448,7 @@
                 showToast(`正在匯入 ${newQuestions.length} 題，請稍候...`, 'info');
 
                 try {
+                    // 核心寫入操作
                     const batchPromises = newQuestions.map(q => {
                         return addDoc(collection(db, COLLECTIONS.QUESTIONS), q);
                     });
@@ -477,9 +478,11 @@
 
                 try {
                     if (isEditing) {
+                        // 核心寫入操作：更新
                         await setDoc(doc(db, COLLECTIONS.QUESTIONS, id), questionData, { merge: true });
                     } else {
                         questionData.order = questions.length + 1;
+                        // 核心寫入操作：新增
                         await addDoc(collection(db, COLLECTIONS.QUESTIONS), questionData);
                     }
 
@@ -495,6 +498,7 @@
             const deleteQuestion = async (id) => {
                 if (!window.confirm('確定要刪除這道題目嗎？請注意，這不會影響已收集到的答案資料。')) return;
                 try {
+                    // 核心刪除操作
                     await deleteDoc(doc(db, COLLECTIONS.QUESTIONS, id));
                     showToast('題目刪除成功！', 'success');
                 } catch (e) {
@@ -847,4 +851,3 @@
     </script>
 </body>
 </html>
-
