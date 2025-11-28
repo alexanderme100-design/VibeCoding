@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>問卷後台管理系統｜鷺江國小</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Google 字體 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <!-- Google OAuth -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<style>
+
+/* =====================================================
+   基礎色系（Light + Dark Mode）
+===================================================== */
+
+:root {
+  --gf-primary: #673ab7;
+  --gf-primary-light: #7e57c2;
+
+  --bg: #f3f4f7;
+  --card-bg: #ffffff;
+  --text: #222;
+  --text-light: #666;
+  --border: #ddd;
+  --sidebar-bg: #ffffff;
+
+  --shadow: rgba(0,0,0,0.08);
+}
+
+body.dark {
+  --bg: #1e1e1e;
+  --card-bg: #2d2d2d;
+  --text: #eeeeee;
+  --text-light: #bbbbbb;
+  --border: #444;
+  --sidebar-bg: #252525;
+
+  --shadow: rgba(0,0,0,0.4);
+}
+
+/* =====================================================
+   Layout 全域設定
+===================================================== */
+
+body {
+  margin: 0;
+  background: var(--bg);
+  font-family: "Noto Sans TC", sans-serif;
+  color: var(--text);
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* =====================================================
+   左側 Sidebar
+===================================================== */
+
+#sidebar {
+  width: 260px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  transition: 0.3s;
+  overflow-y: auto;
+}
+
+#sidebar h2 {
+  margin: 0 0 20px;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-top: 20px;
+  margin-bottom: 6px;
+  color: var(--text-light);
+}
+
+.sidebar-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: 0.2s;
+  color: var(--text);
+}
+
+.sidebar-item:hover {
+  background: rgba(103, 58, 183, 0.1);
+}
+
+.sidebar-item.active {
+  background: var(--gf-primary);
+  color: white;
+}
+
+/* =====================================================
+   頂部 Navbar
+===================================================== */
+
+#navbar {
+  height: 60px;
+  background: var(--gf-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+#navbar-left {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+#navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+#userAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: none;
+}
+
+#userRole {
+  background: rgba(255,255,255,0.2);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+
+#darkToggle {
+  cursor: pointer;
+  font-size: 26px;
+}
+
+/* =====================================================
+   主內容 Content 區域
+===================================================== */
+
+#main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* =====================================================
+   卡片元件（問卷卡片、資料卡片）
+===================================================== */
+
+.card {
+  background: var(--card-bg);
+  padding: 18px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px var(--shadow);
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+/* =====================================================
+   問卷卡片
+===================================================== */
+
+.survey-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.survey-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.survey-meta {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-top: 6px;
+}
+
+.survey-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-small {
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-edit {
+  background: #4caf50;
+  color: white;
+}
+.btn-edit:hover { background: #449d48; }
+
+.btn-stats {
+  background: #2196f3;
+  color: white;
+}
+.btn-stats:hover { background: #1e88e5; }
+
+.btn-copy {
+  background: #9c27b0;
+  color: white;
+}
+.btn-copy:hover { background: #8e24aa; }
+
+.btn-delete {
+  background: #f44336;
+  color: white;
+}
+.btn-delete:hover { background: #e53935; }
+
+/* =====================================================
+   新增問卷 FAB 按鈕
+===================================================== */
+
+#fabAddSurvey {
+  position: fixed;
+  bottom: 26px;
+  right: 26px;
+  width: 60px;
+  height: 60px;
+  background: var(--gf-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px var(--shadow);
+  cursor: pointer;
+}
+
+#fabAddSurvey .material-icons {
+  color: white;
+  font-size: 32px;
+}
+
+/* =====================================================
+   RWD：手機版 Sidebar → Drawer
+===================================================== */
+
+@media (max-width: 768px) {
+  #sidebar {
+    position: fixed;
+    left: -260px;
+    top: 0;
+    height: 100%;
+    z-index: 20;
+  }
+
+  #sidebar.open {
+    left: 0;
+  }
+
+  #sidebarOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(2px);
+    background: rgba(0,0,0,0.4);
+    display: none;
+    z-index: 10;
+  }
+
+  #sidebarOverlay.show {
+    display: block;
+  }
+
+  #navbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  #menuBtn {
+    font-size: 28px;
+    cursor: pointer;
+    display: block;
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- 手機版 Sidebar 遮罩 -->
+<div id="sidebarOverlay"></div>
+
+<!-- 左側 Sidebar -->
+<div id="sidebar">
+  <h2><span class="material-icons">dashboard</span> 後台管理</h2>
+
+  <div class="sidebar-section-title">分類</div>
+  <div class="sidebar-item active" data-category="全部"><span class="material-icons">folder_open</span> 全部問卷</div>
+  <div class="sidebar-item" data-category="學務處"><span class="material-icons">account_balance</span> 學務處</div>
+  <div class="sidebar-item" data-category="健康中心"><span class="material-icons">health_and_safety</span> 健康中心</div>
+  <div class="sidebar-item" data-category="自然領域"><span class="material-icons">eco</span> 自然領域</div>
+  <div class="sidebar-item" data-category="家長會"><span class="material-icons">groups</span> 家長會</div>
+  <div class="sidebar-item" data-category="活動報名"><span class="material-icons">event</span> 活動報名</div>
+
+  <div class="sidebar-section-title">狀態</div>
+  <div class="sidebar-item" data-status="active"><span class="material-icons">check_circle</span> 啟用中</div>
+  <div class="sidebar-item" data-status="draft"><span class="material-icons">edit_note</span> 草稿</div>
+  <div class="sidebar-item" data-status="archived"><span class="material-icons">inventory_2</span> 已封存</div>
+</div>
+
+<!-- 右側 主畫面 -->
+<div id="rightPanel" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+
+  <!-- 頂部 Navbar -->
+  <div id="navbar">
+    <div id="navbar-left">
+      <span id="menuBtn" class="material-icons" style="display:none;">menu</span>
+      問卷後台管理系統
+    </div>
+
+    <div id="navbar-right">
+      <img id="userAvatar" src="">
+      <div id="userRole">未登入</div>
+      <span id="darkToggle" class="material-icons">dark_mode</span>
+    </div>
+  </div>
+
+  <!-- 主內容 -->
+  <div id="main">
+
+    <div class="card">
+      <h2>📋 問卷列表</h2>
+      <div id="surveyListArea"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 新增問卷 FAB -->
+<div id="fabAddSurvey"><span class="material-icons">add</span></div>
+
+<script>
+/* 後續部分（B / C / D / E）會放在這裡 */
+</script>
+
+</body>
+</html>
+/* ==========================================================
+   🟣 Firebase 初始化（請填入你的 config）
+========================================================== */
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* ==========================================================
+   🟣 全域變數
+========================================================== */
+let currentUser = null;
+let userRole = "viewer"; // 預設：最低權限
+
+// 指定 admin（你本人）
+const ADMIN_EMAIL = "YOUR_EMAIL@ntpc.edu.tw";
+
+/* ==========================================================
+   🟣 Google OAuth Login（含自動角色判斷）
+========================================================== */
+function onGoogleLogin(response) {
+  const userData = parseJwt(response.credential);
+  currentUser = userData;
+
+  const email = userData.email;
+
+  // 角色自動判斷
+  if (email === ADMIN_EMAIL) {
+    userRole = "admin";
+  } else if (email.endsWith("@ntpc.edu.tw")) {
+    userRole = "staff";
+  } else {
+    userRole = "viewer";
+  }
+
+  // UI 更新
+  document.getElementById("userAvatar").src = userData.picture;
+  document.getElementById("userAvatar").style.display = "block";
+  document.getElementById("userRole").textContent = roleToLabel(userRole);
+
+  // 登入後載入問卷列表
+  loadSurveyList();
+}
+
+// Google JWT 解碼
+function parseJwt(token) {
+  return JSON.parse(
+    decodeURIComponent(
+      escape(
+        atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))
+      )
+    )
+  );
+}
+
+// 角色顯示文字
+function roleToLabel(r) {
+  if (r === "admin") return "管理員";
+  if (r === "staff") return "教師";
+  return "瀏覽者";
+}
+
+/* 初始化 Google Login 按鈕 */
+window.onload = function () {
+  google.accounts.id.initialize({
+    client_id: "YOUR_GOOGLE_OAUTH_CLIENT_ID",
+    callback: onGoogleLogin,
+  });
+
+  google.accounts.id.renderButton(
+    document.getElementById("userRole"),
+    { theme: "outline", size: "medium" }
+  );
+
+  google.accounts.id.prompt();
+};
+
+/* ==========================================================
+   🌙 深色模式切換
+========================================================== */
+const darkToggle = document.getElementById("darkToggle");
+const body = document.body;
+
+// 載入深色設定
+if (localStorage.getItem("adminDark") === "true") {
+  body.classList.add("dark");
+  darkToggle.textContent = "light_mode";
+}
+
+darkToggle.onclick = () => {
+  body.classList.toggle("dark");
+  const isDark = body.classList.contains("dark");
+  darkToggle.textContent = isDark ? "light_mode" : "dark_mode";
+  localStorage.setItem("adminDark", isDark);
+};
+
+/* ==========================================================
+   📱 Sidebar Drawer（手機版本）
+========================================================== */
+const sidebar = document.getElementById("sidebar");
+const menuBtn = document.getElementById("menuBtn");
+const overlay = document.getElementById("sidebarOverlay");
+
+menuBtn.style.display = "block"; // 手機版顯示 menu 按鈕
+
+menuBtn.onclick = () => {
+  sidebar.classList.add("open");
+  overlay.classList.add("show");
+};
+
+overlay.onclick = () => {
+  sidebar.classList.remove("open");
+  overlay.classList.remove("show");
+};
+
+/* ==========================================================
+   🟣 Sidebar 點擊分類 / 狀態（UI 切換）
+========================================================== */
+document.querySelectorAll(".sidebar-item").forEach(item => {
+  item.onclick = () => {
+    document.querySelectorAll(".sidebar-item").forEach(i => i.classList.remove("active"));
+    item.classList.add("active");
+
+    const category = item.dataset.category || null;
+    const status = item.dataset.status || null;
+
+    filterSurveyList(category, status);
+  };
+});
+
+/* ==========================================================
+   🟢 後台主頁—載入問卷列表（待 C 部分實作）
+========================================================== */
+function loadSurveyList() {
+  document.getElementById("surveyListArea").innerHTML =
+    `<div style="padding:20px;font-size:16px;">載入中…</div>`;
+}
+
+function filterSurveyList(category, status) {
+  // C 部分會補上
+}
+/* ==========================================================
+   🟣 取得問卷清單（依權限）
+========================================================== */
+
+let allSurveys = []; // 儲存所有問卷（Firebase 載入後存入）
+let currentCategory = "全部";
+let currentStatus = null;
+
+async function loadSurveyList() {
+  // UI 初始化
+  document.getElementById("surveyListArea").innerHTML =
+    `<div style="padding:20px;font-size:15px;">資料載入中…</div>`;
+
+  const snap = await db.collection("surveys")
+    .orderBy("createdAt", "desc")
+    .get();
+
+  allSurveys = snap.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+
+  renderSurveyList();
+}
+
+/* ==========================================================
+   🟢 排序 + 篩選問卷
+========================================================== */
+
+function filterSurveyList(category, status) {
+  if (category) currentCategory = category;
+  if (status) currentStatus = status;
+  renderSurveyList();
+}
+
+function surveyPassFilters(s) {
+  // 分類條件
+  if (currentCategory && currentCategory !== "全部") {
+    if (s.category !== currentCategory) return false;
+  }
+
+  // 狀態條件
+  if (currentStatus && currentStatus !== s.status) {
+    return false;
+  }
+
+  // staff 只能看到自己建立的問卷
+  if (userRole === "staff" && s.createdBy !== currentUser.email) {
+    return false;
+  }
+
+  return true;
+}
+
+/* ==========================================================
+   ⭐ 渲染問卷卡片列表
+========================================================== */
+function renderSurveyList() {
+  const container = document.getElementById("surveyListArea");
+  container.innerHTML = "";
+
+  const filtered = allSurveys.filter(s => surveyPassFilters(s));
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="padding:20px;">沒有符合條件的問卷。</div>`;
+    return;
+  }
+
+  filtered.forEach(s => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const created = s.createdAt?.toDate?.().toLocaleString() || "";
+    const updated = s.updatedAt?.toDate?.().toLocaleString() || "";
+
+    card.innerHTML = `
+      <div class="survey-card">
+
+        <div style="flex:1">
+          <div class="survey-title">${s.title}</div>
+
+          <div class="survey-meta">
+            分類：${s.category || "未分類"} <br>
+            狀態：${statusLabel(s.status)} |
+            建立者：${s.createdBy || "未知"} <br>
+            建立時間：${created}<br>
+            更新時間：${updated}
+          </div>
+        </div>
+
+        <div class="survey-btns">
+          ${renderSurveyButtons(s)}
+        </div>
+
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+/* ==========================================================
+   按鈕顯示限制（依角色）
+========================================================== */
+function renderSurveyButtons(s) {
+  const baseUrl = window.location.origin + "/respond.html?surveyId=" + s.id;
+
+  // 統計連結（所有角色都能看）
+  let str = `
+    <button class="btn-small btn-stats" onclick="gotoStats('${s.id}')">
+      <span class='material-icons'>insights</span> 統計
+    </button>
+
+    <button class="btn-small btn-copy" onclick="copyUrl('${baseUrl}')">
+      <span class='material-icons'>link</span> 連結
+    </button>
+  `;
+
+  // viewer 沒有其他權限
+  if (userRole === "viewer") return str;
+
+  // staff 只能編輯自己的問卷
+  if (userRole === "staff" && s.createdBy !== currentUser.email) return str;
+
+  // staff + admin 都可編輯
+  str += `
+    <button class="btn-small btn-edit" onclick="editSurvey('${s.id}')">
+      <span class='material-icons'>edit</span> 編輯
+    </button>
+  `;
+
+  // admin 功能：刪除 + 更改狀態
+  if (userRole === "admin") {
+    str += `
+      <button class="btn-small btn-delete" onclick="deleteSurvey('${s.id}')">
+        <span class='material-icons'>delete</span> 刪除
+      </button>
+    `;
+  }
+
+  return str;
+}
+
+/* ==========================================================
+   狀態顯示文字
+========================================================== */
+function statusLabel(s) {
+  if (s === "active") return "🟢 啟用中";
+  if (s === "draft") return "📝 草稿";
+  if (s === "archived") return "📦 已封存";
+  return "❓ 未知";
+}
+
+/* ==========================================================
+   ⭐ 功能：複製問卷（含題目）
+========================================================== */
+async function copySurvey(id) {
+  const original = allSurveys.find(s => s.id === id);
+  if (!original) return alert("找不到問卷");
+
+  // 建立新問卷
+  const newSurveyRef = await db.collection("surveys").add({
+    title: original.title + "（複製）",
+    description: original.description,
+    category: original.category,
+    status: "draft",
+    createdBy: currentUser.email,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  // 複製題目
+  const qSnap = await db.collection("surveys").doc(id).collection("questions").get();
+  qSnap.forEach(doc => {
+    db.collection("surveys").doc(newSurveyRef.id)
+      .collection("questions").add(doc.data());
+  });
+
+  alert("已複製問卷！");
+  loadSurveyList();
+}
+
+/* ==========================================================
+   ⭐ 功能：刪除問卷（Admin only）
+========================================================== */
+async function deleteSurvey(id) {
+  if (userRole !== "admin") return alert("沒有權限！");
+  if (!confirm("確定要刪除這份問卷？（所有回覆將保留，但問卷會刪除）")) return;
+
+  // 刪除問卷基本資料
+  await db.collection("surveys").doc(id).delete();
+
+  // 刪除題目
+  const qSnap = await db.collection("surveys").doc(id).collection("questions").get();
+  const batch = db.batch();
+  qSnap.forEach(doc => {
+    batch.delete(doc.ref);
+  });
+  await batch.commit();
+
+  alert("問卷已刪除！");
+  loadSurveyList();
+}
+
+/* ==========================================================
+   ⭐ 功能：跳轉前台統計頁（index.html）
+========================================================== */
+function gotoStats(id) {
+  window.location.href = `index.html?mode=stats&surveyId=${id}`;
+}
+
+/* ==========================================================
+   ⭐ 取得連結（複製到剪貼簿）
+========================================================== */
+function copyUrl(url) {
+  navigator.clipboard.writeText(url);
+  alert("已複製問卷連結！");
+}
+
+/* ==========================================================
+   ⭐ 功能：編輯問卷（跳到 editor 區域 — D 部分會補上）
+========================================================== */
+function editSurvey(id) {
+  // D 部分生成完整編輯器
+  openSurveyEditor(id);
+}
+/* ==========================================================
+   🟣 問卷編輯器（Survey Builder）
+========================================================== */
+
+let editingSurveyId = null;
+let editingSurveyData = null;
+let questionList = [];
+
+/* ==========================================================
+   ⭐ 打開問卷編輯器（取代主頁內容）
+========================================================== */
+async function openSurveyEditor(id) {
+  editingSurveyId = id;
+
+  // staff 只能編輯自己的問卷
+  const survey = allSurveys.find(s => s.id === id);
+  if (!survey) return alert("找不到問卷資料");
+
+  if (userRole === "staff" && survey.createdBy !== currentUser.email) {
+    alert("沒有權限編輯這份問卷");
+    return;
+  }
+
+  // 頁面主體改為編輯器
+  document.getElementById("main").innerHTML = `
+    <div class="card">
+      <h2>📝 編輯問卷：<span id="editorTitle"></span></h2>
+
+      <label>標題：</label>
+      <input id="surveyTitle" class="editor-input">
+
+      <label>描述：</label>
+      <textarea id="surveyDesc" class="editor-textarea"></textarea>
+
+      <label>分類：</label>
+      <select id="surveyCategory" class="editor-select">
+        <option value="學務處">學務處</option>
+        <option value="健康中心">健康中心</option>
+        <option value="自然領域">自然領域</option>
+        <option value="家長會">家長會</option>
+        <option value="活動報名">活動報名</option>
+      </select>
+
+      <label>狀態：</label>
+      <select id="surveyStatus" class="editor-select">
+        <option value="draft">草稿</option>
+        <option value="active">啟用中</option>
+        <option value="archived">封存</option>
+      </select>
+
+      <label>
+        <input type="checkbox" id="surveyAnonymous"> 允許匿名填寫
+      </label>
+
+    </div>
+
+    <div class="card">
+      <h3>📚 題目列表</h3>
+      <div id="questionList"></div>
+      <button class="btn-small btn-edit" onclick="addQuestion()">＋ 新增題目</button>
+    </div>
+
+    <button class="btn-small btn-stats" onclick="backToDashboard()">
+      ← 返回後台
+    </button>
+  `;
+
+  // 讀取問卷資料
+  editingSurveyData = survey;
+
+  document.getElementById("editorTitle").textContent = survey.title;
+  document.getElementById("surveyTitle").value = survey.title;
+  document.getElementById("surveyDesc").value = survey.description;
+  document.getElementById("surveyCategory").value = survey.category || "學務處";
+  document.getElementById("surveyStatus").value = survey.status || "draft";
+  document.getElementById("surveyAnonymous").checked = survey.allowAnonymous ?? true;
+
+  // 監聽欄位變更 → 自動儲存
+  setupSurveyAutoSave();
+
+  // 載入題目
+  await loadQuestions();
+}
+
+/* ==========================================================
+   ⭐ 回主頁（Dashboard）
+========================================================== */
+function backToDashboard() {
+  location.reload();
+}
+
+/* ==========================================================
+   ⭐ 自動儲存問卷屬性 
+========================================================== */
+function setupSurveyAutoSave() {
+  document.getElementById("surveyTitle").oninput = updateSurveyField;
+  document.getElementById("surveyDesc").oninput = updateSurveyField;
+  document.getElementById("surveyCategory").onchange = updateSurveyField;
+  document.getElementById("surveyStatus").onchange = updateSurveyField;
+  document.getElementById("surveyAnonymous").onchange = updateSurveyField;
+}
+
+async function updateSurveyField() {
+  const newData = {
+    title: document.getElementById("surveyTitle").value,
+    description: document.getElementById("surveyDesc").value,
+    category: document.getElementById("surveyCategory").value,
+    status: document.getElementById("surveyStatus").value,
+    allowAnonymous: document.getElementById("surveyAnonymous").checked,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  await db.collection("surveys").doc(editingSurveyId).update(newData);
+}
+
+/* ==========================================================
+   ⭐ 載入題目
+========================================================== */
+async function loadQuestions() {
+  const snap = await db.collection("surveys")
+    .doc(editingSurveyId)
+    .collection("questions")
+    .orderBy("order")
+    .get();
+
+  questionList = snap.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+
+  renderQuestionList();
+}
+
+/* ==========================================================
+   ⭐ 題目渲染
+========================================================== */
+function renderQuestionList() {
+  const container = document.getElementById("questionList");
+  container.innerHTML = "";
+
+  questionList.forEach((q, index) => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.style.marginBottom = "14px";
+
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;">
+        <div><b>Q${index + 1}</b>（${typeLabel(q.type)}）</div>
+
+        <div>
+          <button class="btn-small btn-copy" onclick="duplicateQuestion('${q.id}')">
+            <span class="material-icons">content_copy</span>
+          </button>
+          <button class="btn-small btn-delete" onclick="deleteQuestion('${q.id}')">
+            <span class="material-icons">delete</span>
+          </button>
+        </div>
+      </div>
+
+      <label>題目：</label>
+      <input class="editor-input" value="${q.text}" 
+        oninput="updateQuestionField('${q.id}', 'text', this.value)">
+
+      <label>題型：</label>
+      <select class="editor-select"
+        onchange="updateQuestionField('${q.id}', 'type', this.value)">
+        <option value="single" ${q.type==="single"?"selected":""}>單選</option>
+        <option value="multiple" ${q.type==="multiple"?"selected":""}>多選</option>
+        <option value="scale" ${q.type==="scale"?"selected":""}>量表</option>
+        <option value="text" ${q.type==="text"?"selected":""}>文字</option>
+      </select>
+
+      <div id="optionArea_${q.id}">
+        ${renderQuestionOptions(q)}
+      </div>
+
+    `;
+
+    container.appendChild(div);
+  });
+
+  setupSortable();
+}
+
+/* ==========================================================
+   ⭐ 題目內容：依題型輸出選項 UI
+========================================================== */
+function renderQuestionOptions(q) {
+  if (q.type === "single" || q.type === "multiple") {
+    return `
+       <label>選項：</label>
+       ${q.options.map((opt, i) => `
+         <div style="display:flex;margin-bottom:6px;">
+           <input class="editor-input" 
+             value="${opt}" 
+             oninput="updateOption('${q.id}', ${i}, this.value)">
+           <button class="btn-small btn-delete" 
+             onclick="removeOption('${q.id}', ${i})">
+             <span class="material-icons">close</span>
+           </button>
+         </div>
+       `).join("")}
+
+      <button class="btn-small btn-edit" onclick="addOption('${q.id}')">
+        ＋ 新增選項
+      </button>
+    `;
+  }
+
+  if (q.type === "scale") {
+    return `
+      <label>量表範圍：</label>
+      <input class="editor-input" type="number" min="1" max="10"
+        value="${q.scaleMin || 1}"
+        oninput="updateQuestionField('${q.id}','scaleMin',this.value)">
+      到
+      <input class="editor-input" type="number" min="1" max="10"
+        value="${q.scaleMax || 5}"
+        oninput="updateQuestionField('${q.id}','scaleMax',this.value)">
+    `;
+  }
+
+  return ""; // text 題不用選項
+}
+
+/* ==========================================================
+   ⭐ 題目新增
+========================================================== */
+async function addQuestion() {
+  const newRef = await db.collection("surveys")
+    .doc(editingSurveyId)
+    .collection("questions")
+    .add({
+      text: "未命名問題",
+      type: "single",
+      options: ["選項 1"],
+      order: questionList.length
+    });
+
+  await loadQuestions();
+}
+
+/* ==========================================================
+   ⭐ 題目更新
+========================================================== */
+async function updateQuestionField(qid, field, value) {
+  await db.collection("surveys").doc(editingSurveyId)
+    .collection("questions").doc(qid)
+    .update({
+      [field]: field === "scaleMin" || field === "scaleMax" ? Number(value) : value
+    });
+
+  await loadQuestions();
+}
+
+/* ==========================================================
+   ⭐ 選項新增 / 刪除 / 更新
+========================================================== */
+async function addOption(qid) {
+  const q = questionList.find(x => x.id === qid);
+  q.options.push("新選項");
+
+  await db.collection("surveys").doc(editingSurveyId)
+    .collection("questions").doc(qid)
+    .update({ options: q.options });
+
+  loadQuestions();
+}
+
+async function removeOption(qid, index) {
+  const q = questionList.find(x => x.id === qid);
+  q.options.splice(index, 1);
+
+  await db.collection("surveys").doc(editingSurveyId)
+    .collection("questions").doc(qid)
+    .update({ options: q.options });
+
+  loadQuestions();
+}
+
+async function updateOption(qid, index, value) {
+  const q = questionList.find(x => x.id === qid);
+  q.options[index] = value;
+
+  await db.collection("surveys").doc(editingSurveyId)
+    .collection("questions").doc(qid)
+    .update({ options: q.options });
+}
+
+/* ==========================================================
+   ⭐ 題目刪除
+========================================================== */
+async function deleteQuestion(qid) {
+  if (!confirm("確定刪除這個題目？")) return;
+
+  await db.collection("surveys").doc(editingSurveyId)
+    .collection("questions").doc(qid)
+    .delete();
+
+  loadQuestions();
+}
+
+/* ==========================================================
+   ⭐ 複製題目
+========================================================== */
+async function duplicateQuestion(qid) {
+  const q = questionList.find(x => x.id === qid);
+  if (!q) return;
+
+  await db.collection("surveys").doc(editingSurveyId)
+    .collection("questions").add({
+      ...q,
+      text: q.text + "（複製）",
+      order: questionList.length
+    });
+
+  loadQuestions();
+}
+
+/* ==========================================================
+   ⭐ 題目拖曳排序（SortableJS）
+========================================================== */
+function setupSortable() {
+  const el = document.getElementById("questionList");
+
+  Sortable.create(el, {
+    animation: 150,
+    handle: ".card",
+    onEnd: async (evt) => {
+      // 更新 order 欄位
+      const newOrder = Array.from(el.children).map((div, index) => {
+        const qIndex = Array.from(el.children).indexOf(div);
+        return questionList[qIndex].id;
+      });
+
+      // 寫回 Firestore
+      const batch = db.batch();
+
+      newOrder.forEach((qid, idx) => {
+        const ref = db.collection("surveys").doc(editingSurveyId)
+          .collection("questions").doc(qid);
+        batch.update(ref, { order: idx });
+      });
+
+      await batch.commit();
+      await loadQuestions();
+    }
+  });
+}
+
+/* ==========================================================
+   ⭐ 題型中文
+========================================================== */
+function typeLabel(type) {
+  return {
+    single: "單選",
+    multiple: "多選",
+    scale: "量表",
+    text: "文字"
+  }[type] || "未知";
+}
+/* ==========================================================
+   🟣 ⭐ 新增問卷（FAB 按鈕）
+========================================================== */
+document.getElementById("fabAddSurvey").onclick = async () => {
+  if (!currentUser) return alert("請先登入 Google 帳號才能新增問卷");
+
+  const title = prompt("請輸入問卷標題：");
+  if (!title) return;
+
+  const newSurvey = {
+    title,
+    description: "",
+    createdBy: currentUser.email,
+    category: "學務處",
+    tags: [],
+    status: "draft",
+    allowAnonymous: true,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  const ref = await db.collection("surveys").add(newSurvey);
+
+  // 自動加入第一題（可省略）
+  await db.collection("surveys").doc(ref.id).collection("questions").add({
+    text: "未命名問題",
+    type: "single",
+    options: ["選項 1"],
+    order: 0
+  });
+
+  alert("問卷已建立！");
+  loadSurveyList();
+
+  // 開啟編輯器
+  openSurveyEditor(ref.id);
+};
+
+
+/* ==========================================================
+   🟢 ⭐ 問卷狀態更新（Active / Draft / Archived）
+========================================================== */
+async function setSurveyStatus(id, status) {
+  if (userRole !== "admin") return alert("沒有權限變更狀態");
+
+  await db.collection("surveys").doc(id).update({
+    status,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  loadSurveyList();
+  alert("狀態已更新為：" + statusLabel(status));
+}
+
+
+/* ==========================================================
+   🟣 ⭐ 問卷更新（後台資料更新互通）
+   index.html 可直接讀到這些值
+========================================================== */
+async function updateSurveyMetadata(id, data) {
+  await db.collection("surveys").doc(id).update({
+    ...data,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+
+/* ==========================================================
+   🔁 ⭐ 問卷重新整理（編輯器或 Dashboard 呼叫）
+========================================================== */
+async function refreshSurveys() {
+  const snap = await db.collection("surveys")
+    .orderBy("createdAt", "desc")
+    .get();
+
+  allSurveys = snap.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+
+  renderSurveyList();
+}
+
+
+/* ==========================================================
+   🌙 深色模式同步 admin + editor
+========================================================== */
+function applyDarkModeToEditor() {
+  if (document.body.classList.contains("dark")) {
+    document.querySelectorAll(".editor-input, .editor-select, .editor-textarea")
+      .forEach(el => el.style.background = "#1e1e1e");
+  }
+}
+
+
+/* ==========================================================
+   ⭐ 問卷列表與編輯器互動控制
+========================================================== */
+// 問卷編輯器標題同步更新 Dashboard 卡片（即時）
+async function syncDashboardTitle(newTitle) {
+  await db.collection("surveys").doc(editingSurveyId).update({
+    title: newTitle,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  refreshSurveys();
+}
+
+
+/* ==========================================================
+   ⭐ 問卷編輯器 CSS（補充樣式）
+========================================================== */
+const editorStyles = document.createElement("style");
+editorStyles.innerHTML = `
+  .editor-input {
+    width: 100%;
+    padding: 10px;
+    margin: 6px 0 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+  }
+
+  .editor-textarea {
+    width: 100%;
+    height: 80px;
+    padding: 10px;
+    margin: 6px 0 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+  }
+
+  .editor-select {
+    width: 200px;
+    padding: 8px;
+    margin: 6px 0 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+  }
+`;
+document.head.appendChild(editorStyles);
+
+
+/* ==========================================================
+   ⭐ 問卷刪除後自動刷新（保留 responses）
+========================================================== */
+async function deleteSurvey(id) {
+  if (userRole !== "admin") return alert("沒有權限！");
+  if (!confirm("確定刪除這份問卷？")) return;
+
+  // 刪除問卷主資料
+  await db.collection("surveys").doc(id).delete();
+
+  // 刪除題目
+  const qSnap = await db.collection("surveys").doc(id)
+    .collection("questions").get();
+
+  const batch = db.batch();
+  qSnap.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
+
+  // 回覆不刪除（保留歷史紀錄）
+
+  alert("已刪除問卷");
+  refreshSurveys();
+}
+
+
+/* ==========================================================
+   ⭐ Dashboard 與編輯器資料同步
+========================================================== */
+async function syncEditorHeader() {
+  const survey = await db.collection("surveys").doc(editingSurveyId).get();
+  editingSurveyData = survey.data();
+
+  document.getElementById("editorTitle").textContent = editingSurveyData.title;
+}
+
+
+/* ==========================================================
+   ⭐ （重要）頁面載入時自動執行流程
+========================================================== */
+document.addEventListener("DOMContentLoaded", () => {
+  // Google Login 在 B 部分初始化
+  // Sidebar 點擊在 B 部分初始化
+  // Dashboard 初次載入在 B 部分由 login callback 呼叫
+});
+// ================================
+// 鷺江國小問卷系統 Firestore 安全規則
+// ================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ================================
+    // 🔵 全域變數（方便重複使用）
+    // ================================
+    function isAdmin() {
+      return request.auth != null
+             && request.auth.token.email == "YOUR_EMAIL@ntpc.edu.tw";
+    }
+
+    function isStaff() {
+      return request.auth != null
+             && request.auth.token.email.matches(".*@ntpc.edu.tw$")
+             && !isAdmin(); // 避免 admin 被當成 staff
+    }
+
+    function isViewer() {
+      return request.auth == null
+             || (!isAdmin() && !isStaff());
+    }
+
+    // 判斷是否為該問卷建立者（staff 用）
+    function isOwner(survey) {
+      return request.auth != null
+             && survey.createdBy == request.auth.token.email;
+    }
+
+    // ================================
+    // 📂 問卷主集合：surveys
+    // ================================
+    match /surveys/{surveyId} {
+
+      // ----------------------------
+      // 🔵 Read：所有人都能讀（前台填答需要）
+      // ----------------------------
+      allow get, list: if true;
+
+      // ----------------------------
+      // 🔵 Create：admin / staff 可建立問卷
+      // ----------------------------
+      allow create: if isAdmin() || isStaff();
+
+      // ----------------------------
+      // 🟣 Update（修改問卷設定）
+      // ----------------------------
+      allow update: if
+        isAdmin()                       // admin 可修改任何問卷
+        || (isStaff() && isOwner(resource.data));  // staff 僅能改自己的問卷
+
+      // ----------------------------
+      // 🔴 Delete：只有 admin 能刪除問卷
+      // ----------------------------
+      allow delete: if isAdmin();
+
+      // ================================
+      // 🧩 子集合：questions（題目）
+      // ================================
+      match /questions/{questionId} {
+
+        // 🔵 Read：所有人可讀（前台需要顯示題目）
+        allow get, list: if true;
+
+        // 🟣 Create：admin 或 staff（建立者本人）
+        allow create: if
+          isAdmin()
+          || (isStaff() && isOwner(resource.data.parent().data));
+
+        // 🟣 Update：admin 或 staff（該問卷擁有者）
+        allow update: if
+          isAdmin()
+          || (isStaff() && isOwner(get(/databases/$(database)/documents/surveys/$(surveyId)).data));
+
+        // 🔴 Delete：只有 admin 能刪題目
+        allow delete: if isAdmin();
+      }
+
+      // ================================
+      // 📊 子集合：responses（填答紀錄）
+      // ================================
+      match /responses/{respId} {
+
+        // 🔵 Read：admin / staff 可讀（後台統計）
+        // viewer 不可讀 responses（保護隱私）
+        allow get, list: if isAdmin() || isStaff();
+
+        // 🟢 Create：任何人可新增（公開填寫問卷）
+        allow create: if true;
+
+        // ❌ Update / Delete：任何人都不能改（防止被竄改）
+        allow update, delete: if false;
+      }
+    }
+  }
+}
