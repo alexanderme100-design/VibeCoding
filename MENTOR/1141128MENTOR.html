@@ -1,0 +1,665 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { initializeApp } from 'firebase/app';
+import { 
+    getAuth, 
+    signInAnonymously, 
+    signInWithCustomToken, 
+    onAuthStateChanged 
+} from 'firebase/auth';
+import { 
+    getFirestore, 
+    collection, 
+    query, 
+    getDocs, 
+    addDoc, 
+    setDoc, 
+    doc, 
+    deleteDoc, 
+    onSnapshot,
+    serverTimestamp,
+    setLogLevel
+} from 'firebase/firestore';
+import { Database, TrendingUp, User, Trash, Edit, Plus, Upload, Download, Clipboard } from 'lucide-react';
+
+// 設定 Firebase 登入資訊
+// 預設為 'Debug' 模式
+setLogLevel('Debug'); 
+
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' && __firebase_config !== '' ? __firebase_config : '{}');
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+const ADMIN_PASSWORD = 'admin1234'; // 演示密碼
+
+const COLLECTIONS = {
+    QUESTIONS: `artifacts/${appId}/public/data/questions`, 
+    RESPONSES: `artifacts/${appId}/public/data/responses`,
+};
+
+// 初始化 Firebase 服務 (在組件外部執行一次)
+let app, db, auth;
+if (Object.keys(firebaseConfig).length > 0) {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+}
+
+// ====== 輔助函數 ======
+
+// 提示訊息組件 (取代原來的 showMessage)
+const Toast = ({ message, type, onClose }) => {
+    if (!message) return null;
+
+    const baseClasses = "fixed bottom-5 right-5 p-4 rounded-lg shadow-xl text-sm transition-all duration-300 transform";
+    const typeClasses = type === 'success' ? 'bg-green-500 text-white' : 
+                        type === 'error' ? 'bg-red-500 text-white' : 
+                        'bg-blue-500 text-white';
+
+    useEffect(() => {
+        const timer = setTimeout(onClose, 3000);
+        return () => clearTimeout(timer);
+    }, [message, onClose]);
+
+    return (
+        <div className={`${baseClasses} ${typeClasses}`}>
+            {message}
+        </div>
+    );
+};
+
+// 渲染單個量表選項
+const LikertOption = ({ questionId, value, points, labelText }) => (
+    <label className="flex flex-col items-center cursor-pointer p-2 sm:p-3 bg-white rounded-lg border border-gray-300 hover:bg-indigo-50 transition-colors duration-150 flex-grow basis-0">
+        <input 
+            type="radio" 
+            name={`q_${questionId}`} 
+            value={value} 
+            required 
+            className="hidden peer"
+        />
+        <span className="text-lg font-semibold text-gray-700 peer-checked:text-white peer-checked:bg-indigo-600 p-1 px-3 rounded-full transition-all duration-150">{value}</span>
+        <span className="text-xs text-gray-500 mt-1 hidden sm:block">
+            {labelText}
+        </span>
+    </label>
+);
+
+// 渲染單個題目卡片
+const QuestionCard = ({ question, index, handleAnswerChange }) => {
+    const points = question.points;
+    const middle = Math.ceil(points / 2);
+    const options = [];
+
+    for (let i = 1; i <= points; i++) {
+        let labelText = '';
+        if (i === 1) {
+            labelText = '非常不同意';
+        } else if (i === points) {
+            labelText = '非常同意';
+        } else if (i === middle) {
+            labelText = '中立';
+        }
+        
+        options.push(
+            <LikertOption 
+                key={i}
+                questionId={question.id}
+                value={i}
+                points={points}
+                labelText={labelText}
+            />
+        );
+    }
+
+    return (
+        <div className="p-5 bg-white rounded-xl shadow-md hover:shadow-lg transition duration-200 border-l-4 border-indigo-500">
+            <p className="text-lg font-bold text-gray-700 mb-4">{index + 1}. {question.text} (量表: {points}點)</p>
+            <div className="flex flex-wrap justify-between gap-2 sm:gap-4" onChange={(e) => handleAnswerChange(question.id, parseInt(e.target.value))}>
+                {options}
+            </div>
+        </div>
+    );
+};
+
+// ====== 主要組件 ======
+
+const App = () => {
+    const [view, setView] = useState('survey');
+    const [questions, setQuestions] = useState([]);
+    const [answers, setAnswers] = useState({});
+    const [userId, setUserId] = useState(null);
+    const [isAuthReady, setIsAuthReady] = useState(false);
+    const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(sessionStorage.getItem('isAdminLoggedIn') === 'true');
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    const [toast, setToast] = useState({ message: '', type: '' });
+    
+    // 手動新增/編輯表單狀態
+    const [manualForm, setManualForm] = useState({ 
+        id: null, 
+        text: '', 
+        points: 5, 
+        isOpen: false 
+    });
+
+    // 提示訊息函式
+    const showToast = useCallback((message, type) => {
+        setToast({ message, type });
+    }, []);
+
+    // 認證邏輯
+    useEffect(() => {
+        if (!auth) return;
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Firebase 認證失敗:", error);
+                    showToast('系統認證失敗，請檢查配置。', 'error');
+                }
+            }
+            setUserId(auth.currentUser?.uid);
+            setIsAuthReady(true);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, [showToast]);
+
+    // 題目實時監聽器
+    useEffect(() => {
+        if (!isAuthReady || !db) return;
+
+        const q = collection(db, COLLECTIONS.QUESTIONS);
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            let fetchedQuestions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            fetchedQuestions.sort((a, b) => (a.order || 999) - (b.order || 999));
+            setQuestions(fetchedQuestions);
+        }, (error) => {
+            console.error("監聽題目失敗:", error);
+            showToast('載入題目時發生錯誤。', 'error');
+        });
+
+        return () => unsubscribe();
+    }, [isAuthReady, showToast]);
+
+    // 處理答案變更
+    const handleAnswerChange = (questionId, score) => {
+        setAnswers(prev => ({ ...prev, [questionId]: score }));
+    };
+
+    // 視圖切換邏輯
+    const changeView = (newView) => {
+        if (newView === 'admin-login' && !isAdminLoggedIn) {
+            setView('admin-login');
+        } else if (newView === 'admin-login' && isAdminLoggedIn) {
+            setView('admin-panel');
+        } else {
+            setView('survey');
+        }
+    };
+    
+    // 登入管理員
+    const loginAdmin = () => {
+        const password = document.getElementById('admin-password').value;
+        if (password === ADMIN_PASSWORD) {
+            sessionStorage.setItem('isAdminLoggedIn', 'true');
+            setIsAdminLoggedIn(true);
+            showToast('登入成功！', 'success');
+            document.getElementById('admin-password').value = '';
+            changeView('admin-panel');
+        } else {
+            showToast('密碼錯誤，請重試。', 'error');
+        }
+    };
+
+    // 登出管理員
+    const logoutAdmin = () => {
+        sessionStorage.removeItem('isAdminLoggedIn');
+        setIsAdminLoggedIn(false);
+        changeView('survey');
+    };
+
+    // 提交問卷
+    const submitSurvey = async () => {
+        if (!isAuthReady || !userId || submitting || questions.length === 0) return;
+        
+        let allAnswered = questions.every(q => answers[q.id] !== undefined);
+
+        if (!allAnswered) {
+            showToast('請回答所有題目後再提交。', 'error');
+            return;
+        }
+
+        setSubmitting(true);
+
+        const responseData = {
+            userId: userId, 
+            timestamp: serverTimestamp(),
+            answers: answers, 
+        };
+
+        try {
+            await addDoc(collection(db, COLLECTIONS.RESPONSES), responseData);
+            showToast('問卷提交成功！感謝您的填寫。', 'success');
+            setAnswers({}); // 清空答案
+            // 手動清空 radio button
+            document.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
+        } catch (e) {
+            console.error("提交答案失敗: ", e);
+            showToast('提交失敗，請稍後再試。', 'error');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    // CSV 匯入題目
+    const importQuestions = async () => {
+        const csvText = document.getElementById('csv-input').value.trim();
+        if (!csvText) {
+            showToast('請貼上要匯入的 CSV 內容。', 'error');
+            return;
+        }
+
+        const lines = csvText.split('\n').filter(line => line.trim() !== '');
+        const newQuestions = [];
+        const currentQuestionCount = questions.length;
+
+        lines.forEach((line, index) => {
+            const parts = line.split(','); 
+            const text = parts[0] ? parts[0].trim() : '';
+            const points = parts[1] ? parseInt(parts[1].trim()) : NaN;
+
+            if (text && !isNaN(points) && [5, 6, 7].includes(points)) {
+                const newOrder = currentQuestionCount + newQuestions.length + 1;
+                newQuestions.push({
+                    text: text,
+                    points: points,
+                    order: newOrder,
+                });
+            } else {
+                console.warn(`第 ${index + 1} 行資料格式錯誤或量表點數無效 (${line})，已跳過。`);
+            }
+        });
+
+        if (newQuestions.length === 0) {
+            showToast('未解析到任何有效的新題目。', 'error');
+            return;
+        }
+        
+        showToast(`正在匯入 ${newQuestions.length} 題，請稍候...`, 'info');
+
+        try {
+            const batchPromises = newQuestions.map(q => {
+                return addDoc(collection(db, COLLECTIONS.QUESTIONS), q);
+            });
+            await Promise.all(batchPromises);
+
+            document.getElementById('csv-input').value = '';
+            showToast(`成功匯入 ${newQuestions.length} 題。`, 'success');
+        } catch (e) {
+            console.error("批量匯入題目失敗: ", e);
+            showToast('批量匯入失敗，請檢查網路或權限。', 'error');
+        }
+    };
+
+    // 儲存/更新題目
+    const saveQuestion = async () => {
+        const { id, text, points } = manualForm;
+        const textTrimmed = text.trim();
+
+        if (!textTrimmed || ![5, 6, 7].includes(points)) {
+            showToast('請填寫完整的題目文字，並選擇 5, 6, 或 7 點量表。', 'error');
+            return;
+        }
+
+        const questionData = { text: textTrimmed, points };
+        const isEditing = !!id;
+        const action = isEditing ? '更新' : '新增';
+
+        try {
+            if (isEditing) {
+                await setDoc(doc(db, COLLECTIONS.QUESTIONS, id), questionData, { merge: true });
+            } else {
+                questionData.order = questions.length + 1;
+                await addDoc(collection(db, COLLECTIONS.QUESTIONS), questionData);
+            }
+
+            showToast(`${action}題目成功！`, 'success');
+            setManualForm(prev => ({ ...prev, isOpen: false }));
+        } catch (e) {
+            console.error(`${action}題目失敗: `, e);
+            showToast(`${action}題目失敗，請稍後再試。`, 'error');
+        }
+    };
+    
+    // 刪除題目
+    const deleteQuestion = async (id) => {
+        if (!window.confirm('確定要刪除這道題目嗎？請注意，這不會影響已收集到的答案資料。')) return;
+        try {
+            await deleteDoc(doc(db, COLLECTIONS.QUESTIONS, id));
+            showToast('題目刪除成功！', 'success');
+        } catch (e) {
+            console.error("刪除題目失敗: ", e);
+            showToast('刪除失敗，請檢查權限。', 'error');
+        }
+    };
+
+    // 導出所有答案 (SPSS 格式)
+    const exportResponses = async () => {
+        if (questions.length === 0) {
+            showToast('目前沒有題目，無法導出。', 'error');
+            return;
+        }
+        
+        const exportStatus = document.getElementById('export-status');
+        exportStatus.textContent = '正在獲取資料，請稍候...';
+
+        try {
+            const snapshot = await getDocs(collection(db, COLLECTIONS.RESPONSES));
+            const responses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            if (responses.length === 0) {
+                showToast('目前沒有任何填答資料。', 'info');
+                exportStatus.textContent = '目前沒有任何填答資料。';
+                return;
+            }
+
+            // 1. 建立 CSV 標頭
+            const headers = ['ResponseID', 'UserID', 'Timestamp'];
+            
+            questions.forEach((q, index) => {
+                const qName = `Q${index + 1}_${q.id.substring(0, 4)}`; 
+                headers.push(qName);
+            });
+            
+            let csvContent = headers.join(',') + '\n';
+
+            // 2. 建立資料行
+            responses.forEach(r => {
+                const row = [];
+                row.push(r.id);
+                row.push(r.userId);
+                const timestampStr = r.timestamp && r.timestamp.toDate ? r.timestamp.toDate().toISOString() : 'N/A';
+                row.push(timestampStr); 
+
+                questions.forEach(q => {
+                    const score = r.answers ? (r.answers[q.id] || '') : '';
+                    row.push(score);
+                });
+
+                csvContent += row.map(cell => {
+                    let content = String(cell);
+                    if (content.includes(',') || content.includes('\n')) {
+                        return `"${content.replace(/"/g, '""')}"`; 
+                    }
+                    return content;
+                }).join(',') + '\n';
+            });
+
+            // 3. 下載 CSV 檔案 (處理中文亂碼問題)
+            const BOM = "\uFEFF"; 
+            const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            const date = new Date().toISOString().substring(0, 10);
+            a.setAttribute('download', `survey_spss_export_${date}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            exportStatus.textContent = `成功導出 ${responses.length} 筆資料。`;
+            showToast('資料已下載為 CSV 檔案！', 'success');
+
+        } catch (e) {
+            console.error("導出答案失敗: ", e);
+            exportStatus.textContent = '導出失敗。';
+            showToast('導出資料時發生錯誤。', 'error');
+        } finally {
+             setTimeout(() => exportStatus.textContent = '', 5000);
+        }
+    };
+    
+    // ====== 渲染組件 ======
+
+    const RenderAdminPanel = () => (
+        <div id="admin-panel-view" className="space-y-8">
+            <h2 className="text-3xl font-bold text-gray-800 flex items-center">
+                <Database className="w-6 h-6 mr-2 text-indigo-600"/>
+                後台管理與導出
+            </h2>
+
+            {/* 匯入區塊 */}
+            <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-200 shadow-md">
+                <h3 className="text-xl font-semibold text-indigo-800 mb-4 flex items-center">
+                    <Upload className="w-5 h-5 mr-2"/>
+                    題目匯入（CSV / Excel 貼上）
+                </h3>
+                <p className="text-sm text-indigo-700 mb-4">格式範例 (每行一題): <span className="font-mono bg-indigo-100 p-1 rounded">問題文字,量表點數(5/6/7)</span></p>
+                <textarea 
+                    id="csv-input" 
+                    rows="5" 
+                    placeholder="請貼上 CSV 格式的題目資料..." 
+                    className="w-full p-3 border border-indigo-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 mb-4"
+                    defaultValue={`工作環境的氛圍讓我感到舒適且支持,5
+我對目前的工作內容感到滿意,7
+我認為公司的溝通機制是透明且有效的,6
+我樂意向朋友推薦這間公司,7`}
+                ></textarea>
+                <button 
+                    onClick={importQuestions} 
+                    className="py-2 px-5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-200 shadow-md flex items-center"
+                >
+                    <Clipboard className="w-4 h-4 mr-2"/>
+                    解析並匯入題目 (覆蓋現有)
+                </button>
+            </div>
+
+            {/* 手動新增/編輯表單 */}
+            {manualForm.isOpen && (
+                <div id="manual-add-form" className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <h4 className="text-lg font-bold mb-4 text-blue-700">{manualForm.id ? '編輯題目' : '新增題目'}</h4>
+                    <textarea 
+                        id="manual-question-text" 
+                        placeholder="輸入問題文字" 
+                        value={manualForm.text}
+                        onChange={(e) => setManualForm(prev => ({ ...prev, text: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 mb-3"
+                    />
+                    <select 
+                        id="manual-scale-points" 
+                        value={manualForm.points}
+                        onChange={(e) => setManualForm(prev => ({ ...prev, points: parseInt(e.target.value) }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 mb-4"
+                    >
+                        <option value={5}>5點量表 (1-5)</option>
+                        <option value={6}>6點量表 (1-6)</option>
+                        <option value={7}>7點量表 (1-7)</option>
+                    </select>
+                    <div className="flex space-x-3">
+                        <button onClick={saveQuestion} className="py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-200 shadow-md">
+                            儲存題目
+                        </button>
+                        <button onClick={() => setManualForm(prev => ({ ...prev, isOpen: false }))} className="py-2 px-4 bg-gray-400 text-white font-semibold rounded-lg hover:bg-gray-500 transition duration-200">
+                            取消
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* 題目列表管理 */}
+            <div className="mb-8">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <Database className="w-5 h-5 mr-2"/>
+                    現有題目列表
+                </h3>
+                <div id="admin-questions-list" className="space-y-3 custom-scrollbar max-h-96 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                    {questions.length === 0 ? (
+                        <p className="text-center text-gray-500 py-4">請使用上方匯入或手動新增題目。</p>
+                    ) : (
+                        questions.map((q, index) => (
+                            <div key={q.id} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm border border-gray-100">
+                                <span className="text-sm font-medium text-gray-700 truncate mr-4">
+                                    {index + 1}. [{q.points}點] {q.text}
+                                </span>
+                                <div className="flex space-x-2 flex-shrink-0">
+                                    <button 
+                                        onClick={() => setManualForm({ id: q.id, text: q.text, points: q.points, isOpen: true })}
+                                        className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition duration-150" 
+                                        title="編輯"
+                                    >
+                                        <Edit className="w-5 h-5" />
+                                    </button>
+                                    <button 
+                                        onClick={() => deleteQuestion(q.id)}
+                                        className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition duration-150" 
+                                        title="刪除"
+                                    >
+                                        <Trash className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+                <button 
+                    onClick={() => setManualForm({ id: null, text: '', points: 5, isOpen: true })}
+                    className="mt-4 py-2 px-4 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition duration-200 shadow-md flex items-center"
+                >
+                    <Plus className="w-4 h-4 mr-2"/>
+                    手動新增題目
+                </button>
+            </div>
+
+            {/* 答案導出區塊 */}
+            <div className="bg-teal-50 p-6 rounded-xl border border-teal-200 shadow-md">
+                <h3 className="text-xl font-semibold text-teal-800 mb-4 flex items-center">
+                    <Download className="w-5 h-5 mr-2"/>
+                    答案資料導出 (SPSS 格式)
+                </h3>
+                <p className="text-sm text-teal-700 mb-4">點擊按鈕獲取所有填答資料的 CSV 檔案。資料欄位為：Timestamp, UserID, Q1_Score, Q2_Score...</p>
+                <button 
+                    onClick={exportResponses} 
+                    className="py-3 px-6 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-700 transition duration-200 shadow-lg flex items-center"
+                >
+                    <Download className="w-5 h-5 mr-2"/>
+                    導出所有答案 (.csv)
+                </button>
+                <p id="export-status" className="mt-3 text-sm text-teal-600 font-medium"></p>
+            </div>
+            
+            <button onClick={logoutAdmin} className="mt-4 py-2 px-4 bg-gray-500 text-white font-semibold rounded-lg hover:bg-gray-600 transition duration-200">
+                登出並返回問卷
+            </button>
+        </div>
+    );
+
+    const RenderSurveyView = () => (
+        <div id="survey-view" className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center">
+                <Clipboard className="w-6 h-6 mr-2 text-indigo-600"/>
+                問卷填寫
+            </h2>
+            <div id="questions-list" className="space-y-8 p-4 bg-gray-100 rounded-xl shadow-inner min-h-[150px]">
+                {loading ? (
+                    <p className="text-center text-gray-500 py-10">正在載入題目...</p>
+                ) : questions.length === 0 ? (
+                    <p className="text-center text-gray-500 py-10">目前沒有題目，請等待管理者匯入。</p>
+                ) : (
+                    questions.map((q, index) => (
+                        <QuestionCard 
+                            key={q.id} 
+                            question={q} 
+                            index={index} 
+                            handleAnswerChange={handleAnswerChange} 
+                        />
+                    ))
+                )}
+            </div>
+            <button 
+                onClick={submitSurvey} 
+                id="submit-btn" 
+                disabled={submitting || questions.length === 0}
+                className="w-full py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center"
+            >
+                {submitting ? '提交中...' : '提交問卷'}
+            </button>
+        </div>
+    );
+
+    const RenderLoginView = () => (
+        <div id="admin-login-view" className="p-8 border border-gray-200 rounded-xl max-w-md mx-auto shadow-lg bg-white">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                <User className="w-6 h-6 mr-2 text-indigo-600"/>
+                管理者登入
+            </h2>
+            <p className="text-sm text-red-600 mb-4">請輸入密碼。**演示密碼：admin1234**</p>
+            <input 
+                type="password" 
+                id="admin-password" 
+                placeholder="輸入管理者密碼" 
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 mb-4"
+            />
+            <button 
+                onClick={loginAdmin} 
+                className="w-full py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition duration-200 shadow-lg"
+            >
+                登入
+            </button>
+        </div>
+    );
+
+    // 選擇渲染哪個視圖
+    const renderContent = () => {
+        switch (view) {
+            case 'admin-panel':
+                return <RenderAdminPanel />;
+            case 'admin-login':
+                return <RenderLoginView />;
+            case 'survey':
+            default:
+                return <RenderSurveyView />;
+        }
+    };
+
+    return (
+        <div className="w-full max-w-4xl bg-white shadow-2xl rounded-xl p-6 sm:p-10 transition-all duration-300">
+            {/* 頂部標題和切換按鈕 */}
+            <header className="mb-8 border-b pb-4">
+                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center">
+                    <TrendingUp className="w-8 h-8 mr-2 text-indigo-600"/>
+                    動態問卷調查系統 (React/Firebase)
+                </h1>
+                <p className="text-sm text-gray-500 mt-1">使用者 ID: <span id="user-id-display" className="font-mono text-xs bg-gray-100 p-1 rounded-sm">{userId || '載入中...'}</span></p>
+                <div className="mt-4 flex space-x-3">
+                    <button 
+                        onClick={() => changeView('survey')} 
+                        className={`px-5 py-2 font-semibold text-sm rounded-lg transition duration-150 shadow-md ${view === 'survey' ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300'}`}
+                    >
+                        填寫問卷
+                    </button>
+                    <button 
+                        onClick={() => changeView('admin-login')} 
+                        className={`px-5 py-2 font-semibold text-sm rounded-lg transition duration-150 shadow-md ${(view === 'admin-panel' || view === 'admin-login') ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300'}`}
+                    >
+                        管理者後台
+                    </button>
+                </div>
+            </header>
+
+            {/* 視圖內容 */}
+            <div id="view-container">
+                {renderContent()}
+            </div>
+
+            {/* 訊息提示 */}
+            <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: '' })} />
+        </div>
+    );
+};
+
+export default App;
