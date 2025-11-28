@@ -430,7 +430,6 @@
     // ========================
     // 1. 初始化 Firebase
     // ========================
-    // 👉 這裡把 YOUR_XXXX 換成你在 Firebase 專案設定裡的 config
     const firebaseConfig = {
   apiKey: "AIzaSyAexk_JbIOQWV1Jw7hqfiZDDZYY9YF-Sdk",
   authDomain: "survey-49e8d.firebaseapp.com",
@@ -459,7 +458,7 @@
     const surveyLinkInput = document.getElementById('surveyLinkInput');
     const copySurveyLinkBtn = document.getElementById('copySurveyLinkBtn');
 
-    // 更新問卷填答網址
+    // ✅ 修正後：不管檔名叫什麼，都抓「同一個資料夾」底下的 respond.html
     function updateSurveyLink() {
       if (!selectedSurveyId) {
         surveyLinkInput.value = '';
@@ -467,8 +466,10 @@
         return;
       }
 
-      // 假設 respond.html 跟 index.html 在同一層
-      const basePath = location.pathname.replace('index.html', '');
+      const path = location.pathname;                 // 例如 /VibeCoding/MENTOR/1141128MENTOR.html
+      const lastSlashIndex = path.lastIndexOf('/');   // 找到最後一個 /
+      const basePath = path.substring(0, lastSlashIndex + 1); // /VibeCoding/MENTOR/
+
       const respondUrl = `${location.origin}${basePath}respond.html?surveyId=${selectedSurveyId}`;
       surveyLinkInput.value = respondUrl;
       copySurveyLinkBtn.disabled = false;
@@ -494,7 +495,6 @@
     function subscribeSurveys() {
       if (surveysUnsubscribe) surveysUnsubscribe();
 
-      // 根據建立時間排序，最新的在上面
       surveysUnsubscribe = db.collection('surveys')
         .orderBy('createdAt', 'desc')
         .onSnapshot(snapshot => {
@@ -550,7 +550,6 @@
         surveyListEl.appendChild(li);
       });
 
-      // 若目前選中的問卷已被刪除，清空右側
       if (selectedSurveyId && !docs.find(d => d.id === selectedSurveyId)) {
         clearSurveyForm();
         clearQuestionSection();
@@ -617,14 +616,12 @@
 
       try {
         if (!selectedSurveyId) {
-          // 新增問卷
           data.createdAt = serverTimestamp;
           const docRef = await db.collection('surveys').add(data);
           selectedSurveyId = docRef.id;
           selectedSurveyData = data;
           statusText.textContent = '問卷已新增並儲存。';
         } else {
-          // 更新問卷
           await db.collection('surveys').doc(selectedSurveyId).update(data);
           selectedSurveyData = { ...(selectedSurveyData || {}), ...data };
           statusText.textContent = '問卷已更新。';
@@ -635,7 +632,6 @@
 
         updateSurveyLink();
 
-        // 問卷儲存後，開始載入題目
         if (selectedSurveyId) {
           subscribeQuestions(selectedSurveyId);
         }
@@ -650,14 +646,12 @@
       if (!confirm('確定要刪除這份問卷與其所有題目嗎？此動作無法恢復。')) return;
 
       try {
-        // 先刪除 questions 子集合
         const qSnap = await db.collection('surveys').doc(selectedSurveyId)
           .collection('questions').get();
         const batch = db.batch();
         qSnap.forEach(doc => batch.delete(doc.ref));
         await batch.commit();
 
-        // 再刪除問卷本身
         await db.collection('surveys').doc(selectedSurveyId).delete();
 
         clearSurveyForm();
@@ -670,7 +664,6 @@
       }
     });
 
-    // 額外功能：複製問卷（含題目）
     duplicateSurveyBtn.addEventListener('click', async () => {
       if (!selectedSurveyId || !selectedSurveyData) return;
 
@@ -684,10 +677,8 @@
       };
 
       try {
-        // 1) 新建一個問卷
         const newSurveyRef = await db.collection('surveys').add(baseData);
 
-        // 2) 複製子集合 questions
         const qSnap = await db.collection('surveys').doc(selectedSurveyId)
           .collection('questions').get();
         const batch = db.batch();
@@ -709,12 +700,10 @@
       selectedSurveyId = id;
       selectedSurveyData = data || null;
 
-      // 更新左側 active 樣式
       Array.from(surveyListEl.children).forEach(li => {
         li.classList.toggle('active', li.dataset.id === id);
       });
 
-      // 填入表單
       surveyTitleEl.value = data.title || '';
       surveyDescriptionEl.value = data.description || '';
       surveyStatusEl.value = data.status || 'draft';
@@ -727,7 +716,6 @@
 
       updateSurveyLink();
 
-      // 載入題目
       subscribeQuestions(id);
       cancelQuestionEdit();
     }
@@ -755,7 +743,6 @@
     const bulkQuestionsEl = document.getElementById('bulkQuestions');
     const addBulkQuestionsBtn = document.getElementById('addBulkQuestionsBtn');
 
-    // 題型切換時，顯示不同欄位
     function updateQuestionTypeFields() {
       const type = questionTypeEl.value;
       if (type === 'single' || type === 'multiple') {
@@ -765,7 +752,6 @@
         optionsFieldEl.classList.add('hidden');
         scaleFieldEl.classList.remove('hidden');
       } else {
-        // text
         optionsFieldEl.classList.add('hidden');
         scaleFieldEl.classList.add('hidden');
       }
@@ -800,7 +786,6 @@
       noQuestionHintEl.style.display = 'block';
     }
 
-    // 監聽指定問卷的題目
     function subscribeQuestions(surveyId) {
       if (questionsUnsubscribe) questionsUnsubscribe();
 
@@ -886,7 +871,6 @@
           }
         });
 
-        // 額外功能：上下移動排序
         const upBtn = document.createElement('button');
         upBtn.className = 'btn btn-secondary';
         upBtn.textContent = '↑';
@@ -913,7 +897,6 @@
       });
     }
 
-    // 題目排序（簡單版：order ±1，實務上可以再加強）
     async function changeQuestionOrder(docSnap, delta) {
       if (!selectedSurveyId) return;
       const data = docSnap.data();
@@ -993,7 +976,6 @@
           .collection('questions');
 
         if (!editingQuestionId) {
-          // 新增題目時，order 用目前的數量（簡單作法）
           const snap = await questionsRef.get();
           const newOrder = snap.size;
 
@@ -1012,7 +994,6 @@
       }
     });
 
-    // 批次新增多題：每一行一題，全部當作開放式題型 & 非必填
     addBulkQuestionsBtn.addEventListener('click', async () => {
       if (!selectedSurveyId) {
         alert('請先儲存一份問卷，再批次新增題目。');
@@ -1057,7 +1038,6 @@
       }
     });
 
-    // 一開始就訂閱問卷列表
     subscribeSurveys();
   </script>
 </body>
