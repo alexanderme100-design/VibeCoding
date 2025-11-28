@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>問卷結果分析</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+      background: #f5f5f5;
+    }
+    header {
+      background: #1976d2;
+      color: #fff;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+    main {
+      max-width: 1000px;
+      margin: 16px auto 32px;
+      padding: 16px;
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .hint {
+      font-size: 13px;
+      color: #666;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .col {
+      flex: 1;
+      min-width: 240px;
+    }
+    label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    select {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 8px;
+      background: #1976d2;
+      color: #fff;
+    }
+    .btn-secondary {
+      background: #e0e0e0;
+      color: #333;
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .section {
+      margin-top: 16px;
+      margin-bottom: 16px;
+    }
+    canvas {
+      max-width: 100%;
+      background: #fafafa;
+      border-radius: 4px;
+      padding: 8px;
+    }
+    .error {
+      color: #d32f2f;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .success {
+      color: #388e3c;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 4px 6px;
+      text-align: left;
+    }
+    th {
+      background: #f0f0f0;
+    }
+  </style>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <!-- Chart.js 產生統計圖 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header>
+    <h1>問卷結果分析</h1>
+    <span id="headerSurveyTitle" style="font-size:13px;opacity:.9;"></span>
+  </header>
+
+  <main>
+    <!-- 載入問卷 & 回覆 -->
+    <div class="section">
+      <div class="row">
+        <div class="col">
+          <label>目前問卷 ID</label>
+          <input
+            type="text"
+            id="surveyIdInput"
+            placeholder="例如：L90wraDczK0Ok7alJVL6"
+          >
+          <div class="hint">
+            ✅ 建議直接用網址帶參數：<code>results.html?surveyId=...</code><br>
+            或在這裡貼上 <code>surveyId</code> 後按「載入問卷結果」。
+          </div>
+        </div>
+        <div class="col" style="display:flex;align-items:flex-end;gap:8px;">
+          <button class="btn" id="loadSurveyBtn">載入問卷結果</button>
+          <button class="btn btn-secondary" id="exportCsvBtn" disabled>匯出 CSV</button>
+        </div>
+      </div>
+      <div id="loadMsg" class="hint" style="margin-top:4px;"></div>
+    </div>
+
+    <!-- 題目選擇 & 統計圖 -->
+    <div class="section">
+      <h3>題目選擇 & 統計圖</h3>
+      <div class="row">
+        <div class="col">
+          <label>選擇要分析的題目</label>
+          <select id="questionSelect">
+            <option value="">請先載入問卷</option>
+          </select>
+        </div>
+        <div class="col" style="display:flex;align-items:flex-end;gap:8px;">
+          <button class="btn btn-secondary" id="barChartBtn" disabled>長條圖</button>
+          <button class="btn btn-secondary" id="pieChartBtn" disabled>圓餅圖</button>
+        </div>
+      </div>
+      <div class="hint" id="chartHint" style="margin-top:4px;"></div>
+      <div style="margin-top:12px;">
+        <canvas id="chartCanvas" height="260"></canvas>
+      </div>
+    </div>
+
+    <!-- 基本資訊 & 回覆預覽 -->
+    <div class="section">
+      <h3>基本資訊</h3>
+      <p class="hint">
+        回覆數：<span id="responseCount">0</span> 筆，
+        最後更新時間：<span id="lastUpdated">-</span>
+      </p>
+      <div class="hint">
+        下方只顯示前幾筆回覆，方便快速確認。詳細分析請匯出 CSV 後用 Excel / SPSS 處理。
+      </div>
+      <div id="responsesPreview"></div>
+    </div>
+  </main>
+
+  <script>
+    // 1. 解析 URL 參數
+    function getQueryParam(name) {
+      const urlParams = new URLSearchParams(location.search);
+      return urlParams.get(name);
+    }
+
+    // 2. 初始化 Firebase（👉 和 index.html / respond.html 使用同一組設定）
+    const firebaseConfig = {
+  apiKey: "AIzaSyAexk_JbIOQWV1Jw7hqfiZDDZYY9YF-Sdk",
+  authDomain: "survey-49e8d.firebaseapp.com",
+  projectId: "survey-49e8d",
+  storageBucket: "survey-49e8d.firebasestorage.app",
+  messagingSenderId: "547257703502",
+  appId: "1:547257703502:web:85e147bed62333b11c771f"
+};
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // 3. DOM 元素抓取
+    const surveyIdInput = document.getElementById('surveyIdInput');
+    const loadSurveyBtn = document.getElementById('loadSurveyBtn');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+    const loadMsg = document.getElementById('loadMsg');
+    const headerSurveyTitle = document.getElementById('headerSurveyTitle');
+    const questionSelect = document.getElementById('questionSelect');
+    const barChartBtn = document.getElementById('barChartBtn');
+    const pieChartBtn = document.getElementById('pieChartBtn');
+    const chartCanvas = document.getElementById('chartCanvas');
+    const chartHint = document.getElementById('chartHint');
+    const responseCountEl = document.getElementById('responseCount');
+    const lastUpdatedEl = document.getElementById('lastUpdated');
+    const responsesPreview = document.getElementById('responsesPreview');
+
+    // 狀態
+    let currentSurveyId = null;
+    let questions = [];   // [{id, data}]
+    let responses = [];   // [{id, data}]
+    let chartInstance = null;
+
+    // 如果網址帶有 surveyId，預先填入
+    const urlSurveyId = getQueryParam('surveyId');
+    if (urlSurveyId) {
+      surveyIdInput.value = urlSurveyId;
+      // 自動載入（你不想自動載也可以註解掉這行）
+      // loadSurveyAndResponses(urlSurveyId);
+    }
+
+    // 按下「載入問卷結果」
+    loadSurveyBtn.addEventListener('click', () => {
+      const id = surveyIdInput.value.trim();
+      if (!id) {
+        loadMsg.textContent = '請先輸入 surveyId。';
+        return;
+      }
+      loadSurveyAndResponses(id);
+    });
+
+    // 4. 載入問卷 + 題目 + 回覆
+    async function loadSurveyAndResponses(surveyId) {
+      loadMsg.textContent = '正在載入問卷與回覆資料…';
+      headerSurveyTitle.textContent = '';
+      questionSelect.innerHTML = '<option value="">載入中…</option>';
+      responsesPreview.innerHTML = '';
+      responseCountEl.textContent = '0';
+      lastUpdatedEl.textContent = '-';
+      barChartBtn.disabled = true;
+      pieChartBtn.disabled = true;
+      exportCsvBtn.disabled = true;
+      chartHint.textContent = '';
+      destroyChart();
+
+      currentSurveyId = surveyId;
+      questions = [];
+      responses = [];
+
+      try {
+        // 4-1 問卷基本資料
+        const surveyDoc = await db.collection('surveys').doc(surveyId).get();
+        if (!surveyDoc.exists) {
+          throw new Error('找不到這份問卷，請確認 surveyId 是否正確。');
+        }
+        const sData = surveyDoc.data();
+        const surveyTitle = sData.title || '(未命名問卷)';
+        headerSurveyTitle.textContent = surveyTitle;
+        document.title = surveyTitle + ' - 結果分析';
+
+        // 4-2 題目（subcollection: surveys/{id}/questions）
+        const qSnap = await db.collection('surveys').doc(surveyId)
+          .collection('questions')
+          .orderBy('order', 'asc')
+          .get();
+
+        if (qSnap.empty) {
+          throw new Error('此問卷尚未設定題目，無法進行統計分析。');
+        }
+        questions = qSnap.docs.map(doc => ({ id: doc.id, data: doc.data() }));
+        renderQuestionOptions();
+
+        // 4-3 回覆（主集合 responses，依 surveyId 篩選）
+        const rSnap = await db.collection('responses')
+          .where('surveyId', '==', surveyId)
+          .orderBy('createdAt', 'asc')
+          .get();
+
+        responses = rSnap.docs.map(doc => ({ id: doc.id, data: doc.data() }));
+
+        responseCountEl.textContent = responses.length;
+
+        if (responses.length > 0) {
+          const last = responses[responses.length - 1].data.createdAt;
+          if (last && last.toDate) {
+            lastUpdatedEl.textContent = last.toDate().toLocaleString();
+          } else {
+            lastUpdatedEl.textContent = '-';
+          }
+        } else {
+          lastUpdatedEl.textContent = '-';
+        }
+
+        renderResponsesPreview();
+        exportCsvBtn.disabled = responses.length === 0;
+
+        loadMsg.textContent = '載入完成。';
+
+      } catch (err) {
+        console.error(err);
+        loadMsg.textContent = '載入失敗：' + (err.message || '請檢查 Firestore 規則或網路連線。');
+      }
+    }
+
+    // 5. 題目下拉選單
+    function renderQuestionOptions() {
+      questionSelect.innerHTML = '<option value="">請選擇題目</option>';
+      questions.forEach((q, idx) => {
+        const opt = document.createElement('option');
+        opt.value = q.id;
+        opt.textContent = `${idx + 1}. ${q.data.text || '(未命名題目)'}`;
+        questionSelect.appendChild(opt);
+      });
+      barChartBtn.disabled = false;
+      pieChartBtn.disabled = false;
+    }
+
+    // 6. 回覆預覽（只顯示前幾筆）
+    function renderResponsesPreview() {
+      if (responses.length === 0) {
+        responsesPreview.innerHTML = '<p class="hint">目前尚無任何回覆。</p>';
+        return;
+      }
+
+      const maxPreview = 5;
+      const preview = responses.slice(0, maxPreview);
+
+      let html = '<table><thead><tr><th>#</th><th>時間</th><th>answers JSON</th></tr></thead><tbody>';
+      preview.forEach((r, idx) => {
+        const d = r.data;
+        const time = d.createdAt && d.createdAt.toDate
+          ? d.createdAt.toDate().toLocaleString()
+          : '-';
+        html += `<tr>
+          <td>${idx + 1}</td>
+          <td>${time}</td>
+          <td><code>${JSON.stringify(d.answers || {})}</code></td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+
+      if (responses.length > maxPreview) {
+        html += `<p class="hint">共 ${responses.length} 筆，僅顯示前 ${maxPreview} 筆。</p>`;
+      }
+
+      responsesPreview.innerHTML = html;
+    }
+
+    // 7. 統計 & 畫圖
+    questionSelect.addEventListener('change', () => {
+      chartHint.textContent = '';
+      destroyChart();
+    });
+
+    barChartBtn.addEventListener('click', () => {
+      drawChart('bar');
+    });
+
+    pieChartBtn.addEventListener('click', () => {
+      drawChart('pie');
+    });
+
+    function drawChart(type) {
+      const qId = questionSelect.value;
+      if (!qId) {
+        chartHint.textContent = '請先選擇一個題目。';
+        return;
+      }
+      const q = questions.find(q => q.id === qId);
+      if (!q) return;
+
+      const qData = q.data;
+      const agg = aggregateQuestion(qId, qData);
+
+      if (!agg || agg.type === 'text') {
+        destroyChart();
+        chartHint.textContent = `此題為開放式題目，共有 ${agg ? agg.count : 0} 則文字回答，不適合用圖表呈現。`;
+        return;
+      }
+
+      chartHint.textContent = `此題共有 ${agg.total} 答案樣本。`;
+
+      const ctx = chartCanvas.getContext('2d');
+      destroyChart();
+
+      chartInstance = new Chart(ctx, {
+        type: type,
+        data: {
+          labels: agg.labels,
+          datasets: [{
+            label: qData.text || '',
+            data: agg.data
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: type === 'pie' },
+            tooltip: { enabled: true }
+          },
+          scales: type === 'bar' ? {
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0 }
+            }
+          } : {}
+        }
+      });
+    }
+
+    function destroyChart() {
+      if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+      }
+    }
+
+    // 根據題型做簡單統計
+    function aggregateQuestion(qId, qData) {
+      const type = qData.type || 'text';
+
+      if (responses.length === 0) {
+        return { type, labels: [], data: [], total: 0, count: 0 };
+      }
+
+      if (type === 'single') {
+        const map = {};
+        (qData.options || []).forEach(o => { map[o] = 0; });
+        let total = 0;
+        responses.forEach(r => {
+          const ans = (r.data.answers || {})[qId];
+          if (ans && map.hasOwnProperty(ans)) {
+            map[ans]++;
+            total++;
+          }
+        });
+        return {
+          type,
+          labels: Object.keys(map),
+          data: Object.values(map),
+          total
+        };
+
+      } else if (type === 'multiple') {
+        const map = {};
+        (qData.options || []).forEach(o => { map[o] = 0; });
+        let total = 0;
+        responses.forEach(r => {
+          const ans = (r.data.answers || {})[qId];
+          if (Array.isArray(ans)) {
+            ans.forEach(a => {
+              if (map.hasOwnProperty(a)) {
+                map[a]++;
+                total++;
+              }
+            });
+          }
+        });
+        return {
+          type,
+          labels: Object.keys(map),
+          data: Object.values(map),
+          total
+        };
+
+      } else if (type === 'scale') {
+        const min = qData.scaleMin || 1;
+        const max = qData.scaleMax || 5;
+        const map = {};
+        for (let i = min; i <= max; i++) map[i] = 0;
+        let total = 0;
+        responses.forEach(r => {
+          const ans = (r.data.answers || {})[qId];
+          if (ans != null && ans !== '') {
+            const n = Number(ans);
+            if (!Number.isNaN(n) && map.hasOwnProperty(n)) {
+              map[n]++;
+              total++;
+            }
+          }
+        });
+        return {
+          type,
+          labels: Object.keys(map),
+          data: Object.values(map),
+          total
+        };
+
+      } else {
+        // 開放式文字：只統計有填的次數
+        let count = 0;
+        responses.forEach(r => {
+          const ans = (r.data.answers || {})[qId];
+          if (ans && String(ans).trim() !== '') count++;
+        });
+        return { type: 'text', count };
+      }
+    }
+
+    // 8. 匯出 CSV（可直接用 Excel 打開）
+    exportCsvBtn.addEventListener('click', () => {
+      if (!currentSurveyId || responses.length === 0) return;
+      const csv = buildCsv();
+      downloadCsv(csv, `survey_${currentSurveyId}_responses.csv`);
+    });
+
+    function buildCsv() {
+      // 欄位：responseId, createdAt, Q1_題目內容, Q2_題目內容...
+      const header = ['responseId', 'createdAt'];
+      questions.forEach((q, idx) => {
+        const label = `Q${idx + 1}_${q.data.text || ''}`.replace(/[\r\n,]/g, ' ');
+        header.push(label);
+      });
+
+      const lines = [header.join(',')];
+
+      responses.forEach(r => {
+        const d = r.data;
+        const row = [];
+        row.push(r.id);
+        const time = d.createdAt && d.createdAt.toDate
+          ? d.createdAt.toDate().toISOString()
+          : '';
+        row.push(time);
+
+        const ans = d.answers || {};
+        questions.forEach(q => {
+          const qId = q.id;
+          const v = ans[qId];
+          let cell = '';
+          if (Array.isArray(v)) {
+            cell = v.join('|');    // 多選用 | 串起來
+          } else if (v != null) {
+            cell = String(v);
+          }
+          cell = cell.replace(/"/g, '""'); // escape "
+          if (cell.indexOf(',') >= 0 || cell.indexOf('"') >= 0 || cell.indexOf('\n') >= 0) {
+            cell = `"${cell}"`;
+          }
+          row.push(cell);
+        });
+
+        lines.push(row.join(','));
+      });
+
+      return lines.join('\r\n');
+    }
+
+    function downloadCsv(csvText, filename) {
+      const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
