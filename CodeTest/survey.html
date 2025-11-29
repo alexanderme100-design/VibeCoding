@@ -6,8 +6,8 @@
     <title>Firebase 問卷系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- 引入多元字體 -->
-    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&family=Noto+Serif+TC:wght@400;700&family=DotGothic16&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+    <!-- 引入多元字體以支援各種風格 -->
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&family=DotGothic16&family=Space+Mono:wght@700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
         /* --- 核心變數系統 (Theming System) --- */
@@ -36,9 +36,7 @@
             
             /* 進階裝飾 */
             --btn-shadow: 0 4px 0 var(--ghibli-green-dark);
-            --btn-transform: translateY(0);
             --btn-hover-filter: brightness(110%);
-            --blob-opacity: 0.3;
         }
 
         /* 全域樣式應用 */
@@ -47,7 +45,9 @@
             min-height: 100dvh; 
             background-color: var(--bg-color); 
             background-image: var(--bg-image);
-            background-attachment: fixed; /* 讓背景紋理固定 */
+            background-attachment: fixed;
+            background-size: cover;
+            background-position: center;
             font-family: var(--font-family);
             color: var(--text-color);
             -webkit-tap-highlight-color: transparent; 
@@ -63,7 +63,6 @@
             border: var(--card-border);
             box-shadow: var(--card-shadow);
             transition: all 0.3s ease;
-            backdrop-filter: blur(0px); /* 預設無 */
         }
 
         /* 按鈕模組 */
@@ -94,7 +93,7 @@
         .theme-input:focus {
             border-color: var(--primary-color);
             outline: none;
-            box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.1);
+            box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2);
         }
 
         /* 選項互動 (Checked) */
@@ -107,21 +106,21 @@
             font-weight: bold;
         }
 
-        /* 特殊效果：背景噪點 (Paper Style) */
+        /* 紙張質感噪點 */
         .noise-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: -1; opacity: 0.05;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-            display: none; /* 預設隱藏 */
+            display: none; 
         }
 
-        /* 裝飾性元素 */
-        .cloud { position: absolute; background: white; border-radius: 100px; z-index: -1; opacity: 0.6; display: none; } /* 預設隱藏，吉卜力風開啟 */
+        /* 裝飾性元素 (僅在特定風格開啟) */
+        .cloud { position: absolute; background: white; border-radius: 100px; z-index: -1; opacity: 0.6; display: none; } 
         .cloud-1 { width: 100px; height: 40px; top: 20px; left: -10px; animation: float 20s infinite linear; }
         .cloud-2 { width: 160px; height: 60px; top: 50px; right: -30px; animation: float 35s infinite linear reverse; }
         @keyframes float { 0% { transform: translateX(0); } 50% { transform: translateX(20px); } 100% { transform: translateX(0); } }
 
-        /* 其他工具 */
+        /* 常用工具 */
         .fade-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .error-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; background-color: #fef2f2 !important; }
@@ -129,8 +128,9 @@
         .tap-target { min-height: 48px; cursor: pointer; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom, 20px); }
         .drag-handle { cursor: grab; touch-action: none; }
+        .question-card.dragging { opacity: 0.5; border: 2px dashed var(--primary-color); background-color: var(--select-bg); }
         
-        /* 量表顏色 (可被 Theme 覆蓋) */
+        /* 量表顏色 */
         .likert-opt-1 { color: #ef4444; } .likert-opt-2 { color: #f97316; } .likert-opt-3 { color: #eab308; } .likert-opt-4 { color: #84cc16; } .likert-opt-5 { color: #22c55e; } 
         .opt-default { border: 1px solid #e5e7eb; background-color: white; }
     </style>
@@ -138,139 +138,228 @@
     <script>
         window.app = {}; 
 
-        // --- 20 種極致風格定義 ---
-        // 這裡定義每種風格的 "DNA"，包含背景圖、字體、陰影邏輯
+        // --- 20 種風格資料庫 ---
         const THEMES = {
             'ghibli': { 
-                name: '吉卜力風', 
+                name: '1. 吉卜力風 (Ghibli)', 
                 bg: '#FAF7F0', 
-                image: 'radial-gradient(#E5E0D0 1px, transparent 1px)', // 點點背景
+                image: 'radial-gradient(#E5E0D0 1px, transparent 1px)', 
+                bgSize: '20px 20px',
                 text: '#4A4A4A', card: '#ffffff', primary: '#568A66', radius: '20px', 
-                shadow: '0 10px 15px -3px rgba(86, 138, 102, 0.15)', // 綠色柔光
+                shadow: '0 10px 15px -3px rgba(86, 138, 102, 0.15)', 
                 font: "'Zen Maru Gothic', sans-serif",
-                btnShadow: '0 4px 0 #3E664B'
+                btnShadow: '0 4px 0 #3E664B',
+                clouds: true
             },
             'muji': { 
-                name: '韓系文青 (MUJI)', 
+                name: '2. 韓系文青 (MUJI)', 
                 bg: '#F3F2ED', 
-                text: '#595750', card: '#FCFAF7', primary: '#8C8376', radius: '2px', 
+                text: '#595750', card: '#FCFAF7', primary: '#8C8376', radius: '4px', 
                 shadow: 'none', border: '1px solid #E6E4E0',
                 font: "'Noto Serif TC', serif",
                 btnShadow: 'none',
                 selectBg: '#EAE8E4', selectBorder: '#8C8376', selectText: '#595750'
             },
             'taiwan': { 
-                name: '台灣插畫風', 
+                name: '3. 台灣插畫風', 
                 bg: '#FFF8E1', 
-                image: 'linear-gradient(45deg, #FFECB3 25%, transparent 25%, transparent 75%, #FFECB3 75%, #FFECB3), linear-gradient(45deg, #FFECB3 25%, transparent 25%, transparent 75%, #FFECB3 75%, #FFECB3)', // 菱格紋
-                bgSize: '20px 20px',
-                bgPos: '0 0, 10px 10px',
+                image: 'linear-gradient(45deg, #FFECB3 25%, transparent 25%, transparent 75%, #FFECB3 75%, #FFECB3), linear-gradient(45deg, #FFECB3 25%, transparent 25%, transparent 75%, #FFECB3 75%, #FFECB3)',
+                bgSize: '20px 20px', bgPos: '0 0, 10px 10px',
                 text: '#5D4037', card: '#FFFFFF', primary: '#FF7043', radius: '16px', 
-                shadow: '4px 4px 0px #FFCCBC', // 硬陰影
-                font: "'Zen Maru Gothic', sans-serif",
-                border: '2px solid #5D4037'
+                shadow: '4px 4px 0px #FFCCBC', border: '2px solid #5D4037',
+                font: "'Zen Maru Gothic', sans-serif"
+            },
+            'pixar': { 
+                name: '4. 迪士尼/皮克斯', 
+                bg: '#CAF0F8', 
+                image: 'radial-gradient(circle at 50% 50%, #ffffff 0%, #CAF0F8 100%)',
+                text: '#023E8A', card: '#FFFFFF', primary: '#0077B6', radius: '24px', 
+                shadow: '0 10px 25px rgba(0,119,182,0.25)', 
+                font: "sans-serif", 
+                btnShadow: '0 6px 0 #023E8A' 
+            },
+            'watercolor': { 
+                name: '5. 手繪水彩風', 
+                bg: '#F0F8FF', 
+                image: 'radial-gradient(circle at 30% 20%, #E3F2FD 0%, transparent 50%), radial-gradient(circle at 80% 80%, #F3E5F5 0%, transparent 50%)', 
+                text: '#5D6D7E', card: 'rgba(255,255,255,0.9)', primary: '#7FB3D5', radius: '30px', 
+                shadow: '0 8px 32px rgba(31, 38, 135, 0.1)', 
+                font: "serif", 
+                border: '1px solid rgba(255,255,255,0.6)'
             },
             'blackboard': { 
-                name: '文青黑板', 
+                name: '6. 文青黑板風', 
                 bg: '#2F3E46', 
-                text: '#F0F0F0', card: '#354F52', primary: '#F4D35E', radius: '4px', 
-                border: '2px dashed #84A98C', 
-                shadow: 'none',
+                text: '#F0F0F0', card: '#354F52', primary: '#F4D35E', radius: '6px', 
+                border: '2px dashed rgba(255,255,255,0.3)', 
+                shadow: 'inset 0 0 20px rgba(0,0,0,0.5)',
                 font: "'DotGothic16', monospace",
                 selectBg: '#52796F', selectBorder: '#F4D35E', selectText: '#F4D35E',
                 inputBg: '#2F3E46', inputBorder: '1px solid #84A98C'
             },
+            'flat': { 
+                name: '7. 扁平化插畫', 
+                bg: '#ECF0F1', 
+                text: '#2C3E50', card: '#FFFFFF', primary: '#3498DB', radius: '4px', 
+                shadow: '0 2px 5px rgba(0,0,0,0.05)', border: '1px solid #BDC3C7', 
+                font: "'Roboto', sans-serif",
+                btnShadow: 'none'
+            },
+            'cute': { 
+                name: '8. 可愛 Q 版', 
+                bg: '#FFF0F5', 
+                image: 'radial-gradient(#FFB6C1 3px, transparent 3px)', bgSize: '30px 30px',
+                text: '#8B4513', card: '#FFFFFF', primary: '#FF80AB', radius: '40px', 
+                shadow: '0 8px 0 #FFC1E3', border: '3px solid #FF80AB', 
+                font: "'Zen Maru Gothic', sans-serif", 
+                btnShadow: '0 6px 0 #C51162'
+            },
             'cyberpunk': { 
-                name: '未來感霓虹', 
+                name: '9. 未來感霓虹', 
                 bg: '#050505', 
-                image: 'linear-gradient(0deg, rgba(0,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,0.1) 1px, transparent 1px)',
-                bgSize: '40px 40px',
+                image: 'linear-gradient(0deg, rgba(0,255,209,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,0,255,0.1) 1px, transparent 1px)', bgSize: '40px 40px',
                 text: '#00FFFF', card: '#0A0A0A', primary: '#FF00FF', radius: '0px', 
                 border: '1px solid #00FFFF', 
-                shadow: '0 0 10px #00FFFF, inset 0 0 20px rgba(0,255,255,0.1)',
+                shadow: '0 0 15px rgba(0, 255, 255, 0.5), inset 0 0 10px rgba(255, 0, 255, 0.2)',
                 font: "'Space Mono', monospace",
-                selectBg: '#1A1A1A', selectBorder: '#FF00FF', selectText: '#FF00FF',
+                selectBg: '#111', selectBorder: '#FF00FF', selectText: '#FF00FF',
                 inputBg: '#000', inputBorder: '1px solid #00FFFF'
             },
-            'comic': { 
-                name: '漫畫風', 
+            'fresh': { 
+                name: '10. 小紅書風', 
+                bg: '#FAFAFA', 
+                text: '#333333', card: '#FFFFFF', primary: '#FF5252', radius: '16px', 
+                shadow: '0 10px 40px -10px rgba(0,0,0,0.08)', 
+                font: "sans-serif",
+                border: '1px solid #f0f0f0'
+            },
+            'map': { 
+                name: '11. 旅遊地圖風', 
+                bg: '#F4EBD0', 
+                image: 'repeating-linear-gradient(45deg, #E6D5B8 0, #E6D5B8 1px, transparent 1px, transparent 10px)',
+                text: '#5D4037', card: '#FFF8E1', primary: '#D84315', radius: '10px', 
+                shadow: '5px 5px 0 rgba(93, 64, 55, 0.2)', 
+                font: "'Noto Serif TC', serif", 
+                border: '2px dashed #8D6E63' 
+            },
+            'japanese': { 
+                name: '12. 日系極簡風', 
                 bg: '#FFFFFF', 
-                image: 'radial-gradient(#000 15%, transparent 16%)', 
-                bgSize: '8px 8px',
+                text: '#222222', card: '#FFFFFF', primary: '#000000', radius: '0px', 
+                border: '1px solid #E5E5E5', 
+                shadow: 'none', 
+                font: "'Noto Serif TC', serif", 
+                selectBg: '#F5F5F5', selectBorder: '#333', selectText: '#000' 
+            },
+            'comic': { 
+                name: '13. 漫畫風', 
+                bg: '#FFFFFF', 
+                image: 'radial-gradient(#000 15%, transparent 16%)', bgSize: '6px 6px',
                 text: '#000000', card: '#FFFFFF', primary: '#FFE600', radius: '0px', 
                 border: '3px solid #000000', 
-                shadow: '6px 6px 0px #000000', // 漫畫硬陰影
+                shadow: '8px 8px 0px #000000', 
                 font: "sans-serif",
                 btnShadow: '4px 4px 0 #000',
                 selectBg: '#000', selectBorder: '#000', selectText: '#FFF'
             },
-            'paper': { 
-                name: '高級紙張', 
-                bg: '#F5F1E6', 
-                text: '#2C2825', card: '#FDFBF7', primary: '#8C7B70', radius: '2px', 
-                shadow: '0 2px 10px rgba(0,0,0,0.05)', 
-                font: "'Noto Serif TC', serif",
-                noise: true // 開啟噪點
+            'animal': { 
+                name: '14. 動物森友會', 
+                bg: '#B8E994', 
+                image: 'repeating-linear-gradient(45deg, #78E08F 0, #78E08F 20px, #B8E994 20px, #B8E994 40px)', 
+                text: '#3C6382', card: '#F8F3D4', primary: '#FA983A', radius: '24px', 
+                border: '4px solid #FFFFFF', 
+                shadow: '0 8px 0 rgba(0,0,0,0.1)', 
+                font: "'Zen Maru Gothic', sans-serif" 
+            },
+            'forest': { 
+                name: '15. 自然森林風', 
+                bg: '#2D6A4F', 
+                text: '#D8F3DC', card: '#1B4332', primary: '#52B788', radius: '16px', 
+                border: 'none', 
+                shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)', 
+                font: "sans-serif", 
+                selectBg: '#40916C', selectBorder: '#74C69D', selectText: '#fff', 
+                inputBg: '#081C15', inputBorder: '1px solid #52B788' 
             },
             'geometric': { 
-                name: '極簡幾何', 
-                bg: '#EEF2FF', 
-                image: 'linear-gradient(30deg, #E0E7FF 12%, transparent 12.5%, transparent 87%, #E0E7FF 87.5%, #E0E7FF), linear-gradient(150deg, #E0E7FF 12%, transparent 12.5%, transparent 87%, #E0E7FF 87.5%, #E0E7FF)', 
-                bgSize: '80px 140px',
-                text: '#1E1B4B', card: '#FFFFFF', primary: '#4F46E5', radius: '0px', 
-                shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+                name: '16. 極簡幾何風', 
+                bg: '#F3F4F6', 
+                image: 'linear-gradient(135deg, #E5E7EB 25%, transparent 25%) -50px 0, linear-gradient(225deg, #E5E7EB 25%, transparent 25%) -50px 0, linear-gradient(315deg, #E5E7EB 25%, transparent 25%), linear-gradient(45deg, #E5E7EB 25%, transparent 25%)', 
+                bgSize: '100px 100px',
+                text: '#111827', card: '#FFFFFF', primary: '#4F46E5', radius: '0px', 
+                shadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                 font: "sans-serif",
                 selectBg: '#EEF2FF', selectBorder: '#4F46E5', selectText: '#4338CA'
             },
-            'watercolor': { name: '手繪水彩', bg: '#F0F8FF', image: 'radial-gradient(circle at 50% 50%, #E3F2FD, #F3E5F5)', text: '#5D6D7E', card: 'rgba(255,255,255,0.85)', primary: '#7FB3D5', radius: '30px', shadow: '0 8px 32px rgba(31, 38, 135, 0.1)', font: "serif" },
-            'disney': { name: '迪士尼/皮克斯', bg: '#CAF0F8', text: '#023E8A', card: '#FFFFFF', primary: '#0077B6', radius: '24px', shadow: '0 10px 20px rgba(0,119,182,0.2)', font: "sans-serif", btnShadow: '0 5px 0 #023E8A' },
-            'flat': { name: '扁平化 (Flat)', bg: '#ECF0F1', text: '#2C3E50', card: '#FFFFFF', primary: '#2980B9', radius: '4px', shadow: 'none', border: '1px solid #BDC3C7', font: "sans-serif" },
-            'cute': { name: '可愛 Q 版', bg: '#FFF0F5', text: '#5D4037', card: '#FFFFFF', primary: '#FF80AB', radius: '30px', shadow: '0 8px 20px rgba(255, 128, 171, 0.2)', font: "'Zen Maru Gothic', sans-serif", border: '3px solid #FF80AB', btnShadow: '0 4px 0 #C51162' },
-            'fresh': { name: '小紅書清新', bg: '#FAFAFA', text: '#333333', card: '#FFFFFF', primary: '#FF5252', radius: '12px', shadow: '0 4px 12px rgba(0,0,0,0.05)', font: "sans-serif" },
-            'map': { name: '旅遊地圖', bg: '#EFEBE9', image: 'repeating-linear-gradient(90deg, #D7CCC8 0, #D7CCC8 1px, transparent 1px, transparent 40px), repeating-linear-gradient(0deg, #D7CCC8 0, #D7CCC8 1px, transparent 1px, transparent 40px)', text: '#4E342E', card: '#FFF8E1', primary: '#D84315', radius: '8px', shadow: '4px 4px 0 rgba(0,0,0,0.1)', font: "serif", border: '1px dashed #8D6E63' },
-            'japanese': { name: '日系極簡', bg: '#FFFFFF', text: '#333', card: '#FFFFFF', primary: '#222', radius: '0', border: '1px solid #ddd', shadow: 'none', font: "'Noto Serif TC', serif", selectBg: '#F5F5F5', selectBorder: '#333', selectText: '#000' },
-            'animal': { name: '動物森友會', bg: '#B8E994', image: 'repeating-linear-gradient(45deg, #78E08F 0, #78E08F 20px, #B8E994 20px, #B8E994 40px)', text: '#3C6382', card: '#F8F3D4', primary: '#FA983A', radius: '20px', border: '4px solid #FFF', shadow: '0 10px 0 rgba(0,0,0,0.1)', font: "'Zen Maru Gothic', sans-serif" },
-            'forest': { name: '自然森林', bg: '#1B4332', text: '#D8F3DC', card: '#2D6A4F', primary: '#52B788', radius: '12px', border: 'none', shadow: '0 4px 20px rgba(0,0,0,0.3)', font: "sans-serif", selectBg: '#40916C', selectBorder: '#74C69D', selectText: '#fff', inputBg: '#1B4332', inputBorder: '1px solid #52B788' },
-            'vogue': { name: '高級雜誌', bg: '#F5F5F5', text: '#000', card: '#FFFFFF', primary: '#000', radius: '0', border: '1px solid #000', shadow: 'none', font: "'Noto Serif TC', serif", btnShadow: 'none' },
-            'corporate': { name: '企業簡報', bg: '#F3F4F6', text: '#1F2937', card: '#FFFFFF', primary: '#2563EB', radius: '6px', border: '1px solid #E5E7EB', shadow: '0 1px 3px rgba(0,0,0,0.1)', font: "sans-serif" },
-            'edtech': { name: '教育科技', bg: '#F0FDF4', text: '#064E3B', card: '#FFFFFF', primary: '#10B981', radius: '10px', border: '1px solid #D1FAE5', shadow: '0 4px 6px -1px rgba(16, 185, 129, 0.1)', font: "sans-serif" }
+            'vogue': { 
+                name: '17. 歐系高級雜誌', 
+                bg: '#F0F0F0', 
+                text: '#000000', card: '#FFFFFF', primary: '#000000', radius: '0px', 
+                border: '1px solid #000000', 
+                shadow: 'none', 
+                font: "'Noto Serif TC', serif", 
+                btnShadow: 'none' 
+            },
+            'corporate': { 
+                name: '18. 企業簡報風', 
+                bg: '#F0F2F5', 
+                text: '#1C1E21', card: '#FFFFFF', primary: '#1877F2', radius: '8px', 
+                border: '1px solid #E5E7EB', 
+                shadow: '0 1px 2px rgba(0, 0, 0, 0.05)', 
+                font: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+            },
+            'edtech': { 
+                name: '19. 現代教育科技', 
+                bg: '#F0FDF4', 
+                text: '#064E3B', card: '#FFFFFF', primary: '#10B981', radius: '12px', 
+                border: '1px solid #D1FAE5', 
+                shadow: '0 4px 6px -1px rgba(16, 185, 129, 0.1), 0 2px 4px -1px rgba(16, 185, 129, 0.06)', 
+                font: "sans-serif" 
+            },
+            'paper': { 
+                name: '20. 高級紙張質感', 
+                bg: '#FDFBF7', 
+                text: '#2C2825', card: '#FFFCF5', primary: '#A67C00', radius: '2px', 
+                shadow: '0 2px 10px rgba(0,0,0,0.03)', 
+                font: "'Noto Serif TC', serif",
+                noise: true,
+                border: '1px solid #E6E2D8'
+            }
         };
 
         window.applyTheme = function(themeKey) {
             const theme = THEMES[themeKey] || THEMES['ghibli'];
             const r = document.documentElement;
             
+            // Apply Variables
             r.style.setProperty('--bg-color', theme.bg);
             r.style.setProperty('--bg-image', theme.image || 'none');
-            r.style.setProperty('background-size', theme.bgSize || 'auto');
-            r.style.setProperty('background-position', theme.bgPos || '0 0');
-            
+            r.style.setProperty('--bg-size', theme.bgSize || 'auto');
+            r.style.setProperty('--bg-pos', theme.bgPos || '0 0');
             r.style.setProperty('--text-color', theme.text);
             r.style.setProperty('--card-bg', theme.card);
             r.style.setProperty('--primary-color', theme.primary);
             r.style.setProperty('--card-radius', theme.radius);
             r.style.setProperty('--font-family', theme.font);
             
-            // 進階變數 (有預設值)
+            // Advanced Styles
             r.style.setProperty('--card-border', theme.border || '1px solid rgba(0,0,0,0.05)');
             r.style.setProperty('--card-shadow', theme.shadow || '0 4px 6px -1px rgba(0,0,0,0.05)');
             r.style.setProperty('--btn-shadow', theme.btnShadow || '0 2px 4px rgba(0,0,0,0.1)');
             
-            // 選項顏色
+            // Input/Select Overrides
             r.style.setProperty('--select-bg', theme.selectBg || '#eff6ff');
             r.style.setProperty('--select-border', theme.selectBorder || theme.primary);
             r.style.setProperty('--select-text', theme.selectText || theme.primary);
-            
-            // 輸入框顏色
             r.style.setProperty('--input-bg', theme.inputBg || '#ffffff');
             r.style.setProperty('--input-border', theme.inputBorder || '2px solid #eeeeee');
 
-            // 特殊效果開關
+            // Toggles
             const noise = document.querySelector('.noise-overlay');
             if(noise) noise.style.display = theme.noise ? 'block' : 'none';
             
             const clouds = document.querySelectorAll('.cloud');
-            clouds.forEach(c => c.style.display = themeKey === 'ghibli' || themeKey === 'disney' ? 'block' : 'none');
+            clouds.forEach(c => c.style.display = theme.clouds ? 'block' : 'none');
         };
 
         window.showToast = function(msg, type = 'success') {
@@ -286,8 +375,8 @@
             icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation ' + colorClass : 'fa-solid fa-leaf ' + colorClass;
             toast.className = `fixed top-20 right-5 z-[100] px-6 py-3 rounded-2xl shadow-lg flex items-center gap-3 transition-transform duration-300 border-2 ${bgClass}`;
             
-            toast.style.transform = 'translateX(0)';
-            setTimeout(() => { toast.style.transform = 'translateX(150%)'; }, 3000);
+            toast.style.transform = 'translateX(0) rotate(-2deg)';
+            setTimeout(() => { toast.style.transform = 'translateX(150%) rotate(0)'; }, 3000);
         };
 
         window.safeGet = function(id) {
@@ -334,7 +423,7 @@
     <div class="cloud cloud-1"></div>
     <div class="cloud cloud-2"></div>
 
-    <div id="global-error" class="hidden fixed inset-0 bg-red-50 z-[200] flex flex-col items-center justify-center p-6 text-center">
+    <div id="global-error" class="hidden fixed inset-0 bg-red-50 z-[200] flex flex-col items-center justify-center p-6 text-center backdrop-blur-sm">
         <h2 class="text-xl font-bold text-red-600 mb-2">系統發生錯誤</h2>
         <p id="global-error-msg" class="text-sm text-gray-600 mb-4 break-all">Unknown</p>
         <button onclick="location.reload()" class="bg-red-600 text-white px-4 py-2 rounded">重新整理</button>
@@ -358,6 +447,7 @@
     </nav>
 
     <main class="flex-1 w-full max-w-5xl mx-auto p-4 pb-20 safe-pb relative z-10">
+        
         <div id="loading-view" class="fixed inset-0 flex flex-col items-center justify-center bg-[var(--bg-color)] z-[150]">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-[var(--primary-color)]"></i>
         </div>
@@ -423,7 +513,9 @@
                     </select>
                 </div>
             </div>
+
             <div id="editor-questions" class="space-y-6 mb-32"></div>
+            
             <div id="editor-toolbar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-40 safe-pb hover:-translate-y-1 transition duration-300">
                  <div class="flex gap-2 pr-4 border-r border-gray-200">
                     <button onclick="window.app.addQuestion('text')" class="flex flex-col items-center justify-center w-10 h-10 text-gray-500 hover:text-[var(--primary-color)] transition" title="新增題目"><i class="fa-solid fa-plus text-xl"></i></button>
@@ -442,9 +534,13 @@
                     <div id="public-desc" class="whitespace-pre-wrap text-base leading-relaxed text-justify opacity-80"></div>
                 </div>
             </div>
+
             <form id="public-form" class="space-y-6"></form>
+            
             <div class="mt-12 text-center">
-                <button id="public-submit-btn" type="button" onclick="window.app.submitResponse()" class="w-full max-w-xs theme-btn py-4 text-xl font-bold shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition">送出問卷 <i class="fa-solid fa-paper-plane ml-2"></i></button>
+                <button id="public-submit-btn" type="button" onclick="window.app.submitResponse()" class="w-full max-w-xs theme-btn py-4 text-xl font-bold shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition">
+                    送出問卷 <i class="fa-solid fa-paper-plane ml-2"></i>
+                </button>
             </div>
         </div>
 
@@ -643,14 +739,15 @@
             } catch (e) { console.error(e); showToast(e.message, 'error'); } finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 儲存'; }
         };
 
-        window.app.openBatchModal = () => { safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8"><h3 class="text-xl font-bold mb-4 text-[#5B6C78]">批量匯入題目</h3><p class="text-sm text-gray-500 mb-2">請將題目貼在下方，一行一題。</p><textarea id="batch-text" class="w-full border-2 border-[#eee] rounded-xl p-4 h-60 text-sm focus:border-[#568A66] outline-none resize-none" placeholder="題目1\n題目2..."></textarea><div class="mt-6 flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-6 py-2 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition">取消</button><button onclick="window.app.doImport()" class="btn-ghibli-primary px-6 py-2 font-bold">開始匯入</button></div></div>`; };
+        // ... Import/Export/Share (Same) ...
+        window.app.openBatchModal = () => { safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8"><h3 class="text-xl font-bold mb-4 text-[#5B6C78]">批量匯入題目</h3><p class="text-sm text-gray-500 mb-2">請將題目貼在下方，一行一題。</p><textarea id="batch-text" class="w-full theme-input p-4 h-60 text-sm resize-none" placeholder="題目1\n題目2..."></textarea><div class="mt-6 flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-6 py-2 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition">取消</button><button onclick="window.app.doImport()" class="theme-btn px-6 py-2 font-bold">開始匯入</button></div></div>`; };
         window.app.doImport = () => { const lines = safeGet('batch-text').value.split('\n').filter(l=>l.trim()); lines.forEach(l => window.app.addQuestion('radio', {text: l, type: 'radio', required: true, options: ['非常滿意','滿意','普通','不滿意','非常不滿意']})); safeGet('modal-overlay').classList.add('hidden'); window.app.markDirty(); };
-        window.app.openShare = (id) => { const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${state.user.uid}`; safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8 text-center"><h3 class="text-xl font-bold mb-6 text-[#5B6C78]">發布問卷</h3><div class="bg-[#F0F9F4] p-4 rounded-2xl mb-6 border border-[#C3DEC9]"><p class="text-xs text-[#3E664B] mb-2 font-bold uppercase tracking-widest">問卷連結</p><input class="w-full bg-white border border-[#C3DEC9] p-3 rounded-xl text-sm text-[#3E664B] mb-3 font-mono" value="${link}" readonly><button onclick="navigator.clipboard.writeText('${link}');showToast('已複製')" class="btn-ghibli-primary w-full py-2 font-bold text-sm">複製連結</button></div><div class="text-center"><p class="text-xs text-gray-400 mb-2">手機掃描 QR Code</p><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}" class="mx-auto rounded-xl border-4 border-white shadow-lg"></div><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="mt-8 text-gray-400 hover:text-gray-600 underline text-sm">關閉視窗</button></div>`; const s = state.surveysCache[id]; if(s && s.status!=='published') updateDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id), {status:'published'}); };
+        window.app.openShare = (id) => { const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${state.user.uid}`; safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8 text-center"><h3 class="text-xl font-bold mb-6 text-[#5B6C78]">發布問卷</h3><div class="bg-gray-50 p-4 rounded-2xl mb-6 border"><p class="text-xs opacity-60 mb-2 font-bold uppercase tracking-widest">連結</p><input class="w-full bg-white border p-3 rounded-xl text-sm mb-3 font-mono" value="${link}" readonly><button onclick="navigator.clipboard.writeText('${link}');showToast('已複製')" class="theme-btn w-full py-2 font-bold text-sm">複製</button></div><div class="text-center"><p class="text-xs opacity-50 mb-2">QR Code</p><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}" class="mx-auto rounded-xl border-4 border-white shadow-lg"></div><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="mt-8 opacity-50 hover:opacity-100 underline text-sm">關閉視窗</button></div>`; const s = state.surveysCache[id]; if(s && s.status!=='published') updateDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id), {status:'published'}); };
         window.app.viewStats = async (id) => { 
             safeGet('modal-overlay').classList.remove('hidden'); 
             safeGet('modal-content').innerHTML = '<div class="p-10 text-center"><i class="fa-solid fa-circle-notch fa-spin text-3xl text-[#568A66]"></i></div>';
             const snap = await getDocs(collection(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id, 'responses'));
-            safeGet('modal-content').innerHTML = `<div class="p-8"><div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-[#5B6C78]">統計概覽</h3><span class="bg-[#F0F9F4] text-[#3E664B] px-3 py-1 rounded-full text-sm font-bold">共 ${snap.size} 份回覆</span></div><div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r"><p class="text-sm text-yellow-800">詳細數據請匯出 Excel 進行分析。</p></div><div class="flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-xl font-bold">關閉</button><button class="btn-ghibli-primary px-6 py-2 font-bold" id="export-btn" onclick="window.app.exportToCSV('${id}')"><i class="fa-solid fa-file-csv mr-2"></i>匯出 Excel</button></div></div>`;
+            safeGet('modal-content').innerHTML = `<div class="p-8"><div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-[#5B6C78]">統計概覽</h3><span class="bg-gray-100 px-3 py-1 rounded-full text-sm font-bold">共 ${snap.size} 份回覆</span></div><div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r"><p class="text-sm text-yellow-800">詳細數據請匯出 Excel 進行分析。</p></div><div class="flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-xl font-bold">關閉</button><button class="theme-btn px-6 py-2 font-bold" id="export-btn" onclick="window.app.exportToCSV('${id}')"><i class="fa-solid fa-file-csv mr-2"></i>匯出 Excel</button></div></div>`;
         };
         window.app.exportToCSV = async (id) => { const btn = document.getElementById('export-btn'); btn.innerText = "處理中..."; btn.disabled = true; try { const survey = state.surveysCache[id]; const snap = await getDocs(collection(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id, 'responses')); let csv = "\uFEFF時間,"; survey.questions.forEach((q, i) => csv += `"${q.text.replace(/"/g,'""')}",`); csv += "\n"; snap.forEach(doc => { const d = doc.data(); csv += `"${new Date(d.submittedAt.seconds*1000).toLocaleString()}",`; survey.questions.forEach((q, i) => { if(q.type==='section') csv += ","; else { let a = d.answers[`q_${i}`]; if(Array.isArray(a)) a = a.join(';'); csv += `"${(a||'').toString().replace(/"/g,'""')}",`; } }); csv += "\n"; }); const url = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); const a = document.createElement('a'); a.href = url; a.download = `${survey.title}.csv`; a.click(); } catch(e) { alert("匯出失敗"); } finally { btn.innerText = "匯出 Excel"; btn.disabled = false; } };
         window.app.requestDelete = (id) => { surveyIdToDelete = id; safeGet('delete-modal').classList.remove('hidden'); };
@@ -701,7 +798,7 @@
             if (surveys.length === 0) return safeGet('empty-state').classList.remove('hidden');
             safeGet('empty-state').classList.add('hidden');
             surveys.forEach(s => {
-                container.innerHTML += `<div class="theme-card p-6 cursor-pointer hover:-translate-y-1" onclick="window.app.editSurvey('${s.id}')"><div class="flex justify-between mb-2"><h3 class="font-bold text-xl truncate">${escapeHtml(s.title) || '未命名'}</h3>${s.status==='published'?'<span class="text-xs bg-[#F0F9F4] text-[#3E664B] px-2 py-1 rounded-full border border-[#C3DEC9]">已發布</span>':'<span class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">草稿</span>'}</div><p class="text-sm opacity-60 mb-6 line-clamp-2 h-10">${escapeHtml(s.description)}</p><div class="flex justify-end gap-2 pt-4 border-t border-gray-100" onclick="event.stopPropagation()"><button onclick="window.app.viewStats('${s.id}')" class="text-gray-500 text-xs bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg font-bold">統計</button><button onclick="window.app.openShare('${s.id}')" class="text-[#568A66] text-xs bg-[#F0F9F4] hover:bg-[#C3DEC9] px-3 py-1.5 rounded-lg font-bold">分享</button><button onclick="window.app.requestDelete('${s.id}')" class="text-red-400 text-xs bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg font-bold">刪除</button></div></div>`;
+                container.innerHTML += `<div class="theme-card p-6 cursor-pointer hover:-translate-y-1" onclick="window.app.editSurvey('${s.id}')"><div class="flex justify-between mb-2"><h3 class="font-bold text-xl truncate">${escapeHtml(s.title) || '未命名'}</h3>${s.status==='published'?'<span class="text-xs bg-green-50 text-green-600 px-2 py-1 rounded-full border border-green-200">已發布</span>':'<span class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">草稿</span>'}</div><p class="text-sm opacity-60 mb-6 line-clamp-2 h-10">${escapeHtml(s.description)}</p><div class="flex justify-end gap-2 pt-4 border-t border-gray-100" onclick="event.stopPropagation()"><button onclick="window.app.viewStats('${s.id}')" class="text-gray-500 text-xs bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg font-bold">統計</button><button onclick="window.app.openShare('${s.id}')" class="text-green-600 text-xs bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg font-bold">分享</button><button onclick="window.app.requestDelete('${s.id}')" class="text-red-400 text-xs bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg font-bold">刪除</button></div></div>`;
             });
         }
 
