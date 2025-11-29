@@ -8,29 +8,18 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
     <style>
-        /* 基礎設定：防止手機版面跳動 */
+        /* 基礎設定 */
         html, body { overflow-x: hidden; min-height: 100vh; background-color: #f3f4f6; font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
         body { display: flex; flex-direction: column; }
-        
-        /* 動畫 */
-        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* 選項卡片被選中樣式 */
-        input:checked + div { 
-            transform: scale(0.98); 
-            box-shadow: inset 0 0 0 2px currentColor; 
-            font-weight: bold;
-            background-color: #eff6ff;
-        }
-
-        /* 必填錯誤樣式 */
-        .error-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; background-color: #fef2f2 !important; }
-        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-
-        /* 工具類 */
-        .tap-target { min-height: 48px; cursor: pointer; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        input:checked + div { transform: scale(0.98); box-shadow: inset 0 0 0 2px currentColor; font-weight: bold; background-color: #eff6ff; }
+        .tap-target { min-height: 48px; }
+        .progress-transition { transition: width 0.3s ease-out; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        .question-card.dragging { opacity: 0.5; border: 2px dashed #3b82f6; background-color: #eff6ff; }
+        .drag-handle { cursor: grab; touch-action: none; }
+        .drag-handle:active { cursor: grabbing; }
         .locked-input { background-color: #f9fafb; border-color: #e5e7eb; color: #6b7280; cursor: not-allowed; }
         
         /* 量表顏色 */
@@ -43,11 +32,10 @@
         input:checked + div.opt-default { border-color: #2563eb; background-color: #eff6ff; color: #1d4ed8; }
     </style>
 
-    <!-- 預先定義全域變數，防止找不到 -->
+    <!-- 預先定義全域變數 -->
     <script>
-        window.app = {}; // 初始化全域 app
+        window.app = {}; 
         
-        // Toast 工具 (放在這裡確保一定讀得到)
         window.showToast = function(msg, type = 'success') {
             const toast = document.getElementById('toast');
             const icon = document.getElementById('toast-icon');
@@ -59,13 +47,11 @@
             setTimeout(() => toast.classList.add('translate-x-full'), 3000);
         };
 
-        // 安全 DOM 獲取
         window.safeGet = function(id) {
             const el = document.getElementById(id);
             return el || { classList: { remove:()=>{}, add:()=>{}, toggle:()=>{} }, style: {}, value: '', disabled: false, innerHTML: '', addEventListener: ()=>{} }; 
         };
 
-        // XSS 防護
         window.escapeHtml = function(text) {
             if (text === null || text === undefined) return '';
             return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
@@ -94,13 +80,11 @@
     </nav>
 
     <main class="flex-1 w-full max-w-5xl mx-auto p-4 pb-20 safe-pb">
-        <!-- Loading -->
         <div id="loading-view" class="fixed inset-0 flex flex-col items-center justify-center bg-gray-100 z-[150]">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500"></i>
             <p class="mt-4 text-gray-500 font-medium">系統載入中...</p>
         </div>
 
-        <!-- Toast -->
         <div id="toast" class="fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 translate-x-full border-l-4 border-green-500"><i id="toast-icon"></i><span id="toast-msg"></span></div>
 
         <!-- 1. 登入畫面 -->
@@ -199,7 +183,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Config
         const firebaseConfig = {
           apiKey: "AIzaSyAexk_JbIOQWV1Jw7hqfiZDDZYY9YF-Sdk",
           authDomain: "survey-49e8d.firebaseapp.com",
@@ -235,6 +218,18 @@
             return '';
         };
 
+        const getColor = (idx, total) => {
+             if(total <= 7) {
+                 const n = idx + 1;
+                 if(n <= 2) return 'likert-opt-1'; // red
+                 if(n <= 3 && total > 3) return 'likert-opt-2'; // orange
+                 if(n == Math.ceil(total/2)) return 'likert-opt-3'; // yellow
+                 if(n >= total-1) return 'likert-opt-5'; // green
+                 return 'likert-opt-4';
+             }
+             return 'opt-default';
+        };
+
         // --- APP FUNCTIONS ---
         window.app.login = async () => { try { await signInWithEmailAndPassword(state.auth, safeGet('login-email').value, safeGet('login-password').value); } catch(e) { showToast(e.code, 'error'); } };
         window.app.register = async () => { try { await createUserWithEmailAndPassword(state.auth, safeGet('login-email').value, safeGet('login-password').value); showToast("註冊成功"); } catch(e) { showToast(e.code, 'error'); } };
@@ -265,18 +260,50 @@
             const qOpts = data ? (data.options || []).join('\n') : '';
 
             if (qType === 'section') {
-                div.innerHTML = `<div class="q-item bg-orange-50 p-4 rounded-xl border border-orange-200 mb-4" data-type="section"><div class="flex justify-between mb-2"><span class="text-xs font-bold text-orange-600">段落說明</span><button onclick="this.closest('.q-item').remove(); window.app.markDirty()" class="text-gray-400"><i class="fa-solid fa-trash"></i></button></div><input type="text" class="q-input w-full bg-white border border-orange-300 rounded p-2 mb-2 font-bold" placeholder="段落標題" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><textarea class="q-desc w-full bg-white border border-orange-300 rounded p-2" rows="2" placeholder="說明內容..." oninput="window.app.markDirty()">${escapeHtml(data ? data.description : '')}</textarea></div>`;
+                div.className = "question-item bg-orange-50 p-4 rounded-xl border border-orange-200 mb-4 relative group";
+                div.dataset.type = "section";
+                div.innerHTML = `
+                    <div class="flex justify-between mb-2">
+                        <span class="text-xs font-bold text-orange-600">段落說明</span>
+                        <button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    <input type="text" class="q-input w-full bg-white border border-orange-300 rounded p-2 mb-2 font-bold" placeholder="段落標題" value="${escapeHtml(qText)}" oninput="window.app.markDirty()">
+                    <textarea class="q-desc w-full bg-white border border-orange-300 rounded p-2" rows="2" placeholder="說明內容..." oninput="window.app.markDirty()">${escapeHtml(data ? data.description : '')}</textarea>
+                `;
             } else {
-                div.innerHTML = `<div class="q-item bg-white p-4 rounded-xl border border-gray-200 mb-4 shadow-sm" data-type="${qType}"><div class="flex justify-between mb-3"><span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">問題</span><div class="flex items-center gap-2"><label class="text-xs"><input type="checkbox" class="q-req mr-1" ${qReq ? 'checked' : ''} onchange="window.app.markDirty()">必填</label><button onclick="this.closest('.q-item').remove(); window.app.markDirty()" class="text-gray-400"><i class="fa-solid fa-trash"></i></button></div></div><input type="text" class="q-input w-full border rounded p-2 mb-2" placeholder="題目內容" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><select class="q-type w-full border rounded p-2 mb-2 bg-gray-50" onchange="window.app.toggleOpts(this)"><option value="text" ${qType==='text'?'selected':''}>簡答題</option><option value="radio" ${qType==='radio'?'selected':''}>單選題</option><option value="checkbox" ${qType==='checkbox'?'selected':''}>多選題</option></select><textarea class="q-opts w-full border rounded p-2 h-24 font-mono ${qType==='text'?'hidden':''}" placeholder="選項1&#10;選項2" oninput="window.app.markDirty()">${escapeHtml(qOpts)}</textarea></div>`;
+                div.className = "question-item bg-white p-4 rounded-xl border border-gray-200 mb-4 shadow-sm relative group";
+                div.dataset.type = qType;
+                div.innerHTML = `
+                    <div class="flex justify-between mb-3">
+                        <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">問題</span>
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs"><input type="checkbox" class="q-req mr-1" ${qReq ? 'checked' : ''} onchange="window.app.markDirty()">必填</label>
+                            <button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <input type="text" class="q-input w-full border rounded p-2 mb-2" placeholder="題目內容" value="${escapeHtml(qText)}" oninput="window.app.markDirty()">
+                    <select class="q-type w-full border rounded p-2 mb-2 bg-gray-50" onchange="window.app.toggleOpts(this)">
+                        <option value="text" ${qType==='text'?'selected':''}>簡答題</option>
+                        <option value="radio" ${qType==='radio'?'selected':''}>單選題</option>
+                        <option value="checkbox" ${qType==='checkbox'?'selected':''}>多選題</option>
+                    </select>
+                    <textarea class="q-opts w-full border rounded p-2 h-24 font-mono ${qType==='text'?'hidden':''}" placeholder="選項1&#10;選項2" oninput="window.app.markDirty()">${escapeHtml(qOpts)}</textarea>
+                `;
             }
             container.appendChild(div);
             window.app.markDirty();
         };
 
         window.app.toggleOpts = (el) => {
-            const area = el.closest('.q-item').querySelector('.q-opts');
-            if(el.value === 'text') area.classList.add('hidden');
-            else area.classList.remove('hidden');
+            const item = el.closest('.question-item');
+            // Update data-type for saving logic
+            item.dataset.type = el.value;
+            
+            const area = item.querySelector('.q-opts');
+            if(area) {
+                if (el.value === 'text') area.classList.add('hidden');
+                else area.classList.remove('hidden');
+            }
             window.app.markDirty();
         };
 
@@ -293,8 +320,8 @@
                 if (!title) throw new Error("請輸入標題");
                 
                 const questions = [];
-                document.querySelectorAll('#editor-questions > div').forEach(item => {
-                    const type = item.dataset.type || item.querySelector('.q-type').value;
+                document.querySelectorAll('.question-item').forEach(item => {
+                    const type = item.dataset.type || 'text';
                     const text = item.querySelector('.q-input').value.trim();
                     if (!text) return;
                     
@@ -302,8 +329,13 @@
                         questions.push({ type, text, description: item.querySelector('.q-desc').value.trim() });
                     } else {
                         const req = item.querySelector('.q-req').checked;
-                        const opts = type !== 'text' ? item.querySelector('.q-opts').value.split('\n').map(x=>x.trim()).filter(x=>x) : [];
-                        questions.push({ type: item.querySelector('.q-type').value, text, required: req, options: opts });
+                        // Safely get options if not text
+                        const optsArea = item.querySelector('.q-opts');
+                        let opts = [];
+                        if (type !== 'text' && optsArea) {
+                             opts = optsArea.value.split('\n').map(x=>x.trim()).filter(x=>x);
+                        }
+                        questions.push({ type: type, text, required: req, options: opts });
                     }
                 });
 
@@ -311,7 +343,7 @@
                 await setDoc(doc(state.db, 'artifacts', appId, 'users', state.user.uid, 'surveys', state.currentSurveyId), data, {merge: true});
                 state.isDirty = false; updateDirtyUI(); showToast('儲存成功');
                 state.surveysCache[state.currentSurveyId] = { ...data, id: state.currentSurveyId };
-            } catch (e) { showToast(e.message, 'error'); } finally { btn.disabled = false; btn.innerText = '儲存'; }
+            } catch (e) { console.error(e); showToast(e.message, 'error'); } finally { btn.disabled = false; btn.innerText = '儲存'; }
         };
 
         window.app.loadEditor = (id) => {
@@ -344,7 +376,6 @@
             safeGet('modal-overlay').classList.remove('hidden');
             modal.innerHTML = `<div class="p-6 text-center"><h3 class="font-bold mb-4">問卷連結</h3><input class="w-full border p-2 rounded mb-4" value="${link}" readonly><button onclick="navigator.clipboard.writeText('${link}');showToast('已複製')" class="bg-blue-600 text-white px-4 py-2 rounded">複製連結</button><div class="mt-4"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}" class="mx-auto"></div><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="mt-4 text-gray-500 underline">關閉</button></div>`;
             
-            // Auto Publish if needed
             const survey = state.surveysCache[id];
             if (survey.status !== 'published') {
                  updateDoc(doc(state.db, 'artifacts', appId, 'users', state.user.uid, 'surveys', id), { status: 'published' });
@@ -360,9 +391,7 @@
             const total = snap.size;
             let html = `<div class="p-6 h-full overflow-y-auto"><div class="flex justify-between mb-4"><h3 class="font-bold">統計 (共${total}人)</h3><button onclick="safeGet('modal-overlay').classList.add('hidden')"><i class="fa-solid fa-xmark"></i></button></div>`;
             
-            // Simple stats (count first radio)
-            // For brevity in this fix, just showing count. Full stats logic is heavy but can be added if needed.
-            html += `<p class="text-gray-500">詳細統計請匯出 Excel。</p><button class="mt-4 bg-green-600 text-white px-4 py-2 rounded" onclick="alert('此版本暫不支援匯出')">匯出 Excel</button></div>`;
+            html += `<p class="text-gray-500">詳細統計請匯出 Excel。</p><button class="mt-4 bg-green-600 text-white px-4 py-2 rounded" onclick="window.app.exportToCSV('${id}')">匯出 Excel</button></div>`;
             modal.innerHTML = html;
         };
 
@@ -380,12 +409,44 @@
             await setDoc(doc(state.db, 'artifacts', appId, 'users', state.user.uid, 'surveys', newId), { ...s, title: s.title+"(副本)", status: 'draft', updatedAt: serverTimestamp() });
             showToast("已複製"); loadSurveys(); switchView('view-dashboard');
         };
+        
+        // Export function added back
+        window.app.exportToCSV = async (surveyId) => {
+             try {
+                const survey = state.surveysCache[surveyId];
+                const snap = await getDocs(collection(state.db, 'artifacts', appId, 'users', state.user.uid, 'surveys', surveyId, 'responses'));
+                if(snap.empty) { alert("無資料"); return; }
+                
+                let csv = "\uFEFF時間,";
+                survey.questions.forEach((q, i) => csv += `"${q.text.replace(/"/g,'""')}",`);
+                csv += "\n";
+                
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    csv += `"${new Date(d.submittedAt.seconds*1000).toLocaleString()}",`;
+                    survey.questions.forEach((q, i) => {
+                        if(q.type==='section') csv += ",";
+                        else {
+                            let a = d.answers[`q_${i}`];
+                            if(Array.isArray(a)) a = a.join(';');
+                            csv += `"${(a||'').toString().replace(/"/g,'""')}",`;
+                        }
+                    });
+                    csv += "\n";
+                });
+                
+                const url = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
+                const a = document.createElement('a');
+                a.href = url; a.download = `${survey.title}.csv`;
+                a.click();
+            } catch(e) { console.error(e); alert("匯出失敗"); }
+        };
 
         // --- Public Logic ---
         window.app.updateProgressBar = () => {
             const form = safeGet('public-form');
-            const total = form.querySelectorAll('.public-q').length;
-            if (total === 0) return;
+            const total = document.querySelectorAll('.public-q-item[data-type!="section"]').length; 
+            if(total === 0) return;
             const answered = new Set();
             new FormData(form).forEach((v, k) => { if(v) answered.add(k); });
             safeGet('progress-fill').style.width = Math.round((answered.size / total) * 100) + '%';
@@ -395,12 +456,16 @@
              const form = safeGet('public-form');
              let firstInvalid = null;
              form.querySelectorAll('.public-q-item').forEach(item => {
-                 item.classList.remove('error-shake', 'ring-2', 'ring-red-500');
+                 item.classList.remove('error-shake', 'ring-2', 'ring-red-500', 'bg-red-50');
                  if (item.dataset.req === 'true') {
                      const name = item.dataset.name;
-                     const val = item.dataset.type === 'radio' ? form.querySelector(`[name="${name}"]:checked`) : form.querySelector(`[name="${name}"]`).value;
-                     if (!val) {
-                         item.classList.add('error-shake', 'ring-2', 'ring-red-500', 'rounded-lg');
+                     const type = item.dataset.type;
+                     let valid = false;
+                     if (type === 'text') { if(form.querySelector(`[name="${name}"]`).value.trim()) valid = true; }
+                     else { if(form.querySelector(`[name="${name}"]:checked`)) valid = true; }
+                     
+                     if (!valid) {
+                         item.classList.add('error-shake', 'ring-2', 'ring-red-500', 'bg-red-50', 'rounded-lg');
                          if(!firstInvalid) firstInvalid = item;
                      }
                  }
@@ -454,20 +519,20 @@
                     const s = { id: doc.id, ...doc.data() };
                     state.surveysCache[s.id] = s;
                     container.innerHTML += `
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-                        <h3 class="font-bold text-lg truncate">${escapeHtml(s.title)}</h3>
-                        <div class="mt-4 flex justify-end gap-2 pt-2 border-t">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition cursor-pointer" onclick="window.app.loadEditor('${s.id}')">
+                        <div class="flex justify-between mb-2"><h3 class="font-bold text-lg truncate">${escapeHtml(s.title)}</h3>${s.status==='published'?'<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">已發布</span>':'<span class="text-xs bg-gray-100 px-2 py-1 rounded">草稿</span>'}</div>
+                        <p class="text-sm text-gray-500 mb-4 line-clamp-2 h-10">${escapeHtml(s.description)}</p>
+                        <div class="flex justify-end gap-2 pt-4 border-t border-gray-100" onclick="event.stopPropagation()">
                             <button onclick="window.app.viewStats('${s.id}')" class="text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded">統計</button>
                             <button onclick="window.app.openShare('${s.id}')" class="text-green-600 text-xs bg-green-50 px-2 py-1 rounded">發布</button>
-                            <button onclick="window.app.loadEditor('${s.id}')" class="text-blue-600 text-xs bg-blue-50 px-2 py-1 rounded">編輯</button>
                             <button onclick="window.app.deleteSurvey('${s.id}')" class="text-red-500 text-xs bg-red-50 px-2 py-1 rounded">刪除</button>
                         </div>
                     </div>`;
                 });
-            } catch(e) { console.error(e); }
+            } catch(e) { showToast('讀取失敗', 'error'); }
         }
 
-        // Public Loader (Balanced Flex for Mobile)
+        // Public Loader
         async function loadPublic() {
             try {
                 const snap = await getDoc(doc(state.db, 'artifacts', appId, 'users', uId, 'surveys', sId));
@@ -481,45 +546,42 @@
                     if (q.type === 'section') return `<div class="border-b pb-2 mb-6 mt-8"><h3 class="text-xl font-bold text-blue-800">${escapeHtml(q.text)}</h3><p class="text-gray-600">${escapeHtml(q.description)}</p></div>`;
                     
                     const name = `q_${idx}`;
-                    const reqAttr = q.required ? 'data-req="true"' : '';
-                    const reqMark = q.required ? '<span class="text-red-500">*</span>' : '';
-                    const qId = `pq-${idx}`;
-                    
                     let inputHtml = '';
                     if (q.type === 'text') {
-                        inputHtml = `<input type="text" name="${name}" class="w-full border rounded p-3 bg-gray-50 focus:bg-white" oninput="window.app.updateProgressBar()">`;
+                        inputHtml = `<input type="text" name="${name}" class="w-full border rounded p-3 bg-gray-50 focus:bg-white transition" oninput="window.app.updateProgressBar()">`;
                     } else if (q.type === 'radio') {
                         const count = q.options.length;
-                        // Balanced Layout Logic
-                        let grid = 'w-[48%]'; // Default 2 cols
-                        if (count >= 7) grid = 'w-[23%]'; // 4 cols
-                        else if (count === 5) grid = 'w-[31%]'; // 3 cols
+                        // Balanced Logic
+                        let grid = 'w-[48%]'; 
+                        if (count >= 7) grid = 'w-[23%]'; 
+                        else if (count === 5) grid = 'w-[31%]'; 
                         else if (count === 3) grid = 'w-[31%]';
 
-                        // Flex wrapping with center justify handles the "orphan" item perfectly
                         inputHtml = `<div class="flex flex-wrap justify-center gap-2">` + q.options.map((opt, i) => {
-                             // Auto-scroll logic
+                             const emoji = getEmoji(i, count);
+                             const col = getColor(i, count);
                              return `<label class="${grid} flex-grow-0 flex-shrink-0 cursor-pointer group">
                                 <input type="radio" name="${name}" value="${escapeHtml(opt)}" class="peer sr-only" onchange="window.app.updateProgressBar(); setTimeout(()=>{ document.getElementById('pq-${idx+1}')?.scrollIntoView({behavior:'smooth',block:'center'}) || document.getElementById('public-submit-btn').scrollIntoView({behavior:'smooth',block:'center'}); }, 300)">
-                                <div class="h-full p-2 border rounded text-center text-sm font-bold bg-white flex items-center justify-center min-h-[50px] group-hover:border-blue-300 transition opt-default">${escapeHtml(opt)}</div>
+                                <div class="h-full p-2 border rounded text-center text-sm font-bold bg-white flex flex-col items-center justify-center min-h-[60px] group-hover:border-blue-300 transition ${col} opacity-90"><div class="text-2xl mb-1">${emoji}</div><div class="leading-tight">${escapeHtml(opt)}</div></div>
                              </label>`;
                         }).join('') + `</div>`;
                     } else {
                         inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-2 p-2 border rounded bg-white"><input type="checkbox" name="${name}" value="${escapeHtml(opt)}" class="w-5 h-5 text-blue-600" onchange="window.app.updateProgressBar()"><span>${escapeHtml(opt)}</span></label>`).join('') + `</div>`;
                     }
 
-                    return `<div id="${qId}" class="public-q-item public-q-wrapper space-y-3 mb-8 p-4 rounded-xl transition duration-300 bg-white shadow-sm" ${reqAttr} data-type="${q.type}" data-name="${name}"><h4 class="font-bold text-lg text-gray-800">${escapeHtml(q.text)} ${reqMark}</h4>${inputHtml}</div>`;
+                    return `<div id="pq-${idx}" class="public-q-item public-q-wrapper space-y-3 mb-8 p-4 rounded-xl transition duration-300 bg-white shadow-sm" data-req="${q.required}" data-type="${q.type}" data-name="${name}"><h4 class="font-bold text-lg text-gray-800">${idx+1}. ${escapeHtml(q.text)} ${q.required?'<span class="text-red-500">*</span>':''}</h4>${inputHtml}</div>`;
                 }).join('');
                 switchView('view-public');
             } catch(e) { safeGet('loading-view').innerHTML = `<div class="text-red-500 p-10 text-center">${e.message}</div>`; }
         }
 
-        // Auth Entry
+        // Entry
         onAuthStateChanged(state.auth, (user) => {
             safeGet('loading-view').classList.add('hidden');
             state.user = user;
             if (state.mode === 'public') {
-                if (!user) signInAnonymously(state.auth); else loadPublic();
+                if (!user) signInAnonymously(state.auth).catch(console.error);
+                else loadPublic();
             } else {
                 if (user) {
                     safeGet('admin-nav').classList.remove('hidden');
