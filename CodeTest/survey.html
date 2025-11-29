@@ -62,13 +62,12 @@
             cursor: grabbing;
         }
 
-        /* 量表顏色邏輯 (CSS 變數由 JS 動態注入，或使用預設類別) */
+        /* 量表顏色邏輯 */
         .likert-opt-1 { color: #ef4444; border-color: #fca5a5; background-color: #fef2f2; } /* Red */
         .likert-opt-2 { color: #f97316; border-color: #fdba74; background-color: #fff7ed; } /* Orange */
         .likert-opt-3 { color: #eab308; border-color: #fde047; background-color: #fefce8; } /* Yellow */
         .likert-opt-4 { color: #84cc16; border-color: #bef264; background-color: #f7fee7; } /* Lime */
         .likert-opt-5 { color: #22c55e; border-color: #86efac; background-color: #f0fdf4; } /* Green */
-        /* Default Blue for non-likert */
         .opt-default { color: #374151; border-color: #e5e7eb; background-color: white; }
         input:checked + div.opt-default { border-color: #2563eb; background-color: #eff6ff; color: #1d4ed8; }
     </style>
@@ -249,13 +248,15 @@
             </div>
 
             <!-- Survey Form -->
-            <form id="public-form" class="bg-white shadow-lg md:rounded-b-2xl p-5 md:p-8 space-y-8 mt-4 md:mt-0 rounded-xl md:rounded-none" onsubmit="event.preventDefault(); app.submitResponse();">
+            <!-- 移除 onsubmit="event.preventDefault();" 改用 button onclick 來觸發驗證與送出 -->
+            <form id="public-form" class="bg-white shadow-lg md:rounded-b-2xl p-5 md:p-8 space-y-8 mt-4 md:mt-0 rounded-xl md:rounded-none">
                 <div id="public-questions" class="space-y-10">
                     <!-- Questions injected here -->
                 </div>
 
                 <div class="pt-8 border-t border-gray-100">
-                    <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 transition transform active:scale-[0.98] text-lg tap-target">
+                    <!-- 改為 type="button" 並綁定 onclick -->
+                    <button type="button" onclick="app.submitResponse()" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 transition transform active:scale-[0.98] text-lg tap-target">
                         送出問卷
                     </button>
                 </div>
@@ -1178,11 +1179,34 @@
             },
             
             submitResponse: async () => {
+                const form = document.getElementById('public-form');
+                
+                // --- Validation Start ---
+                if (!form.checkValidity()) {
+                    // Browser native validation failed. We handle UI manually.
+                    const invalidElement = form.querySelector(':invalid');
+                    if (invalidElement) {
+                        const card = invalidElement.closest('.public-q-item');
+                        if (card) {
+                            // Scroll to center to avoid headers hiding it
+                            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            
+                            // Visual feedback
+                            card.classList.add('ring-2', 'ring-red-400', 'bg-red-50', 'rounded-lg');
+                            setTimeout(() => {
+                                card.classList.remove('ring-2', 'ring-red-400', 'bg-red-50', 'rounded-lg');
+                            }, 2500);
+                        }
+                    }
+                    showToast("還有題目未完成喔！", "error");
+                    return;
+                }
+                // --- Validation End ---
+
                 const submitBtn = document.getElementById('submit-btn');
                 submitBtn.disabled = true;
                 submitBtn.innerText = "提交中...";
                 try {
-                    const form = document.getElementById('public-form');
                     const formData = new FormData(form);
                     const answers = {};
                     document.querySelectorAll('.public-q-item').forEach((div, idx) => {
