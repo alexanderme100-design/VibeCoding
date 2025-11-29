@@ -2,7 +2,6 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <!-- Viewport 設定：viewport-fit=cover 確保填滿瀏海機型 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Firebase 問卷系統</title>
     <!-- Tailwind CSS -->
@@ -18,7 +17,6 @@
             min-height: 100vh;
             background-color: #f3f4f6;
             font-family: 'Noto Sans TC', sans-serif;
-            /* 修正 iOS 點擊高亮顏色 */
             -webkit-tap-highlight-color: transparent;
         }
         
@@ -37,35 +35,14 @@
             font-weight: bold;
         }
 
-        /* 手機優化：確保點擊區域夠大 (48px) */
-        .tap-target {
-            min-height: 48px;
-        }
-
-        /* 進度條動畫 */
-        .progress-transition {
-            transition: width 0.3s ease-out;
-        }
-
-        /* 針對 iPhone 底部安全區域的修正 */
-        .safe-pb {
-            padding-bottom: env(safe-area-inset-bottom, 20px);
-        }
+        .tap-target { min-height: 48px; }
+        .progress-transition { transition: width 0.3s ease-out; }
+        .safe-pb { padding-bottom: env(safe-area-inset-bottom, 20px); }
 
         /* 拖曳樣式 */
-        .question-card.dragging {
-            opacity: 0.5;
-            border: 2px dashed #3b82f6;
-            background-color: #eff6ff;
-        }
-        
-        .drag-handle {
-            cursor: grab;
-            touch-action: none; /* 防止觸控捲動干擾拖曳 */
-        }
-        .drag-handle:active {
-            cursor: grabbing;
-        }
+        .question-card.dragging { opacity: 0.5; border: 2px dashed #3b82f6; background-color: #eff6ff; }
+        .drag-handle { cursor: grab; touch-action: none; }
+        .drag-handle:active { cursor: grabbing; }
 
         /* 量表顏色邏輯 */
         .likert-opt-1 { color: #ef4444; border-color: #fca5a5; background-color: #fef2f2; } 
@@ -93,7 +70,7 @@
                 <h1 class="text-lg font-bold tracking-wide md:hidden">問卷後台</h1>
             </div>
             <div class="flex items-center gap-4">
-                <div id="user-info" class="text-sm bg-blue-700 px-3 py-1 rounded-full opacity-0 transition-opacity duration-300 hidden md:block">
+                <div id="user-info" class="text-sm bg-blue-700 px-3 py-1 rounded-full opacity-0 transition-opacity duration-300 hidden md:block border border-blue-500">
                     載入中...
                 </div>
                 <button onclick="app.logout()" class="text-white hover:text-blue-200 transition text-sm flex items-center gap-1">
@@ -159,6 +136,17 @@
 
         <!-- Dashboard View (Survey List) -->
         <div id="dashboard-view" class="hidden fade-in pb-20">
+            <!-- 訪客警告 Banner -->
+            <div id="guest-warning" class="hidden bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4 mb-6 rounded shadow-sm" role="alert">
+                <div class="flex items-start">
+                    <div class="py-1"><i class="fa-solid fa-triangle-exclamation mr-3"></i></div>
+                    <div>
+                        <p class="font-bold">您目前是訪客身分</p>
+                        <p class="text-sm">在此模式下建立的問卷資料不會永久保存。建議您登出並註冊正式帳號，以免心血遺失。</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800">我的問卷</h2>
@@ -526,8 +514,19 @@
                     loadPublicSurvey(publicModeSurveyId, publicModeOwnerId);
                 } else {
                     document.getElementById('admin-nav').classList.remove('hidden');
-                    document.getElementById('user-info').textContent = `Hi, ${user.displayName || user.email || 'User'}`;
+                    
+                    // Show "Guest" or Name
+                    const displayName = user.isAnonymous ? '訪客 (未綁定)' : (user.email || 'User');
+                    document.getElementById('user-info').textContent = `Hi, ${displayName}`;
                     document.getElementById('user-info').classList.remove('opacity-0');
+                    
+                    // Show Guest Warning Banner
+                    if (user.isAnonymous) {
+                        document.getElementById('guest-warning').classList.remove('hidden');
+                    } else {
+                        document.getElementById('guest-warning').classList.add('hidden');
+                    }
+
                     loadSurveys();
                     document.getElementById('dashboard-view').classList.remove('hidden');
                 }
@@ -748,7 +747,7 @@
                 } else {
                     if (card.nextElementSibling) container.insertBefore(card.nextElementSibling, card);
                 }
-                window.app.renumberQuestions();
+                // Removed renumberQuestions() call here as per request
                 app.markDirty();
             },
 
@@ -996,7 +995,7 @@
                 card.addEventListener('dragstart', () => { card.classList.add('dragging'); });
                 card.addEventListener('dragend', () => { 
                     card.classList.remove('dragging'); 
-                    window.app.renumberQuestions(); 
+                    // removed renumberQuestions() call
                     app.markDirty();
                 });
 
@@ -1013,7 +1012,7 @@
                                 <button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-orange-600 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button>
                                 <button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-orange-600 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-down"></i></button>
                                 <div class="h-4 w-px bg-orange-300 mx-1"></div>
-                                <button onclick="document.getElementById('q-${id}').remove(); window.app.renumberQuestions(); app.markDirty()" class="text-gray-400 hover:text-red-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-trash"></i></button>
+                                <button onclick="document.getElementById('q-${id}').remove(); app.markDirty()" class="text-gray-400 hover:text-red-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
                         <div class="space-y-4">
@@ -1043,11 +1042,10 @@
                                 <span class="ml-2 text-xs font-medium text-gray-500">必填</span>
                             </label>
                             <div class="h-4 w-px bg-gray-300 mx-1"></div>
-                            <!-- 上下移動按鈕 -->
                             <button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-blue-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button>
                             <button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-blue-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-down"></i></button>
                             <div class="h-4 w-px bg-gray-300 mx-1"></div>
-                            <button onclick="document.getElementById('q-${id}').remove(); window.app.renumberQuestions(); app.markDirty()" class="text-gray-400 hover:text-red-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-trash"></i></button>
+                            <button onclick="document.getElementById('q-${id}').remove(); app.markDirty()" class="text-gray-400 hover:text-red-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -1074,10 +1072,7 @@
                 card.querySelectorAll('.auto-grow').forEach(el => app.autoGrow(el));
             },
             
-            renumberQuestions: () => { 
-                // Renumbering removed as per previous request to fix jumping index issue.
-                // Keeping function stub if needed for future logic, or just remove.
-            },
+            // renumberQuestions removed.
             toggleOptions: (selectEl) => {
                 const card = selectEl.closest('.question-card');
                 const optionsArea = card.querySelector('.options-area');
