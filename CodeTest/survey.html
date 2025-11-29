@@ -11,8 +11,8 @@
         /* 基礎設定 */
         html, body { overflow-x: hidden; min-height: 100vh; background-color: #f3f4f6; font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
         body { display: flex; flex-direction: column; }
-        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
         /* 選項互動 */
         input:checked + div { transform: scale(0.98); box-shadow: inset 0 0 0 2px currentColor; font-weight: bold; background-color: #eff6ff; }
@@ -21,10 +21,15 @@
 
         .tap-target { min-height: 48px; cursor: pointer; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom, 20px); }
-        .question-card.dragging { opacity: 0.5; border: 2px dashed #3b82f6; background-color: #eff6ff; }
-        .drag-handle { cursor: grab; touch-action: none; }
+        
+        /* 拖曳樣式 */
+        .question-item.dragging { opacity: 0.5; border: 2px dashed #3b82f6; background-color: #eff6ff; transform: scale(0.98); }
+        .drag-handle { cursor: grab; touch-action: none; } /* 手機防誤觸 */
+        .drag-handle:active { cursor: grabbing; }
+        
+        /* 鎖定樣式 */
         .locked-input { background-color: #f9fafb; border-color: #e5e7eb; color: #6b7280; cursor: not-allowed; }
-
+        
         /* 量表顏色 */
         .likert-opt-1 { color: #ef4444; border-color: #fca5a5; background-color: #fef2f2; } 
         .likert-opt-2 { color: #f97316; border-color: #fdba74; background-color: #fff7ed; } 
@@ -51,8 +56,7 @@
 
         window.safeGet = function(id) {
             const el = document.getElementById(id);
-            if (!el) return { classList: { remove:()=>{}, add:()=>{}, toggle:()=>{}, contains:()=>false }, style: {}, value: '', disabled: false, innerHTML: '', addEventListener: ()=>{} }; 
-            return el;
+            return el || { classList: { remove:()=>{}, add:()=>{}, toggle:()=>{} }, style: {}, value: '', disabled: false, innerHTML: '', addEventListener: ()=>{} }; 
         };
 
         window.escapeHtml = function(text) {
@@ -65,6 +69,7 @@
             document.getElementById('loading-view')?.classList.add('hidden');
         };
 
+        // 自動捲動
         window.scrollToNext = function(currentElement) {
             const currentCard = currentElement.closest('.public-q-item');
             if (!currentCard) return;
@@ -155,11 +160,13 @@
                 <input type="text" id="edit-title" class="w-full text-xl font-bold border-b p-2 outline-none" placeholder="問卷標題" oninput="window.app.markDirty()">
                 <textarea id="edit-desc" class="w-full text-gray-600 mt-2 border-b p-2 outline-none resize-none" rows="1" placeholder="問卷說明..." oninput="window.app.markDirty(); window.app.autoGrow(this)"></textarea>
             </div>
+            
             <div id="editor-questions" class="space-y-4 mb-24"></div>
+            
             <div id="editor-toolbar" class="fixed bottom-0 left-0 w-full bg-white border-t p-3 flex justify-between items-center z-40 safe-pb shadow-lg">
                  <div class="flex gap-2">
-                    <button onclick="window.app.addQuestion('text')" class="flex flex-col items-center justify-center w-12 h-12 bg-gray-50 text-gray-600 rounded-lg"><i class="fa-solid fa-plus"></i><span class="text-[10px]">題目</span></button>
-                    <button onclick="window.app.addQuestion('section')" class="flex flex-col items-center justify-center w-12 h-12 bg-orange-50 text-orange-600 rounded-lg"><i class="fa-solid fa-align-left"></i><span class="text-[10px]">段落</span></button>
+                    <button onclick="window.app.addQuestion('text')" class="flex flex-col items-center justify-center w-12 h-12 bg-gray-50 text-gray-600 rounded-lg border hover:bg-blue-50"><i class="fa-solid fa-plus"></i><span class="text-[10px]">題目</span></button>
+                    <button onclick="window.app.addQuestion('section')" class="flex flex-col items-center justify-center w-12 h-12 bg-orange-50 text-orange-600 rounded-lg border border-orange-100 hover:bg-orange-100"><i class="fa-solid fa-align-left"></i><span class="text-[10px]">段落</span></button>
                  </div>
                  <button onclick="window.app.saveSurvey()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg">儲存</button>
             </div>
@@ -223,7 +230,6 @@
         const APP_ID = 'survey-app';
         const state = { db: null, auth: null, user: null, currentSurveyId: null, surveysCache: {}, isDirty: false, mode: 'admin' };
         
-        // Delete ID storage
         let surveyIdToDelete = null;
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -256,6 +262,7 @@
              return 'opt-default';
         };
 
+        // --- APP FUNCTIONS ---
         window.app.login = async () => { try { await signInWithEmailAndPassword(state.auth, safeGet('login-email').value, safeGet('login-password').value); } catch(e) { showToast(e.code, 'error'); } };
         window.app.register = async () => { try { await createUserWithEmailAndPassword(state.auth, safeGet('login-email').value, safeGet('login-password').value); showToast("註冊成功"); } catch(e) { showToast(e.code, 'error'); } };
         window.app.logout = async () => { await signOut(state.auth); location.reload(); };
@@ -274,20 +281,21 @@
             let survey = state.surveysCache[surveyId];
             if (!survey) {
                 try {
-                    const snap = await getDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', surveyId));
-                    if(snap.exists()) {
+                    showToast("資料下載中...", "info");
+                    const docRef = doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', surveyId);
+                    const snap = await getDoc(docRef);
+                    if (snap.exists()) {
                         survey = { id: snap.id, ...snap.data() };
                         state.surveysCache[surveyId] = survey;
                     } else {
-                        return showToast("問卷不存在", "error");
+                        return showToast("問卷不存在或已刪除", "error");
                     }
-                } catch(e) { return showToast("讀取失敗", "error"); }
+                } catch (e) { return showToast("資料讀取失敗", "error"); }
             }
             state.currentSurveyId = surveyId;
             safeGet('edit-title').value = survey.title || '';
             safeGet('edit-desc').value = survey.description || '';
             window.app.autoGrow(safeGet('edit-desc'));
-            
             const container = safeGet('editor-questions');
             container.innerHTML = '';
             (survey.questions || []).forEach(q => window.app.addQuestion(q.type, q));
@@ -309,11 +317,35 @@
 
             div.className = `question-item p-4 rounded-xl border mb-4 relative group ${qType === 'section' ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`;
             div.dataset.qtype = qType;
+            div.draggable = true; // Enable Drag on Create
+            div.id = id; // Set ID for drag
+
+            // Drag Listeners
+            div.addEventListener('dragstart', () => { div.classList.add('dragging'); });
+            div.addEventListener('dragend', () => { div.classList.remove('dragging'); window.app.markDirty(); });
 
             if (qType === 'section') {
-                div.innerHTML = `<div class="flex justify-between mb-2"><span class="text-xs font-bold text-orange-600">段落說明</span><button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400"><i class="fa-solid fa-trash"></i></button></div><input type="text" class="q-input w-full bg-white border border-orange-300 rounded p-2 mb-2 font-bold" placeholder="段落標題" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><textarea class="q-desc w-full bg-white border border-orange-300 rounded p-2" rows="2" placeholder="說明內容..." oninput="window.app.markDirty()">${escapeHtml(qDesc)}</textarea>`;
+                div.innerHTML = `
+                    <div class="flex justify-between mb-2 cursor-grab active:cursor-grabbing drag-handle">
+                        <span class="text-xs font-bold text-orange-600 flex items-center gap-1"><i class="fa-solid fa-grip-vertical opacity-50"></i> 段落說明</span>
+                        <button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    <input type="text" class="q-input w-full bg-white border border-orange-300 rounded p-2 mb-2 font-bold" placeholder="段落標題" value="${escapeHtml(qText)}" oninput="window.app.markDirty()">
+                    <textarea class="q-desc w-full bg-white border border-orange-300 rounded p-2" rows="2" placeholder="說明內容..." oninput="window.app.markDirty()">${escapeHtml(qDesc)}</textarea>
+                `;
             } else {
-                div.innerHTML = `<div class="flex justify-between mb-3"><span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">問題</span><div class="flex items-center gap-2"><label class="text-xs"><input type="checkbox" class="q-req mr-1" ${qReq ? 'checked' : ''} onchange="window.app.markDirty()">必填</label><button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400"><i class="fa-solid fa-trash"></i></button></div></div><input type="text" class="q-input w-full border rounded p-2 mb-2" placeholder="題目內容" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><select class="q-type w-full border rounded p-2 mb-2 bg-gray-50" onchange="window.app.toggleOpts(this)"><option value="text" ${qType==='text'?'selected':''}>簡答題</option><option value="radio" ${qType==='radio'?'selected':''}>單選題</option><option value="checkbox" ${qType==='checkbox'?'selected':''}>多選題</option></select><textarea class="q-opts w-full border rounded p-2 h-24 font-mono ${qType==='text'?'hidden':''}" placeholder="選項1&#10;選項2&#10;選項3" oninput="window.app.markDirty()">${escapeHtml(qOpts)}</textarea>`;
+                div.innerHTML = `
+                    <div class="flex justify-between mb-3 cursor-grab active:cursor-grabbing drag-handle">
+                        <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded flex items-center gap-1"><i class="fa-solid fa-grip-vertical opacity-50"></i> 問題</span>
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs cursor-pointer"><input type="checkbox" class="q-req mr-1" ${qReq ? 'checked' : ''} onchange="window.app.markDirty()">必填</label>
+                            <button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <input type="text" class="q-input w-full border rounded p-2 mb-2" placeholder="題目內容" value="${escapeHtml(qText)}" oninput="window.app.markDirty()">
+                    <select class="q-type w-full border rounded p-2 mb-2 bg-gray-50" onchange="window.app.toggleOpts(this)"><option value="text" ${qType==='text'?'selected':''}>簡答題</option><option value="radio" ${qType==='radio'?'selected':''}>單選題</option><option value="checkbox" ${qType==='checkbox'?'selected':''}>多選題</option></select>
+                    <textarea class="q-opts w-full border rounded p-2 h-24 font-mono ${qType==='text'?'hidden':''}" placeholder="選項1&#10;選項2&#10;選項3" oninput="window.app.markDirty()">${escapeHtml(qOpts)}</textarea>
+                `;
             }
             container.appendChild(div);
             window.app.markDirty();
@@ -361,6 +393,7 @@
             } catch (e) { console.error(e); showToast(e.message, 'error'); } finally { btn.disabled = false; btn.innerText = '儲存'; }
         };
 
+        // Import/Export/Share/Delete
         window.app.openBatchModal = () => { safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-6"><h3 class="text-lg font-bold mb-4">批量匯入</h3><textarea id="batch-text" class="w-full border rounded p-2 h-40" placeholder="題目1\n題目2"></textarea><div class="mt-4 flex justify-end gap-2"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-4 py-2 bg-gray-200 rounded">取消</button><button onclick="window.app.doImport()" class="px-4 py-2 bg-blue-600 text-white rounded">匯入</button></div></div>`; };
         window.app.doImport = () => { const lines = safeGet('batch-text').value.split('\n').filter(l=>l.trim()); lines.forEach(l => window.app.addQuestion('radio', {text: l, type: 'radio', required: true, options: ['非常滿意','滿意','普通','不滿意','非常不滿意']})); safeGet('modal-overlay').classList.add('hidden'); window.app.markDirty(); };
         window.app.openShare = (id) => { const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${state.user.uid}`; safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-6 text-center"><h3 class="font-bold mb-4">連結</h3><input class="w-full border p-2 rounded mb-4" value="${link}" readonly><button onclick="navigator.clipboard.writeText('${link}');showToast('已複製')" class="bg-blue-600 text-white px-4 py-2 rounded">複製連結</button><div class="mt-4"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}" class="mx-auto"></div><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="mt-4 text-gray-500 underline">關閉</button></div>`; const s = state.surveysCache[id]; if(s && s.status!=='published') updateDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id), {status:'published'}); };
@@ -395,7 +428,6 @@
             } catch(e) { console.error(e); alert("匯出失敗"); }
         };
         
-        // Simplified Delete Logic
         window.app.requestDelete = (id) => {
             surveyIdToDelete = id;
             safeGet('delete-modal').classList.remove('hidden');
@@ -407,10 +439,13 @@
              catch(e) { showToast("刪除失敗", "error"); }
         };
         
-        window.app.duplicateCurrent = async () => { if(!confirm("複製問卷？")) return; const s = state.surveysCache[state.currentSurveyId]; const newId = crypto.randomUUID(); await setDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', newId), { ...s, title: s.title+"(副本)", status: 'draft', updatedAt: serverTimestamp() }); showToast("複製成功"); loadSurveys(); switchView('view-dashboard'); };
+        window.app.markDirty = () => { state.isDirty = true; updateDirtyUI(); };
+        window.app.autoGrow = (el) => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
 
+        // --- Public Logic ---
         window.app.updateProgressBar = () => {
             const form = safeGet('public-form');
+            // Correct selector
             const total = form.querySelectorAll('.public-q-item:not([data-type="section"])').length; 
             if(total === 0) return;
             const answered = new Set();
@@ -459,16 +494,10 @@
              } catch(e) { console.error(e); showToast("提交失敗", 'error'); btn.disabled = false; }
         };
 
-        window.app.markDirty = () => { state.isDirty = true; updateDirtyUI(); };
-        window.app.autoGrow = (el) => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
-
         function switchView(id) {
             ['view-login','view-dashboard','view-editor','view-public','view-thankyou'].forEach(v => safeGet(v).classList.add('hidden'));
             safeGet(id).classList.remove('hidden');
             window.scrollTo(0,0);
-        }
-        function updateLock(isLocked) {
-            // Unlocked logic
         }
         function updateDirtyUI() { safeGet('unsaved-badge').classList.toggle('hidden', !state.isDirty); }
         
@@ -502,7 +531,7 @@
                 
                 const form = safeGet('public-form');
                 form.innerHTML = (data.questions || []).map((q, idx) => {
-                    if (q.type === 'section') return `<div class="public-q-item border-b pb-2 mb-6 mt-8" data-type="section"><h3 class="text-xl font-bold text-blue-800">${escapeHtml(q.text)}</h3><p class="text-gray-600">${escapeHtml(q.description)}</p></div>`;
+                    if (q.type === 'section') return `<div class="public-q-item border-b pb-2 mb-6 mt-8" data-type="section"><h3 class="text-xl font-bold text-blue-800">${escapeHtml(q.text)}</h3><p class="text-gray-600 whitespace-pre-wrap">${escapeHtml(q.description)}</p></div>`;
                     
                     const name = `q_${idx}`;
                     const reqAttr = q.required ? 'data-req="true"' : '';
@@ -529,6 +558,30 @@
                 switchView('view-public');
             } catch(e) { safeGet('loading-view').innerHTML = `<div class="text-red-500 p-10 text-center">${e.message}</div>`; }
         }
+
+        // Init Sortable
+        const initSortable = () => {
+            const container = document.getElementById('editor-questions');
+            container.addEventListener('dragover', e => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(container, e.clientY);
+                const draggable = document.querySelector('.dragging');
+                if (draggable) {
+                    if (afterElement == null) container.appendChild(draggable);
+                    else container.insertBefore(draggable, afterElement);
+                }
+            });
+        };
+        const getDragAfterElement = (container, y) => {
+            const draggableElements = [...container.querySelectorAll('.question-item:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+                else return closest;
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        };
+        window.addEventListener('DOMContentLoaded', initSortable);
 
         onAuthStateChanged(state.auth, (user) => {
             safeGet('loading-view').classList.add('hidden');
