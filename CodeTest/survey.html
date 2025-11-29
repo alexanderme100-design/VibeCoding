@@ -42,7 +42,7 @@
             icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation text-red-400' : 'fa-solid fa-check-circle text-green-400';
             toast.className = `fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 border-l-4 ${type === 'error' ? 'border-red-500' : 'border-green-500'}`;
             toast.classList.remove('translate-x-full');
-            setTimeout(() => toast.classList.add('translate-x-full'), 4000);
+            setTimeout(() => toast.classList.add('translate-x-full'), 3000);
         };
 
         window.safeGet = function(id) {
@@ -54,35 +54,53 @@
             if (text === null || text === undefined) return '';
             return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
-        
+
         window.onerror = function(msg, url, line, col, error) {
             console.error("Global Error:", msg, error);
+            const errorDiv = document.getElementById('global-error');
+            const errorMsg = document.getElementById('global-error-msg');
+            if(errorDiv && errorMsg) {
+                errorDiv.classList.remove('hidden');
+                errorMsg.innerText = `${msg} (Line: ${line})`;
+            }
             const loading = document.getElementById('loading-view');
             if(loading) loading.classList.add('hidden');
         };
 
-        // Scroll Helper
+        // ★★★ 修復自動捲動邏輯：找下一個 DOM 元素，而不是找 ID ★★★
         window.scrollToNext = function(currentElement) {
-            // Find the closest parent container (the question card)
+            // 找到目前題目最外層的容器
             const currentCard = currentElement.closest('.public-q-item');
             if (!currentCard) return;
 
-            // Find the immediate next sibling
-            const nextCard = currentCard.nextElementSibling;
+            // 找到下一個兄弟元素 (可能是下一題，也可能是段落說明)
+            const nextElement = currentCard.nextElementSibling;
 
-            // If next sibling exists, scroll to it. Otherwise scroll to submit button.
-            if (nextCard) {
-                nextCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (nextElement) {
+                // 如果有下一個元素，平滑捲動到該元素中央
+                setTimeout(() => {
+                    nextElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300); // 延遲 300ms 讓使用者看到點擊回饋
             } else {
-                const submitBtn = document.getElementById('public-submit-btn');
-                if (submitBtn) submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // 如果沒有下一題了，捲動到送出按鈕
+                setTimeout(() => {
+                    const submitBtn = document.getElementById('public-submit-btn');
+                    if (submitBtn) submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
             }
         };
     </script>
 </head>
 <body class="text-gray-800">
 
-    <!-- 進度條 -->
+    <!-- 全域錯誤提示 -->
+    <div id="global-error" class="hidden fixed inset-0 bg-red-50 z-[200] flex flex-col items-center justify-center p-6 text-center">
+        <i class="fa-solid fa-bug text-5xl text-red-500 mb-4"></i>
+        <h2 class="text-xl font-bold text-gray-800">系統發生錯誤</h2>
+        <p id="global-error-msg" class="text-sm text-gray-600 mt-2 font-mono bg-white p-2 rounded border break-all">Unknown Error</p>
+        <button onclick="location.reload()" class="mt-6 bg-red-600 text-white px-6 py-2 rounded-lg shadow hover:bg-red-700">重新整理</button>
+    </div>
+
     <div id="public-progress-bar" class="fixed top-0 left-0 w-full h-1.5 bg-gray-200 z-[60] hidden">
         <div id="progress-fill" class="h-full bg-green-500 transition-all duration-300" style="width: 0%"></div>
     </div>
@@ -104,6 +122,7 @@
         <div id="loading-view" class="fixed inset-0 flex flex-col items-center justify-center bg-gray-100 z-[150]">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500"></i>
             <p class="mt-4 text-gray-500 font-medium">系統載入中...</p>
+            <div id="loading-timeout" class="hidden mt-4 text-center"><p class="text-xs text-red-400 mb-2">連線回應較慢</p><button onclick="location.reload()" class="text-xs border border-gray-300 px-3 py-1 rounded bg-white">重新載入</button></div>
         </div>
         <div id="toast" class="fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 translate-x-full border-l-4 border-green-500"><i id="toast-icon"></i><span id="toast-msg"></span></div>
 
@@ -125,6 +144,10 @@
 
         <!-- Dashboard -->
         <div id="view-dashboard" class="hidden fade-in">
+            <div id="guest-warning" class="hidden bg-orange-50 border-l-4 border-orange-400 p-4 mb-6 rounded-r shadow-sm flex gap-3 items-start">
+                <i class="fa-solid fa-triangle-exclamation text-orange-500 mt-1"></i>
+                <div class="text-sm text-orange-800"><strong>訪客模式：</strong> 資料僅暫存。建議<button onclick="window.app.logout()" class="underline font-bold">登出並註冊</button>以永久保存。</div>
+            </div>
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-gray-800">我的問卷</h2>
                 <button onclick="window.app.createSurvey()" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition flex items-center gap-2 tap-target">
@@ -372,7 +395,7 @@
 
         window.app.updateProgressBar = () => {
             const form = safeGet('public-form');
-            // FIX: Valid CSS selector
+            // FIX: Correct selector with :not
             const total = form.querySelectorAll('.public-q-item:not([data-type="section"])').length; 
             if(total === 0) return;
             const answered = new Set();
@@ -482,13 +505,14 @@
                         inputHtml = `<div class="flex flex-wrap justify-center gap-2">` + q.options.map((opt, i) => {
                              const emoji = getEmoji(i, count);
                              const col = getColor(i, count);
+                             // Replaced broken setTimeout logic with window.scrollToNext(this)
                              return `<label class="${grid} flex-grow-0 flex-shrink-0 cursor-pointer group"><input type="radio" name="${name}" value="${escapeHtml(opt)}" class="peer sr-only" onchange="window.app.updateProgressBar(); window.scrollToNext(this)"><div class="h-full p-2 border rounded text-center text-sm font-bold bg-white flex flex-col items-center justify-center min-h-[60px] group-hover:border-blue-300 transition ${col} opacity-90"><div class="text-2xl mb-1">${emoji}</div><div class="leading-tight">${escapeHtml(opt)}</div></div></label>`;
                         }).join('') + `</div>`;
                     } else {
                         inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-2 p-2 border rounded bg-white"><input type="checkbox" name="${name}" value="${escapeHtml(opt)}" class="w-5 h-5 text-blue-600" onchange="window.app.updateProgressBar()"><span>${escapeHtml(opt)}</span></label>`).join('') + `</div>`;
                     }
 
-                    return `<div class="public-q-item space-y-3 mb-8 p-4 rounded-xl transition duration-300 bg-white shadow-sm" ${reqAttr} data-type="${q.type}" data-name="${name}"><h4 class="font-bold text-lg text-gray-800">${idx+1}. ${escapeHtml(q.text)} ${reqMark}</h4>${inputHtml}</div>`;
+                    return `<div class="public-q-item public-q-wrapper space-y-3 mb-8 p-4 rounded-xl transition duration-300 bg-white shadow-sm" ${reqAttr} data-type="${q.type}" data-name="${name}"><h4 class="font-bold text-lg text-gray-800">${idx+1}. ${escapeHtml(q.text)} ${reqMark}</h4>${inputHtml}</div>`;
                 }).join('');
                 switchView('view-public');
             } catch(e) { safeGet('loading-view').innerHTML = `<div class="text-red-500 p-10 text-center">${e.message}</div>`; }
@@ -498,18 +522,12 @@
             safeGet('loading-view').classList.add('hidden');
             state.user = user;
             if (state.mode === 'public') {
-                if (!user) signInAnonymously(state.auth); else loadPublic();
+                if (!user) signInAnonymously(state.auth).catch(console.error); else loadPublic();
             } else {
                 if (user) {
                     safeGet('admin-nav').classList.remove('hidden');
-                    
-                    if (user.isAnonymous) {
-                        // 強制登出訪客，確保管理者看到登入畫面
-                         signOut(state.auth);
-                         return;
-                    }
-                    
-                    safeGet('user-info').textContent = user.email;
+                    safeGet('user-info').textContent = user.isAnonymous ? '訪客' : user.email;
+                    safeGet('guest-warning').classList.toggle('hidden', !user.isAnonymous);
                     switchView('view-dashboard');
                     loadSurveys();
                 } else switchView('view-login');
