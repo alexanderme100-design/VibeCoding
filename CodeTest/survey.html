@@ -8,60 +8,34 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
     <style>
-        /* 1. 基礎設定 */
         html, body { overflow-x: hidden; min-height: 100vh; background-color: #f3f4f6; font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
         body { display: flex; flex-direction: column; }
-        
-        /* 2. 動畫 */
-        .fade-in { animation: fadeIn 0.4s ease-in-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* 3. 選項互動樣式 */
-        input:checked + div { 
-            transform: scale(0.98); 
-            box-shadow: inset 0 0 0 2px currentColor; 
-            font-weight: bold; 
-            background-color: #eff6ff; 
-        }
-
-        /* 4. 錯誤震動 */
-        .error-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; background-color: #fef2f2 !important; }
-        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-
-        /* 5. 背景動態光暈 (讓畫面感覺活著) */
-        @keyframes blob {
-            0% { transform: translate(0px, 0px) scale(1); }
-            33% { transform: translate(30px, -50px) scale(1.1); }
-            66% { transform: translate(-20px, 20px) scale(0.9); }
-            100% { transform: translate(0px, 0px) scale(1); }
-        }
-        .animate-blob { animation: blob 7s infinite; }
-        .animation-delay-2000 { animation-delay: 2s; }
-        .animation-delay-4000 { animation-delay: 4s; }
-
-        /* 6. 成功打勾彈跳動畫 */
-        @keyframes success-pop {
-            0% { transform: scale(0); opacity: 0; }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-success-pop { animation: success-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-
-        /* 工具類 */
-        .tap-target { min-height: 48px; cursor: pointer; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        input:checked + div { transform: scale(0.98); box-shadow: inset 0 0 0 2px currentColor; font-weight: bold; background-color: #eff6ff; }
+        .tap-target { min-height: 48px; }
+        .progress-transition { transition: width 0.3s ease-out; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom, 20px); }
         .question-card.dragging { opacity: 0.5; border: 2px dashed #3b82f6; background-color: #eff6ff; }
         .drag-handle { cursor: grab; touch-action: none; }
         .drag-handle:active { cursor: grabbing; }
         .locked-input { background-color: #f9fafb; border-color: #e5e7eb; color: #6b7280; cursor: not-allowed; }
         
-        /* 量表顏色 */
         .likert-opt-1 { color: #ef4444; border-color: #fca5a5; background-color: #fef2f2; } 
         .likert-opt-2 { color: #f97316; border-color: #fdba74; background-color: #fff7ed; } 
         .likert-opt-3 { color: #eab308; border-color: #fde047; background-color: #fefce8; } 
         .likert-opt-4 { color: #84cc16; border-color: #bef264; background-color: #f7fee7; } 
         .likert-opt-5 { color: #22c55e; border-color: #86efac; background-color: #f0fdf4; } 
         .opt-default { color: #374151; border-color: #e5e7eb; background-color: white; }
+        input:checked + div.opt-default { border-color: #2563eb; background-color: #eff6ff; color: #1d4ed8; }
+
+        /* 動態背景動畫 */
+        @keyframes blob { 0% { transform: translate(0px, 0px) scale(1); } 33% { transform: translate(30px, -50px) scale(1.1); } 66% { transform: translate(-20px, 20px) scale(0.9); } 100% { transform: translate(0px, 0px) scale(1); } }
+        .animate-blob { animation: blob 7s infinite; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+        @keyframes success-pop { 0% { transform: scale(0); opacity: 0; } 50% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
+        .animate-success-pop { animation: success-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     </style>
 
     <script>
@@ -72,30 +46,25 @@
             const icon = document.getElementById('toast-icon');
             const msgSpan = document.getElementById('toast-msg');
             if(!toast) return;
-            
             msgSpan.textContent = msg;
-            const colorClass = type === 'error' ? 'text-red-400' : 'text-green-400';
-            const borderClass = type === 'error' ? 'border-red-500' : 'border-green-500';
-            
-            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation ' + colorClass : 'fa-solid fa-check-circle ' + colorClass;
-            toast.className = `fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 border-l-4 ${borderClass}`;
-            
-            toast.style.transform = 'translateX(0)';
-            setTimeout(() => { toast.style.transform = 'translateX(120%)'; }, 3000);
+            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation text-red-400' : 'fa-solid fa-check-circle text-green-400';
+            toast.className = `fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 border-l-4 ${type === 'error' ? 'border-red-500' : 'border-green-500'}`;
+            toast.classList.remove('translate-x-full');
+            setTimeout(() => toast.classList.add('translate-x-full'), 4000);
         };
 
         window.safeGet = function(id) {
             const el = document.getElementById(id);
-            if (!el) return { classList: { remove:()=>{}, add:()=>{}, toggle:()=>{}, contains:()=>false }, style: {}, value: '', disabled: false, innerHTML: '', addEventListener: ()=>{} }; 
-            return el;
+            return el || { classList: { remove:()=>{}, add:()=>{}, toggle:()=>{} }, style: {}, value: '', disabled: false, innerHTML: '', addEventListener: ()=>{} }; 
         };
 
         window.escapeHtml = function(text) {
             if (text === null || text === undefined) return '';
             return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
-
+        
         window.onerror = function(msg, url, line, col, error) {
+            console.error("Global Error:", msg, error);
             const errorDiv = document.getElementById('global-error');
             const errorMsg = document.getElementById('global-error-msg');
             if(errorDiv && errorMsg) {
@@ -119,20 +88,14 @@
                 }, 300);
             }
         };
-        
-        // 嘗試關閉視窗
+
         window.closeWindow = function() {
-            try {
-                window.close();
-            } catch(e) {
-                console.log("Script cannot close window");
-            }
+            try { window.close(); } catch(e) { console.log("Script cannot close window"); }
         }
     </script>
 </head>
 <body class="text-gray-800">
 
-    <!-- 全域錯誤畫面 -->
     <div id="global-error" class="hidden fixed inset-0 bg-red-50 z-[200] flex flex-col items-center justify-center p-6 text-center">
         <i class="fa-solid fa-bug text-5xl text-red-500 mb-4"></i>
         <h2 class="text-xl font-bold text-gray-800">系統發生錯誤</h2>
@@ -140,12 +103,10 @@
         <button onclick="location.reload()" class="mt-6 bg-red-600 text-white px-6 py-2 rounded-lg shadow hover:bg-red-700">重新整理</button>
     </div>
 
-    <!-- 進度條 -->
     <div id="public-progress-bar" class="fixed top-0 left-0 w-full h-1.5 bg-gray-200 z-[60] hidden">
         <div id="progress-fill" class="h-full bg-green-500 transition-all duration-300" style="width: 0%"></div>
     </div>
 
-    <!-- 導覽列 -->
     <nav id="admin-nav" class="bg-blue-600 text-white shadow-lg sticky top-0 z-50 hidden">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -163,16 +124,11 @@
         <div id="loading-view" class="fixed inset-0 flex flex-col items-center justify-center bg-gray-100 z-[150]">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500"></i>
             <p class="mt-4 text-gray-500 font-medium">系統載入中...</p>
-            <div id="loading-timeout" class="hidden mt-4 text-center">
-                <p class="text-xs text-red-400 mb-2">連線回應較慢</p>
-                <button onclick="location.reload()" class="text-xs border border-gray-300 px-3 py-1 rounded bg-white">重新載入</button>
-            </div>
+            <div id="loading-timeout" class="hidden mt-4 text-center"><p class="text-xs text-red-400 mb-2">連線回應較慢</p><button onclick="location.reload()" class="text-xs border border-gray-300 px-3 py-1 rounded bg-white">重新載入</button></div>
         </div>
-        <div id="toast" class="fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 translate-x-full border-l-4 border-green-500">
-            <i id="toast-icon"></i><span id="toast-msg"></span>
-        </div>
+        <div id="toast" class="fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 translate-x-full border-l-4 border-green-500"><i id="toast-icon"></i><span id="toast-msg"></span></div>
 
-        <!-- 1. 登入畫面 -->
+        <!-- Login -->
         <div id="view-login" class="hidden flex flex-col items-center justify-center min-h-[60vh] fade-in">
             <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm border border-gray-100 text-center">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">管理員登入</h2>
@@ -188,7 +144,7 @@
             </div>
         </div>
 
-        <!-- 2. 問卷列表 -->
+        <!-- Dashboard -->
         <div id="view-dashboard" class="hidden fade-in">
             <div id="guest-warning" class="hidden bg-orange-50 border-l-4 border-orange-400 p-4 mb-6 rounded-r shadow-sm flex gap-3 items-start">
                 <i class="fa-solid fa-triangle-exclamation text-orange-500 mt-1"></i>
@@ -206,7 +162,7 @@
             </div>
         </div>
 
-        <!-- 3. 編輯器 -->
+        <!-- Editor -->
         <div id="view-editor" class="hidden fade-in">
             <div class="sticky top-0 z-30 bg-[#f3f4f6] py-2 flex justify-between items-center mb-2">
                 <button onclick="window.app.backToDashboard()" class="text-gray-600 bg-white border px-3 py-1.5 rounded-lg text-sm shadow-sm"><i class="fa-solid fa-arrow-left mr-1"></i> 返回</button>
@@ -233,7 +189,7 @@
             </div>
         </div>
 
-        <!-- 4. 公開填寫 -->
+        <!-- Public View -->
         <div id="view-public" class="hidden w-full max-w-2xl mx-auto fade-in pb-24">
             <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
                 <div class="bg-blue-600 h-2"></div>
@@ -248,29 +204,23 @@
             </div>
         </div>
 
-        <!-- 5. 感謝頁 (動態版) -->
+        <!-- Thank You (Dynamic) -->
         <div id="view-thankyou" class="hidden flex flex-col items-center justify-center min-h-[90vh] text-center fade-in px-4 relative overflow-hidden">
-            <!-- 動態背景 -->
             <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
                  <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-green-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
                  <div class="absolute top-1/3 right-1/4 w-64 h-64 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
-                 <div class="absolute bottom-1/4 left-1/3 w-64 h-64 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
             </div>
-            
             <div class="relative z-10 bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-white shadow-xl w-full max-w-sm">
-                <!-- 彈跳動畫 -->
                 <div class="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-success-pop">
                     <i class="fa-solid fa-check text-5xl"></i>
                 </div>
                 <h2 class="text-3xl font-bold text-gray-800 mb-2">感謝您的填寫！</h2>
                 <p class="text-gray-600 mb-8">您的回覆已成功送出。</p>
-                
                 <div class="border-t border-gray-200 pt-6">
                     <p class="text-sm text-gray-500 mb-3">您現在可以安全地關閉此視窗</p>
                     <button onclick="window.closeWindow()" class="w-full bg-gray-800 text-white font-bold py-3 rounded-xl shadow hover:bg-gray-700 transition transform active:scale-95 flex items-center justify-center gap-2">
                         <span>關閉視窗</span> <i class="fa-solid fa-xmark"></i>
                     </button>
-                    <p class="text-xs text-gray-400 mt-2">(若按鈕無效，請直接關閉瀏覽器分頁)</p>
                 </div>
             </div>
         </div>
@@ -310,7 +260,6 @@
         
         const APP_ID = 'survey-app';
         const state = { db: null, auth: null, user: null, currentSurveyId: null, surveysCache: {}, isDirty: false, mode: 'admin' };
-        
         let surveyIdToDelete = null;
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -362,12 +311,14 @@
             let survey = state.surveysCache[surveyId];
             if (!survey) {
                 try {
-                    const snap = await getDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', surveyId));
-                    if(snap.exists()) {
+                    showToast("資料下載中...", "info");
+                    const docRef = doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', surveyId);
+                    const snap = await getDoc(docRef);
+                    if (snap.exists()) {
                         survey = { id: snap.id, ...snap.data() };
                         state.surveysCache[surveyId] = survey;
                     } else {
-                        return showToast("問卷不存在", "error");
+                        return showToast("問卷不存在或已刪除", "error");
                     }
                 } catch (e) { return showToast("資料讀取失敗", "error"); }
             }
@@ -375,7 +326,7 @@
             safeGet('edit-title').value = survey.title || '';
             safeGet('edit-desc').value = survey.description || '';
             window.app.autoGrow(safeGet('edit-desc'));
-            
+            updateLock(survey.status === 'published');
             const container = safeGet('editor-questions');
             container.innerHTML = '';
             (survey.questions || []).forEach(q => window.app.addQuestion(q.type, q));
@@ -397,34 +348,14 @@
 
             div.className = `question-item p-4 rounded-xl border mb-4 relative group ${qType === 'section' ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`;
             div.dataset.qtype = qType;
-            div.draggable = true; 
-            div.id = id; 
-
+            div.draggable = true; div.id = id; 
             div.addEventListener('dragstart', () => { div.classList.add('dragging'); });
             div.addEventListener('dragend', () => { div.classList.remove('dragging'); window.app.markDirty(); });
 
             if (qType === 'section') {
-                div.innerHTML = `
-                    <div class="flex justify-between mb-2 cursor-grab active:cursor-grabbing drag-handle">
-                        <span class="text-xs font-bold text-orange-600 flex items-center gap-1"><i class="fa-solid fa-grip-vertical opacity-50"></i> 段落說明</span>
-                        <button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                    <input type="text" class="q-input w-full bg-white border border-orange-300 rounded p-2 mb-2 font-bold" placeholder="段落標題" value="${escapeHtml(qText)}" oninput="window.app.markDirty()">
-                    <textarea class="q-desc w-full bg-white border border-orange-300 rounded p-2" rows="2" placeholder="說明內容..." oninput="window.app.markDirty()">${escapeHtml(qDesc)}</textarea>
-                `;
+                div.innerHTML = `<div class="flex justify-between mb-2 cursor-grab active:cursor-grabbing drag-handle"><span class="text-xs font-bold text-orange-600 flex items-center gap-1"><i class="fa-solid fa-grip-vertical opacity-50"></i> 段落說明</span><button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div><input type="text" class="q-input w-full bg-white border border-orange-300 rounded p-2 mb-2 font-bold" placeholder="段落標題" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><textarea class="q-desc w-full bg-white border border-orange-300 rounded p-2" rows="2" placeholder="說明內容..." oninput="window.app.markDirty()">${escapeHtml(qDesc)}</textarea>`;
             } else {
-                div.innerHTML = `
-                    <div class="flex justify-between mb-3 cursor-grab active:cursor-grabbing drag-handle">
-                        <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded flex items-center gap-1"><i class="fa-solid fa-grip-vertical opacity-50"></i> 問題</span>
-                        <div class="flex items-center gap-2">
-                            <label class="text-xs cursor-pointer"><input type="checkbox" class="q-req mr-1" ${qReq ? 'checked' : ''} onchange="window.app.markDirty()">必填</label>
-                            <button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </div>
-                    <input type="text" class="q-input w-full border rounded p-2 mb-2" placeholder="題目內容" value="${escapeHtml(qText)}" oninput="window.app.markDirty()">
-                    <select class="q-type w-full border rounded p-2 mb-2 bg-gray-50" onchange="window.app.toggleOpts(this)"><option value="text" ${qType==='text'?'selected':''}>簡答題</option><option value="radio" ${qType==='radio'?'selected':''}>單選題</option><option value="checkbox" ${qType==='checkbox'?'selected':''}>多選題</option></select>
-                    <textarea class="q-opts w-full border rounded p-2 h-24 font-mono ${qType==='text'?'hidden':''}" placeholder="選項1&#10;選項2&#10;選項3" oninput="window.app.markDirty()">${escapeHtml(qOpts)}</textarea>
-                `;
+                div.innerHTML = `<div class="flex justify-between mb-3 cursor-grab active:cursor-grabbing drag-handle"><span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded flex items-center gap-1"><i class="fa-solid fa-grip-vertical opacity-50"></i> 問題</span><div class="flex items-center gap-2"><label class="text-xs cursor-pointer"><input type="checkbox" class="q-req mr-1" ${qReq ? 'checked' : ''} onchange="window.app.markDirty()">必填</label><button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></div><input type="text" class="q-input w-full border rounded p-2 mb-2" placeholder="題目內容" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><select class="q-type w-full border rounded p-2 mb-2 bg-gray-50" onchange="window.app.toggleOpts(this)"><option value="text" ${qType==='text'?'selected':''}>簡答題</option><option value="radio" ${qType==='radio'?'selected':''}>單選題</option><option value="checkbox" ${qType==='checkbox'?'selected':''}>多選題</option></select><textarea class="q-opts w-full border rounded p-2 h-24 font-mono ${qType==='text'?'hidden':''}" placeholder="選項1&#10;選項2&#10;選項3" oninput="window.app.markDirty()">${escapeHtml(qOpts)}</textarea>`;
             }
             container.appendChild(div);
             window.app.markDirty();
@@ -520,7 +451,6 @@
         window.app.markDirty = () => { state.isDirty = true; updateDirtyUI(); };
         window.app.autoGrow = (el) => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
 
-        // --- Public Logic ---
         window.app.updateProgressBar = () => {
             const form = safeGet('public-form');
             const total = form.querySelectorAll('.public-q-item:not([data-type="section"])').length; 
@@ -576,6 +506,12 @@
             safeGet(id).classList.remove('hidden');
             window.scrollTo(0,0);
         }
+        function updateLock(isLocked) {
+            const inputs = document.querySelectorAll('#view-editor input, #view-editor textarea, #view-editor select');
+            inputs.forEach(el => el.disabled = isLocked);
+            safeGet('locked-banner').classList.toggle('hidden', !isLocked);
+            safeGet('editor-toolbar').classList.toggle('hidden', isLocked);
+        }
         function updateDirtyUI() { safeGet('unsaved-badge').classList.toggle('hidden', !state.isDirty); }
         
         function renderList() {
@@ -607,6 +543,7 @@
                 safeGet('public-desc').textContent = data.description;
                 
                 const form = safeGet('public-form');
+                // Remove Automatic Numbering Logic
                 form.innerHTML = (data.questions || []).map((q, idx) => {
                     if (q.type === 'section') return `<div class="public-q-item border-b pb-2 mb-6 mt-8" data-type="section"><h3 class="text-xl font-bold text-blue-800">${escapeHtml(q.text)}</h3><p class="text-gray-600 whitespace-pre-wrap">${escapeHtml(q.description)}</p></div>`;
                     
@@ -630,7 +567,8 @@
                         inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-2 p-2 border rounded bg-white"><input type="checkbox" name="${name}" value="${escapeHtml(opt)}" class="w-5 h-5 text-blue-600" onchange="window.app.updateProgressBar()"><span>${escapeHtml(opt)}</span></label>`).join('') + `</div>`;
                     }
 
-                    return `<div id="${qId}" class="public-q-item public-q-wrapper space-y-3 mb-8 p-4 rounded-xl transition duration-300 bg-white shadow-sm" ${reqAttr} data-type="${q.type}" data-name="${name}"><h4 class="font-bold text-lg text-gray-800">${idx+1}. ${escapeHtml(q.text)} ${reqMark}</h4>${inputHtml}</div>`;
+                    // Just q.text, NO number
+                    return `<div id="${qId}" class="public-q-item public-q-wrapper space-y-3 mb-8 p-4 rounded-xl transition duration-300 bg-white shadow-sm" ${reqAttr} data-type="${q.type}" data-name="${name}"><h4 class="font-bold text-lg text-gray-800">${escapeHtml(q.text)} ${reqMark}</h4>${inputHtml}</div>`;
                 }).join('');
                 switchView('view-public');
             } catch(e) { safeGet('loading-view').innerHTML = `<div class="text-red-500 p-10 text-center">${e.message}</div>`; }
