@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- 引入多元字體以支援各種風格 -->
-    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&family=DotGothic16&family=Space+Mono:wght@700&family=Noto+Sans+TC:wght@300;400;500;700&family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
         /* --- 核心變數系統 (Theming System) --- */
@@ -51,7 +51,7 @@
             font-family: var(--font-family);
             color: var(--text-color);
             -webkit-tap-highlight-color: transparent; 
-            transition: background 0.5s ease, color 0.3s ease;
+            transition: background-color 0.5s ease, color 0.3s ease;
         }
         
         body { display: flex; flex-direction: column; }
@@ -139,7 +139,7 @@
     <script>
         window.app = {}; 
 
-        // --- 20 種極致風格定義 ---
+        // --- 精選 15 種風格資料庫 ---
         const THEMES = {
             'ghibli': { 
                 name: '1. 吉卜力風 (Ghibli)', 
@@ -153,9 +153,9 @@
                 clouds: true
             },
             'muji': { 
-                name: '2. 韓系文青風 (MUJI)', 
-                bg: '#F2F0EB', 
-                text: '#595046', card: '#FCFAF7', primary: '#8C8376', radius: '4px', 
+                name: '2. 韓系文青 (MUJI)', 
+                bg: '#F3F2ED', 
+                text: '#595750', card: '#FCFAF7', primary: '#8C8376', radius: '4px', 
                 shadow: 'none', border: '1px solid #E6E4E0',
                 font: "'Noto Serif TC', serif",
                 btnShadow: 'none',
@@ -163,9 +163,10 @@
             },
             'taiwan': { 
                 name: '3. 台灣插畫風', 
-                bg: '#FFF8D4', 
-                image: 'repeating-linear-gradient(45deg, #FFEFBA 0, #FFEFBA 10px, #FFF8D4 10px, #FFF8D4 20px)',
-                text: '#5A3A3A', card: '#FFFFFF', primary: '#E87A5D', radius: '12px', 
+                bg: '#FFF8E1', 
+                image: 'linear-gradient(45deg, #FFECB3 25%, transparent 25%, transparent 75%, #FFECB3 75%, #FFECB3), linear-gradient(45deg, #FFECB3 25%, transparent 25%, transparent 75%, #FFECB3 75%, #FFECB3)',
+                bgSize: '20px 20px', bgPos: '0 0, 10px 10px',
+                text: '#5D4037', card: '#FFFFFF', primary: '#FF7043', radius: '16px', 
                 shadow: '4px 4px 0px #FFCCBC', border: '2px solid #5D4037',
                 font: "'Zen Maru Gothic', sans-serif"
             },
@@ -187,18 +188,8 @@
                 font: "serif", 
                 border: '1px solid rgba(255,255,255,0.6)'
             },
-            'blackboard': { 
-                name: '6. 文青黑板風', 
-                bg: '#2F3E46', 
-                text: '#F0F0F0', card: '#354F52', primary: '#F4D35E', radius: '6px', 
-                border: '2px dashed #84A98C', 
-                shadow: 'inset 0 0 20px rgba(0,0,0,0.5)',
-                font: "'DotGothic16', monospace",
-                selectBg: '#52796F', selectBorder: '#F4D35E', selectText: '#F4D35E',
-                inputBg: '#2F3E46', inputBorder: '1px solid #84A98C'
-            },
             'flat': { 
-                name: '7. 扁平化插畫', 
+                name: '6. 扁平化插畫', 
                 bg: '#ECF0F1', 
                 text: '#2C3E50', card: '#FFFFFF', primary: '#3498DB', radius: '4px', 
                 shadow: '0 2px 5px rgba(0,0,0,0.05)', border: '1px solid #BDC3C7', 
@@ -206,7 +197,7 @@
                 btnShadow: 'none'
             },
             'cute': { 
-                name: '8. 可愛 Q 版', 
+                name: '7. 可愛 Q 版', 
                 bg: '#FFF0F5', 
                 image: 'radial-gradient(#FFB6C1 3px, transparent 3px)', bgSize: '30px 30px',
                 text: '#8B4513', card: '#FFFFFF', primary: '#FF80AB', radius: '40px', 
@@ -214,27 +205,8 @@
                 font: "'Zen Maru Gothic', sans-serif", 
                 btnShadow: '0 6px 0 #C51162'
             },
-            'cyberpunk': { 
-                name: '9. 未來感霓虹', 
-                bg: '#050505', 
-                image: 'linear-gradient(0deg, rgba(0,255,209,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,0,255,0.1) 1px, transparent 1px)', bgSize: '40px 40px',
-                text: '#00FFFF', card: '#0A0A0A', primary: '#FF00FF', radius: '0px', 
-                border: '1px solid #00FFFF', 
-                shadow: '0 0 15px rgba(0, 255, 255, 0.5), inset 0 0 10px rgba(255, 0, 255, 0.2)',
-                font: "'Space Mono', monospace",
-                selectBg: '#111', selectBorder: '#FF00FF', selectText: '#FF00FF',
-                inputBg: '#000', inputBorder: '1px solid #00FFFF'
-            },
-            'fresh': { 
-                name: '10. 小紅書風', 
-                bg: '#FAFAFA', 
-                text: '#333333', card: '#FFFFFF', primary: '#FF5252', radius: '16px', 
-                shadow: '0 10px 40px -10px rgba(0,0,0,0.08)', 
-                font: "sans-serif",
-                border: '1px solid #f0f0f0'
-            },
             'map': { 
-                name: '11. 旅遊地圖風', 
+                name: '8. 旅遊地圖風', 
                 bg: '#F4EBD0', 
                 image: 'repeating-linear-gradient(90deg, #D7CCC8 0, #D7CCC8 1px, transparent 1px, transparent 40px), repeating-linear-gradient(0deg, #D7CCC8 0, #D7CCC8 1px, transparent 1px, transparent 40px)',
                 text: '#5D4037', card: '#FFF8E1', primary: '#D84315', radius: '10px', 
@@ -243,7 +215,7 @@
                 border: '2px dashed #8D6E63' 
             },
             'japanese': { 
-                name: '12. 日系極簡風', 
+                name: '9. 日系極簡風', 
                 bg: '#FFFFFF', 
                 text: '#222222', card: '#FFFFFF', primary: '#000000', radius: '0px', 
                 border: '1px solid #E5E5E5', 
@@ -251,19 +223,8 @@
                 font: "'Noto Serif TC', serif", 
                 selectBg: '#F5F5F5', selectBorder: '#333', selectText: '#000' 
             },
-            'comic': { 
-                name: '13. 漫畫風', 
-                bg: '#FFFFFF', 
-                image: 'radial-gradient(#000 15%, transparent 16%)', bgSize: '6px 6px',
-                text: '#000000', card: '#FFFFFF', primary: '#FFE600', radius: '0px', 
-                border: '3px solid #000000', 
-                shadow: '8px 8px 0px #000000', 
-                font: "'Comic Neue', sans-serif",
-                btnShadow: '4px 4px 0 #000',
-                selectBg: '#000', selectBorder: '#000', selectText: '#FFF'
-            },
             'animal': { 
-                name: '14. 動物森友會', 
+                name: '10. 動物森友會', 
                 bg: '#B8E994', 
                 image: 'repeating-linear-gradient(45deg, #78E08F 0, #78E08F 20px, #B8E994 20px, #B8E994 40px)', 
                 text: '#3C6382', card: '#F8F3D4', primary: '#FA983A', radius: '24px', 
@@ -271,18 +232,8 @@
                 shadow: '0 8px 0 rgba(0,0,0,0.1)', 
                 font: "'Zen Maru Gothic', sans-serif" 
             },
-            'forest': { 
-                name: '15. 自然森林風', 
-                bg: '#2D6A4F', 
-                text: '#D8F3DC', card: '#1B4332', primary: '#52B788', radius: '16px', 
-                border: 'none', 
-                shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)', 
-                font: "sans-serif", 
-                selectBg: '#40916C', selectBorder: '#74C69D', selectText: '#fff', 
-                inputBg: '#081C15', inputBorder: '1px solid #52B788' 
-            },
             'geometric': { 
-                name: '16. 極簡幾何風', 
+                name: '11. 極簡幾何風', 
                 bg: '#F3F4F6', 
                 image: 'linear-gradient(135deg, #E5E7EB 25%, transparent 25%) -50px 0, linear-gradient(225deg, #E5E7EB 25%, transparent 25%) -50px 0, linear-gradient(315deg, #E5E7EB 25%, transparent 25%), linear-gradient(45deg, #E5E7EB 25%, transparent 25%)', 
                 bgSize: '100px 100px',
@@ -292,7 +243,7 @@
                 selectBg: '#EEF2FF', selectBorder: '#4F46E5', selectText: '#4338CA'
             },
             'vogue': { 
-                name: '17. 歐系高級雜誌', 
+                name: '12. 歐系高級雜誌', 
                 bg: '#F0F0F0', 
                 text: '#000000', card: '#FFFFFF', primary: '#000000', radius: '0px', 
                 border: '1px solid #000000', 
@@ -301,7 +252,7 @@
                 btnShadow: 'none' 
             },
             'corporate': { 
-                name: '18. 企業簡報風', 
+                name: '13. 企業簡報風', 
                 bg: '#F0F2F5', 
                 text: '#1C1E21', card: '#FFFFFF', primary: '#1877F2', radius: '8px', 
                 border: '1px solid #E5E7EB', 
@@ -309,7 +260,7 @@
                 font: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
             },
             'edtech': { 
-                name: '19. 現代教育科技', 
+                name: '14. 現代教育科技', 
                 bg: '#F0FDF4', 
                 text: '#064E3B', card: '#FFFFFF', primary: '#10B981', radius: '12px', 
                 border: '1px solid #D1FAE5', 
@@ -317,7 +268,7 @@
                 font: "sans-serif" 
             },
             'paper': { 
-                name: '20. 高級紙張質感', 
+                name: '15. 高級紙張質感', 
                 bg: '#FDFBF7', 
                 text: '#2C2825', card: '#FFFCF5', primary: '#A67C00', radius: '2px', 
                 shadow: '0 2px 10px rgba(0,0,0,0.03)', 
@@ -513,9 +464,7 @@
                     </select>
                 </div>
             </div>
-
             <div id="editor-questions" class="space-y-6 mb-32"></div>
-            
             <div id="editor-toolbar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-40 safe-pb hover:-translate-y-1 transition duration-300">
                  <div class="flex gap-2 pr-4 border-r border-gray-200">
                     <button onclick="window.app.addQuestion('text')" class="flex flex-col items-center justify-center w-10 h-10 text-gray-500 hover:text-[var(--primary-color)] transition" title="新增題目"><i class="fa-solid fa-plus text-xl"></i></button>
@@ -739,6 +688,7 @@
             } catch (e) { console.error(e); showToast(e.message, 'error'); } finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 儲存'; }
         };
 
+        // ... Import/Export/Share (Same) ...
         window.app.openBatchModal = () => { safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8"><h3 class="text-xl font-bold mb-4 text-[#5B6C78]">批量匯入題目</h3><p class="text-sm text-gray-500 mb-2">請將題目貼在下方，一行一題。</p><textarea id="batch-text" class="w-full theme-input p-4 h-60 text-sm resize-none" placeholder="題目1\n題目2..."></textarea><div class="mt-6 flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-6 py-2 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition">取消</button><button onclick="window.app.doImport()" class="btn-ghibli-primary px-6 py-2 font-bold">開始匯入</button></div></div>`; };
         window.app.doImport = () => { const lines = safeGet('batch-text').value.split('\n').filter(l=>l.trim()); lines.forEach(l => window.app.addQuestion('radio', {text: l, type: 'radio', required: true, options: ['非常滿意','滿意','普通','不滿意','非常不滿意']})); safeGet('modal-overlay').classList.add('hidden'); window.app.markDirty(); };
         window.app.openShare = (id) => { const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${state.user.uid}`; safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8 text-center"><h3 class="text-xl font-bold mb-6 text-[#5B6C78]">發布問卷</h3><div class="bg-[#F0F9F4] p-4 rounded-2xl mb-6 border border-[#C3DEC9]"><p class="text-xs text-[#3E664B] mb-2 font-bold uppercase tracking-widest">問卷連結</p><input class="w-full bg-white border border-[#C3DEC9] p-3 rounded-xl text-sm text-[#3E664B] mb-3 font-mono" value="${link}" readonly><button onclick="navigator.clipboard.writeText('${link}');showToast('已複製')" class="btn-ghibli-primary w-full py-2 font-bold text-sm">複製連結</button></div><div class="text-center"><p class="text-xs text-gray-400 mb-2">手機掃描 QR Code</p><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}" class="mx-auto rounded-xl border-4 border-white shadow-lg"></div><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="mt-8 text-gray-400 hover:text-gray-600 underline text-sm">關閉視窗</button></div>`; const s = state.surveysCache[id]; if(s && s.status!=='published') updateDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id), {status:'published'}); };
