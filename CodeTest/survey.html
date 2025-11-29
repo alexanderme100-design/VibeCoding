@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- 引入多元字體以支援各種風格 -->
-    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&family=DotGothic16&family=Space+Mono:wght@700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&family=DotGothic16&family=Space+Mono:wght@700&family=Noto+Sans+TC:wght@300;400;500;700&family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
 
     <style>
         /* --- 核心變數系統 (Theming System) --- */
@@ -51,7 +51,7 @@
             font-family: var(--font-family);
             color: var(--text-color);
             -webkit-tap-highlight-color: transparent; 
-            transition: background-color 0.5s ease, color 0.3s ease;
+            transition: background 0.5s ease, color 0.3s ease;
         }
         
         body { display: flex; flex-direction: column; }
@@ -63,6 +63,7 @@
             border: var(--card-border);
             box-shadow: var(--card-shadow);
             transition: all 0.3s ease;
+            backdrop-filter: blur(0px);
         }
 
         /* 按鈕模組 */
@@ -138,7 +139,7 @@
     <script>
         window.app = {}; 
 
-        // --- 20 種風格資料庫 ---
+        // --- 20 種極致風格定義 ---
         const THEMES = {
             'ghibli': { 
                 name: '1. 吉卜力風 (Ghibli)', 
@@ -152,9 +153,9 @@
                 clouds: true
             },
             'muji': { 
-                name: '2. 韓系文青 (MUJI)', 
-                bg: '#F3F2ED', 
-                text: '#595750', card: '#FCFAF7', primary: '#8C8376', radius: '4px', 
+                name: '2. 韓系文青風 (MUJI)', 
+                bg: '#F2F0EB', 
+                text: '#595046', card: '#FCFAF7', primary: '#8C8376', radius: '4px', 
                 shadow: 'none', border: '1px solid #E6E4E0',
                 font: "'Noto Serif TC', serif",
                 btnShadow: 'none',
@@ -162,10 +163,9 @@
             },
             'taiwan': { 
                 name: '3. 台灣插畫風', 
-                bg: '#FFF8E1', 
-                image: 'linear-gradient(45deg, #FFECB3 25%, transparent 25%, transparent 75%, #FFECB3 75%, #FFECB3), linear-gradient(45deg, #FFECB3 25%, transparent 25%, transparent 75%, #FFECB3 75%, #FFECB3)',
-                bgSize: '20px 20px', bgPos: '0 0, 10px 10px',
-                text: '#5D4037', card: '#FFFFFF', primary: '#FF7043', radius: '16px', 
+                bg: '#FFF8D4', 
+                image: 'repeating-linear-gradient(45deg, #FFEFBA 0, #FFEFBA 10px, #FFF8D4 10px, #FFF8D4 20px)',
+                text: '#5A3A3A', card: '#FFFFFF', primary: '#E87A5D', radius: '12px', 
                 shadow: '4px 4px 0px #FFCCBC', border: '2px solid #5D4037',
                 font: "'Zen Maru Gothic', sans-serif"
             },
@@ -181,8 +181,8 @@
             'watercolor': { 
                 name: '5. 手繪水彩風', 
                 bg: '#F0F8FF', 
-                image: 'radial-gradient(circle at 30% 20%, #E3F2FD 0%, transparent 50%), radial-gradient(circle at 80% 80%, #F3E5F5 0%, transparent 50%)', 
-                text: '#5D6D7E', card: 'rgba(255,255,255,0.9)', primary: '#7FB3D5', radius: '30px', 
+                image: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\' opacity=\'0.1\'/%3E%3C/svg%3E"), radial-gradient(circle at 30% 20%, #E3F2FD 0%, transparent 50%), radial-gradient(circle at 80% 80%, #F3E5F5 0%, transparent 50%)', 
+                text: '#5D6D7E', card: 'rgba(255,255,255,0.85)', primary: '#7FB3D5', radius: '30px', 
                 shadow: '0 8px 32px rgba(31, 38, 135, 0.1)', 
                 font: "serif", 
                 border: '1px solid rgba(255,255,255,0.6)'
@@ -191,7 +191,7 @@
                 name: '6. 文青黑板風', 
                 bg: '#2F3E46', 
                 text: '#F0F0F0', card: '#354F52', primary: '#F4D35E', radius: '6px', 
-                border: '2px dashed rgba(255,255,255,0.3)', 
+                border: '2px dashed #84A98C', 
                 shadow: 'inset 0 0 20px rgba(0,0,0,0.5)',
                 font: "'DotGothic16', monospace",
                 selectBg: '#52796F', selectBorder: '#F4D35E', selectText: '#F4D35E',
@@ -236,7 +236,7 @@
             'map': { 
                 name: '11. 旅遊地圖風', 
                 bg: '#F4EBD0', 
-                image: 'repeating-linear-gradient(45deg, #E6D5B8 0, #E6D5B8 1px, transparent 1px, transparent 10px)',
+                image: 'repeating-linear-gradient(90deg, #D7CCC8 0, #D7CCC8 1px, transparent 1px, transparent 40px), repeating-linear-gradient(0deg, #D7CCC8 0, #D7CCC8 1px, transparent 1px, transparent 40px)',
                 text: '#5D4037', card: '#FFF8E1', primary: '#D84315', radius: '10px', 
                 shadow: '5px 5px 0 rgba(93, 64, 55, 0.2)', 
                 font: "'Noto Serif TC', serif", 
@@ -258,7 +258,7 @@
                 text: '#000000', card: '#FFFFFF', primary: '#FFE600', radius: '0px', 
                 border: '3px solid #000000', 
                 shadow: '8px 8px 0px #000000', 
-                font: "sans-serif",
+                font: "'Comic Neue', sans-serif",
                 btnShadow: '4px 4px 0 #000',
                 selectBg: '#000', selectBorder: '#000', selectText: '#FFF'
             },
@@ -739,15 +739,14 @@
             } catch (e) { console.error(e); showToast(e.message, 'error'); } finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 儲存'; }
         };
 
-        // ... Import/Export/Share (Same) ...
-        window.app.openBatchModal = () => { safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8"><h3 class="text-xl font-bold mb-4 text-[#5B6C78]">批量匯入題目</h3><p class="text-sm text-gray-500 mb-2">請將題目貼在下方，一行一題。</p><textarea id="batch-text" class="w-full theme-input p-4 h-60 text-sm resize-none" placeholder="題目1\n題目2..."></textarea><div class="mt-6 flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-6 py-2 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition">取消</button><button onclick="window.app.doImport()" class="theme-btn px-6 py-2 font-bold">開始匯入</button></div></div>`; };
+        window.app.openBatchModal = () => { safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8"><h3 class="text-xl font-bold mb-4 text-[#5B6C78]">批量匯入題目</h3><p class="text-sm text-gray-500 mb-2">請將題目貼在下方，一行一題。</p><textarea id="batch-text" class="w-full theme-input p-4 h-60 text-sm resize-none" placeholder="題目1\n題目2..."></textarea><div class="mt-6 flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-6 py-2 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition">取消</button><button onclick="window.app.doImport()" class="btn-ghibli-primary px-6 py-2 font-bold">開始匯入</button></div></div>`; };
         window.app.doImport = () => { const lines = safeGet('batch-text').value.split('\n').filter(l=>l.trim()); lines.forEach(l => window.app.addQuestion('radio', {text: l, type: 'radio', required: true, options: ['非常滿意','滿意','普通','不滿意','非常不滿意']})); safeGet('modal-overlay').classList.add('hidden'); window.app.markDirty(); };
-        window.app.openShare = (id) => { const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${state.user.uid}`; safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8 text-center"><h3 class="text-xl font-bold mb-6 text-[#5B6C78]">發布問卷</h3><div class="bg-gray-50 p-4 rounded-2xl mb-6 border"><p class="text-xs opacity-60 mb-2 font-bold uppercase tracking-widest">連結</p><input class="w-full bg-white border p-3 rounded-xl text-sm mb-3 font-mono" value="${link}" readonly><button onclick="navigator.clipboard.writeText('${link}');showToast('已複製')" class="theme-btn w-full py-2 font-bold text-sm">複製</button></div><div class="text-center"><p class="text-xs opacity-50 mb-2">QR Code</p><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}" class="mx-auto rounded-xl border-4 border-white shadow-lg"></div><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="mt-8 opacity-50 hover:opacity-100 underline text-sm">關閉視窗</button></div>`; const s = state.surveysCache[id]; if(s && s.status!=='published') updateDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id), {status:'published'}); };
+        window.app.openShare = (id) => { const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${state.user.uid}`; safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8 text-center"><h3 class="text-xl font-bold mb-6 text-[#5B6C78]">發布問卷</h3><div class="bg-[#F0F9F4] p-4 rounded-2xl mb-6 border border-[#C3DEC9]"><p class="text-xs text-[#3E664B] mb-2 font-bold uppercase tracking-widest">問卷連結</p><input class="w-full bg-white border border-[#C3DEC9] p-3 rounded-xl text-sm text-[#3E664B] mb-3 font-mono" value="${link}" readonly><button onclick="navigator.clipboard.writeText('${link}');showToast('已複製')" class="btn-ghibli-primary w-full py-2 font-bold text-sm">複製連結</button></div><div class="text-center"><p class="text-xs text-gray-400 mb-2">手機掃描 QR Code</p><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}" class="mx-auto rounded-xl border-4 border-white shadow-lg"></div><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="mt-8 text-gray-400 hover:text-gray-600 underline text-sm">關閉視窗</button></div>`; const s = state.surveysCache[id]; if(s && s.status!=='published') updateDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id), {status:'published'}); };
         window.app.viewStats = async (id) => { 
             safeGet('modal-overlay').classList.remove('hidden'); 
             safeGet('modal-content').innerHTML = '<div class="p-10 text-center"><i class="fa-solid fa-circle-notch fa-spin text-3xl text-[#568A66]"></i></div>';
             const snap = await getDocs(collection(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id, 'responses'));
-            safeGet('modal-content').innerHTML = `<div class="p-8"><div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-[#5B6C78]">統計概覽</h3><span class="bg-gray-100 px-3 py-1 rounded-full text-sm font-bold">共 ${snap.size} 份回覆</span></div><div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r"><p class="text-sm text-yellow-800">詳細數據請匯出 Excel 進行分析。</p></div><div class="flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-xl font-bold">關閉</button><button class="theme-btn px-6 py-2 font-bold" id="export-btn" onclick="window.app.exportToCSV('${id}')"><i class="fa-solid fa-file-csv mr-2"></i>匯出 Excel</button></div></div>`;
+            safeGet('modal-content').innerHTML = `<div class="p-8"><div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-[#5B6C78]">統計概覽</h3><span class="bg-[#F0F9F4] text-[#3E664B] px-3 py-1 rounded-full text-sm font-bold">共 ${snap.size} 份回覆</span></div><div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r"><p class="text-sm text-yellow-800">詳細數據請匯出 Excel 進行分析。</p></div><div class="flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-xl font-bold">關閉</button><button class="btn-ghibli-primary px-6 py-2 font-bold" id="export-btn" onclick="window.app.exportToCSV('${id}')"><i class="fa-solid fa-file-csv mr-2"></i>匯出 Excel</button></div></div>`;
         };
         window.app.exportToCSV = async (id) => { const btn = document.getElementById('export-btn'); btn.innerText = "處理中..."; btn.disabled = true; try { const survey = state.surveysCache[id]; const snap = await getDocs(collection(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id, 'responses')); let csv = "\uFEFF時間,"; survey.questions.forEach((q, i) => csv += `"${q.text.replace(/"/g,'""')}",`); csv += "\n"; snap.forEach(doc => { const d = doc.data(); csv += `"${new Date(d.submittedAt.seconds*1000).toLocaleString()}",`; survey.questions.forEach((q, i) => { if(q.type==='section') csv += ","; else { let a = d.answers[`q_${i}`]; if(Array.isArray(a)) a = a.join(';'); csv += `"${(a||'').toString().replace(/"/g,'""')}",`; } }); csv += "\n"; }); const url = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); const a = document.createElement('a'); a.href = url; a.download = `${survey.title}.csv`; a.click(); } catch(e) { alert("匯出失敗"); } finally { btn.innerText = "匯出 Excel"; btn.disabled = false; } };
         window.app.requestDelete = (id) => { surveyIdToDelete = id; safeGet('delete-modal').classList.remove('hidden'); };
@@ -798,7 +797,7 @@
             if (surveys.length === 0) return safeGet('empty-state').classList.remove('hidden');
             safeGet('empty-state').classList.add('hidden');
             surveys.forEach(s => {
-                container.innerHTML += `<div class="theme-card p-6 cursor-pointer hover:-translate-y-1" onclick="window.app.editSurvey('${s.id}')"><div class="flex justify-between mb-2"><h3 class="font-bold text-xl truncate">${escapeHtml(s.title) || '未命名'}</h3>${s.status==='published'?'<span class="text-xs bg-green-50 text-green-600 px-2 py-1 rounded-full border border-green-200">已發布</span>':'<span class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">草稿</span>'}</div><p class="text-sm opacity-60 mb-6 line-clamp-2 h-10">${escapeHtml(s.description)}</p><div class="flex justify-end gap-2 pt-4 border-t border-gray-100" onclick="event.stopPropagation()"><button onclick="window.app.viewStats('${s.id}')" class="text-gray-500 text-xs bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg font-bold">統計</button><button onclick="window.app.openShare('${s.id}')" class="text-green-600 text-xs bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg font-bold">分享</button><button onclick="window.app.requestDelete('${s.id}')" class="text-red-400 text-xs bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg font-bold">刪除</button></div></div>`;
+                container.innerHTML += `<div class="theme-card p-6 cursor-pointer hover:-translate-y-1" onclick="window.app.editSurvey('${s.id}')"><div class="flex justify-between mb-2"><h3 class="font-bold text-xl truncate">${escapeHtml(s.title) || '未命名'}</h3>${s.status==='published'?'<span class="text-xs bg-[#F0F9F4] text-[#3E664B] px-2 py-1 rounded-full border border-[#C3DEC9]">已發布</span>':'<span class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">草稿</span>'}</div><p class="text-sm opacity-60 mb-6 line-clamp-2 h-10">${escapeHtml(s.description)}</p><div class="flex justify-end gap-2 pt-4 border-t border-gray-100" onclick="event.stopPropagation()"><button onclick="window.app.viewStats('${s.id}')" class="text-gray-500 text-xs bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg font-bold">統計</button><button onclick="window.app.openShare('${s.id}')" class="text-[#568A66] text-xs bg-[#F0F9F4] hover:bg-[#C3DEC9] px-3 py-1.5 rounded-lg font-bold">分享</button><button onclick="window.app.requestDelete('${s.id}')" class="text-red-400 text-xs bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg font-bold">刪除</button></div></div>`;
             });
         }
 
