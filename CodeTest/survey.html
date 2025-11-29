@@ -13,10 +13,10 @@
         body { display: flex; flex-direction: column; }
         
         /* 2. 動畫 */
-        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* 3. 選項互動 */
+        /* 3. 選項互動樣式 */
         input:checked + div { 
             transform: scale(0.98); 
             box-shadow: inset 0 0 0 2px currentColor; 
@@ -24,10 +24,11 @@
             background-color: #eff6ff; 
         }
 
-        /* 4. 錯誤提示 */
+        /* 4. 錯誤震動 */
         .error-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; background-color: #fef2f2 !important; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
 
+        /* 5. 工具類 */
         .tap-target { min-height: 48px; cursor: pointer; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom, 20px); }
         .question-card.dragging { opacity: 0.5; border: 2px dashed #3b82f6; background-color: #eff6ff; }
@@ -35,16 +36,16 @@
         .drag-handle:active { cursor: grabbing; }
         .locked-input { background-color: #f9fafb; border-color: #e5e7eb; color: #6b7280; cursor: not-allowed; }
         
-        /* 5. 量表顏色 */
+        /* 6. 量表顏色 */
         .likert-opt-1 { color: #ef4444; border-color: #fca5a5; background-color: #fef2f2; } 
         .likert-opt-2 { color: #f97316; border-color: #fdba74; background-color: #fff7ed; } 
         .likert-opt-3 { color: #eab308; border-color: #fde047; background-color: #fefce8; } 
         .likert-opt-4 { color: #84cc16; border-color: #bef264; background-color: #f7fee7; } 
         .likert-opt-5 { color: #22c55e; border-color: #86efac; background-color: #f0fdf4; } 
         .opt-default { color: #374151; border-color: #e5e7eb; background-color: white; }
-        input:checked + div.opt-default { border-color: #2563eb; background-color: #eff6ff; color: #1d4ed8; }
     </style>
 
+    <!-- 全域工具函式 (優先載入) -->
     <script>
         window.app = {}; 
         
@@ -65,23 +66,33 @@
             setTimeout(() => { toast.style.transform = 'translateX(120%)'; }, 3000);
         };
 
+        // 防呆 DOM 獲取
         window.safeGet = function(id) {
             const el = document.getElementById(id);
             if (!el) return { classList: { remove:()=>{}, add:()=>{}, toggle:()=>{}, contains:()=>false }, style: {}, value: '', disabled: false, innerHTML: '', addEventListener: ()=>{} }; 
             return el;
         };
 
+        // XSS 防護
         window.escapeHtml = function(text) {
             if (text === null || text === undefined) return '';
             return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
 
-        window.onerror = function(msg, url, line) {
-            console.error("Global Error:", msg);
-            document.getElementById('loading-view')?.classList.add('hidden');
+        // 全域錯誤攔截
+        window.onerror = function(msg, url, line, col, error) {
+            const errorDiv = document.getElementById('global-error');
+            const errorMsg = document.getElementById('global-error-msg');
+            if(errorDiv && errorMsg) {
+                errorDiv.classList.remove('hidden');
+                errorMsg.innerText = `${msg} (Line: ${line})`;
+            }
+            console.error("Global Error:", msg, error);
+            const loading = document.getElementById('loading-view');
+            if(loading) loading.classList.add('hidden');
         };
 
-        // 自動捲動
+        // 自動捲動邏輯
         window.scrollToNext = function(currentElement) {
             const currentCard = currentElement.closest('.public-q-item');
             if (!currentCard) return;
@@ -99,10 +110,20 @@
 </head>
 <body class="text-gray-800">
 
+    <!-- 全域錯誤畫面 -->
+    <div id="global-error" class="hidden fixed inset-0 bg-red-50 z-[200] flex flex-col items-center justify-center p-6 text-center">
+        <i class="fa-solid fa-bug text-5xl text-red-500 mb-4"></i>
+        <h2 class="text-xl font-bold text-gray-800">系統發生錯誤</h2>
+        <p id="global-error-msg" class="text-sm text-gray-600 mt-2 font-mono bg-white p-2 rounded border break-all">Unknown Error</p>
+        <button onclick="location.reload()" class="mt-6 bg-red-600 text-white px-6 py-2 rounded-lg shadow hover:bg-red-700">重新整理</button>
+    </div>
+
+    <!-- 進度條 -->
     <div id="public-progress-bar" class="fixed top-0 left-0 w-full h-1.5 bg-gray-200 z-[60] hidden">
         <div id="progress-fill" class="h-full bg-green-500 transition-all duration-300" style="width: 0%"></div>
     </div>
 
+    <!-- 導覽列 -->
     <nav id="admin-nav" class="bg-blue-600 text-white shadow-lg sticky top-0 z-50 hidden">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -117,14 +138,23 @@
     </nav>
 
     <main class="flex-1 w-full max-w-5xl mx-auto p-4 pb-20 safe-pb">
+        
+        <!-- 載入中 -->
         <div id="loading-view" class="fixed inset-0 flex flex-col items-center justify-center bg-gray-100 z-[150]">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500"></i>
             <p class="mt-4 text-gray-500 font-medium">系統載入中...</p>
-            <div id="loading-timeout" class="hidden mt-4 text-center"><p class="text-xs text-red-400 mb-2">連線回應較慢</p><button onclick="location.reload()" class="text-xs border border-gray-300 px-3 py-1 rounded bg-white">重新載入</button></div>
+            <div id="loading-timeout" class="hidden mt-4 text-center">
+                <p class="text-xs text-red-400 mb-2">連線回應較慢</p>
+                <button onclick="location.reload()" class="text-xs border border-gray-300 px-3 py-1 rounded bg-white">重新載入</button>
+            </div>
         </div>
-        <div id="toast" class="fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 translate-x-full border-l-4 border-green-500"><i id="toast-icon"></i><span id="toast-msg"></span></div>
 
-        <!-- Login -->
+        <!-- Toast 容器 -->
+        <div id="toast" class="fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 translate-x-full border-l-4 border-green-500">
+            <i id="toast-icon"></i><span id="toast-msg"></span>
+        </div>
+
+        <!-- 1. 登入畫面 -->
         <div id="view-login" class="hidden flex flex-col items-center justify-center min-h-[60vh] fade-in">
             <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm border border-gray-100 text-center">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">管理員登入</h2>
@@ -140,7 +170,7 @@
             </div>
         </div>
 
-        <!-- Dashboard -->
+        <!-- 2. 問卷列表 -->
         <div id="view-dashboard" class="hidden fade-in">
             <div id="guest-warning" class="hidden bg-orange-50 border-l-4 border-orange-400 p-4 mb-6 rounded-r shadow-sm flex gap-3 items-start">
                 <i class="fa-solid fa-triangle-exclamation text-orange-500 mt-1"></i>
@@ -158,7 +188,7 @@
             </div>
         </div>
 
-        <!-- Editor -->
+        <!-- 3. 編輯器 -->
         <div id="view-editor" class="hidden fade-in">
             <div class="sticky top-0 z-30 bg-[#f3f4f6] py-2 flex justify-between items-center mb-2">
                 <button onclick="window.app.backToDashboard()" class="text-gray-600 bg-white border px-3 py-1.5 rounded-lg text-sm shadow-sm"><i class="fa-solid fa-arrow-left mr-1"></i> 返回</button>
@@ -167,7 +197,10 @@
                     <button id="btn-import" onclick="window.app.openBatchModal()" class="bg-white text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg text-sm shadow-sm"><i class="fa-solid fa-bolt mr-1"></i> 匯入</button>
                 </div>
             </div>
-            
+            <div id="locked-banner" class="hidden bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4 rounded shadow-sm text-sm text-yellow-800 flex justify-between items-center">
+                <span><i class="fa-solid fa-lock mr-1"></i> 問卷已發布鎖定</span>
+                <button onclick="window.app.duplicateCurrent()" class="underline">複製以編輯</button>
+            </div>
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
                 <input type="text" id="edit-title" class="w-full text-xl font-bold border-b p-2 outline-none" placeholder="問卷標題" oninput="window.app.markDirty()">
                 <textarea id="edit-desc" class="w-full text-gray-600 mt-2 border-b p-2 outline-none resize-none" rows="1" placeholder="問卷說明..." oninput="window.app.markDirty(); window.app.autoGrow(this)"></textarea>
@@ -175,14 +208,14 @@
             <div id="editor-questions" class="space-y-4 mb-24"></div>
             <div id="editor-toolbar" class="fixed bottom-0 left-0 w-full bg-white border-t p-3 flex justify-between items-center z-40 safe-pb shadow-lg">
                  <div class="flex gap-2">
-                    <button onclick="window.app.addQuestion('text')" class="flex flex-col items-center justify-center w-12 h-12 bg-gray-50 text-gray-600 rounded-lg border hover:bg-blue-50"><i class="fa-solid fa-plus"></i><span class="text-[10px]">題目</span></button>
-                    <button onclick="window.app.addQuestion('section')" class="flex flex-col items-center justify-center w-12 h-12 bg-orange-50 text-orange-600 rounded-lg border border-orange-100 hover:bg-orange-100"><i class="fa-solid fa-align-left"></i><span class="text-[10px]">段落</span></button>
+                    <button onclick="window.app.addQuestion('text')" class="flex flex-col items-center justify-center w-12 h-12 bg-gray-50 text-gray-600 rounded-lg"><i class="fa-solid fa-plus"></i><span class="text-[10px]">題目</span></button>
+                    <button onclick="window.app.addQuestion('section')" class="flex flex-col items-center justify-center w-12 h-12 bg-orange-50 text-orange-600 rounded-lg"><i class="fa-solid fa-align-left"></i><span class="text-[10px]">段落</span></button>
                  </div>
                  <button onclick="window.app.saveSurvey()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg">儲存</button>
             </div>
         </div>
 
-        <!-- Public View -->
+        <!-- 4. 公開填寫 -->
         <div id="view-public" class="hidden w-full max-w-2xl mx-auto fade-in pb-24">
             <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
                 <div class="bg-blue-600 h-2"></div>
@@ -197,11 +230,11 @@
             </div>
         </div>
 
-        <!-- Thank You -->
+        <!-- 5. 感謝頁 -->
         <div id="view-thankyou" class="hidden flex flex-col items-center justify-center min-h-[60vh] text-center fade-in px-4">
             <div class="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-6"><i class="fa-solid fa-check text-4xl"></i></div>
             <h2 class="text-2xl font-bold text-gray-800 mb-2">感謝您的填寫！</h2>
-            <button onclick="location.reload()" class="mt-8 text-blue-600 underline">填寫另一份</button>
+            <p class="text-gray-500">您的回覆已成功送出。</p>
         </div>
     </main>
 
@@ -454,7 +487,6 @@
         // --- Public Logic ---
         window.app.updateProgressBar = () => {
             const form = safeGet('public-form');
-            // FIX: Correct selector with :not
             const total = form.querySelectorAll('.public-q-item:not([data-type="section"])').length; 
             if(total === 0) return;
             const answered = new Set();
@@ -508,6 +540,10 @@
             safeGet(id).classList.remove('hidden');
             window.scrollTo(0,0);
         }
+        function updateLock(isLocked) {
+            // Removed input disabling logic
+            // Removed hidden toggles for toolbar/banners
+        }
         function updateDirtyUI() { safeGet('unsaved-badge').classList.toggle('hidden', !state.isDirty); }
         
         function renderList() {
@@ -539,16 +575,8 @@
                 safeGet('public-desc').textContent = data.description;
                 
                 const form = safeGet('public-form');
-                // FIX: Smart Numbering Logic (Skip Sections)
-                let questionCounter = 0;
-                
                 form.innerHTML = (data.questions || []).map((q, idx) => {
-                    if (q.type === 'section') return `<div class="public-q-item border-b pb-2 mb-6 mt-8" data-type="section"><h3 class="text-xl font-bold text-blue-800">${escapeHtml(q.text)}</h3><p class="text-gray-600 whitespace-pre-wrap">${escapeHtml(q.description)}</p></div>`;
-                    
-                    questionCounter++;
-                    // Optional: Check if title starts with number manually, if so, don't add counter.
-                    const hasManualNumber = /^\d+[.、]/.test(q.text);
-                    const displayNum = hasManualNumber ? '' : `${questionCounter}. `;
+                    if (q.type === 'section') return `<div class="public-q-item border-b pb-2 mb-6 mt-8" data-type="section"><h3 class="text-xl font-bold text-blue-800">${escapeHtml(q.text)}</h3><p class="text-gray-600">${escapeHtml(q.description)}</p></div>`;
                     
                     const name = `q_${idx}`;
                     const reqAttr = q.required ? 'data-req="true"' : '';
@@ -570,35 +598,11 @@
                         inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-2 p-2 border rounded bg-white"><input type="checkbox" name="${name}" value="${escapeHtml(opt)}" class="w-5 h-5 text-blue-600" onchange="window.app.updateProgressBar()"><span>${escapeHtml(opt)}</span></label>`).join('') + `</div>`;
                     }
 
-                    return `<div id="${qId}" class="public-q-item public-q-wrapper space-y-3 mb-8 p-4 rounded-xl transition duration-300 bg-white shadow-sm" ${reqAttr} data-type="${q.type}" data-name="${name}"><h4 class="font-bold text-lg text-gray-800">${displayNum}${escapeHtml(q.text)} ${reqMark}</h4>${inputHtml}</div>`;
+                    return `<div id="${qId}" class="public-q-item public-q-wrapper space-y-3 mb-8 p-4 rounded-xl transition duration-300 bg-white shadow-sm" ${reqAttr} data-type="${q.type}" data-name="${name}"><h4 class="font-bold text-lg text-gray-800">${idx+1}. ${escapeHtml(q.text)} ${reqMark}</h4>${inputHtml}</div>`;
                 }).join('');
                 switchView('view-public');
             } catch(e) { safeGet('loading-view').innerHTML = `<div class="text-red-500 p-10 text-center">${e.message}</div>`; }
         }
-
-        // Init Sortable
-        const initSortable = () => {
-            const container = document.getElementById('editor-questions');
-            container.addEventListener('dragover', e => {
-                e.preventDefault();
-                const afterElement = getDragAfterElement(container, e.clientY);
-                const draggable = document.querySelector('.dragging');
-                if (draggable) {
-                    if (afterElement == null) container.appendChild(draggable);
-                    else container.insertBefore(draggable, afterElement);
-                }
-            });
-        };
-        const getDragAfterElement = (container, y) => {
-            const draggableElements = [...container.querySelectorAll('.question-item:not(.dragging)')];
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
-                if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
-                else return closest;
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
-        };
-        window.addEventListener('DOMContentLoaded', initSortable);
 
         onAuthStateChanged(state.auth, (user) => {
             safeGet('loading-view').classList.add('hidden');
