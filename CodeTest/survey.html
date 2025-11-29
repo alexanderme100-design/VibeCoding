@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Firebase 問卷系統 (Ultimate Stable)</title>
+    <title>Firebase 問卷系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
@@ -30,7 +30,6 @@
         input:checked + div.opt-default { border-color: #2563eb; background-color: #eff6ff; color: #1d4ed8; }
     </style>
 
-    <!-- 全域工具與錯誤處理 -->
     <script>
         window.app = {}; 
         
@@ -85,6 +84,7 @@
 </head>
 <body class="text-gray-800">
 
+    <!-- 全域錯誤提示 -->
     <div id="global-error" class="hidden fixed inset-0 bg-red-50 z-[200] flex flex-col items-center justify-center p-6 text-center">
         <i class="fa-solid fa-bug text-5xl text-red-500 mb-4"></i>
         <h2 class="text-xl font-bold text-gray-800">系統發生錯誤</h2>
@@ -206,6 +206,19 @@
         <div id="modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden relative"></div>
     </div>
 
+    <!-- Delete Confirmation Modal (Fixed) -->
+    <div id="delete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4 fade-in">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center">
+            <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-trash-can text-2xl"></i></div>
+            <h3 class="text-lg font-bold text-gray-800">確定要刪除此問卷？</h3>
+            <p class="text-sm text-gray-500 mt-2">刪除後無法復原，所有統計資料將一併消失。</p>
+            <div class="flex gap-3 mt-6">
+                <button onclick="safeGet('delete-modal').classList.add('hidden')" class="flex-1 py-2 border border-gray-300 rounded-lg tap-target text-gray-600">取消</button>
+                <button id="confirm-delete-btn" class="flex-1 py-2 bg-red-500 text-white rounded-lg tap-target shadow-md">確認刪除</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -267,11 +280,8 @@
             switchView('view-editor');
         };
 
-        // ★★★ 關鍵修復：加入 Async 與自動下載機制 (Self-Healing) ★★★
         window.app.editSurvey = async (surveyId) => {
             let survey = state.surveysCache[surveyId];
-            
-            // 如果快取沒有，嘗試從資料庫下載
             if (!survey) {
                 try {
                     showToast("資料下載中...", "info");
@@ -279,7 +289,7 @@
                     const snap = await getDoc(docRef);
                     if (snap.exists()) {
                         survey = { id: snap.id, ...snap.data() };
-                        state.surveysCache[surveyId] = survey; // 更新快取
+                        state.surveysCache[surveyId] = survey;
                     } else {
                         return showToast("問卷不存在或已刪除", "error");
                     }
@@ -288,7 +298,6 @@
                     return showToast("資料讀取失敗", "error");
                 }
             }
-            
             state.currentSurveyId = surveyId;
             safeGet('edit-title').value = survey.title || '';
             safeGet('edit-desc').value = survey.description || '';
@@ -400,8 +409,30 @@
                 const a = document.createElement('a'); a.href = url; a.download = `${survey.title}.csv`; a.click();
             } catch(e) { console.error(e); alert("匯出失敗"); }
         };
-        window.app.deleteSurvey = async (id) => { if(confirm("確定刪除？")) { await deleteDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id)); loadSurveys(); } };
         window.app.duplicateCurrent = async () => { if(!confirm("複製問卷？")) return; const s = state.surveysCache[state.currentSurveyId]; const newId = crypto.randomUUID(); await setDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', newId), { ...s, title: s.title+"(副本)", status: 'draft', updatedAt: serverTimestamp() }); showToast("複製成功"); loadSurveys(); switchView('view-dashboard'); };
+
+        // --- RE-IMPLEMENTED REQUEST DELETE ---
+        window.app.requestDelete = (id) => {
+            const modal = safeGet('delete-modal');
+            const confirmBtn = safeGet('confirm-delete-btn');
+            modal.classList.remove('hidden');
+            
+            // Use cloneNode to prevent multiple event listeners
+            const newBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+            
+            newBtn.addEventListener('click', async () => {
+                modal.classList.add('hidden');
+                try {
+                    await deleteDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id));
+                    showToast("刪除成功");
+                    loadSurveys();
+                } catch (e) {
+                    console.error(e);
+                    showToast("刪除失敗: " + e.message, "error");
+                }
+            });
+        };
 
         window.app.updateProgressBar = () => {
             const form = safeGet('public-form');
@@ -476,7 +507,7 @@
             if (surveys.length === 0) return safeGet('empty-state').classList.remove('hidden');
             safeGet('empty-state').classList.add('hidden');
             surveys.forEach(s => {
-                container.innerHTML += `<div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition" onclick="window.app.editSurvey('${s.id}')"><h3 class="font-bold text-lg truncate">${escapeHtml(s.title) || '未命名'}</h3><p class="text-sm text-gray-500 mb-4 line-clamp-2">${escapeHtml(s.description)}</p><div class="flex justify-end gap-2 pt-4 border-t" onclick="event.stopPropagation()"><button onclick="window.app.viewStats('${s.id}')" class="text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded">統計</button><button onclick="window.app.openShare('${s.id}')" class="text-green-600 text-xs bg-green-50 px-2 py-1 rounded">發布</button><button onclick="window.app.deleteSurvey('${s.id}')" class="text-red-500 text-xs bg-red-50 px-2 py-1 rounded">刪除</button></div></div>`;
+                container.innerHTML += `<div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition" onclick="window.app.editSurvey('${s.id}')"><h3 class="font-bold text-lg truncate">${escapeHtml(s.title) || '未命名'}</h3><p class="text-sm text-gray-500 mb-4 line-clamp-2">${escapeHtml(s.description)}</p><div class="flex justify-end gap-2 pt-4 border-t" onclick="event.stopPropagation()"><button onclick="window.app.viewStats('${s.id}')" class="text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded">統計</button><button onclick="window.app.openShare('${s.id}')" class="text-green-600 text-xs bg-green-50 px-2 py-1 rounded">發布</button><button onclick="window.app.requestDelete('${s.id}')" class="text-red-500 text-xs bg-red-50 px-2 py-1 rounded">刪除</button></div></div>`;
             });
         }
 
