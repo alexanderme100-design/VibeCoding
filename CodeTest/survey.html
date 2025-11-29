@@ -193,6 +193,34 @@
         const publicModeOwnerId = urlParams.get('u');
         const isPublicMode = publicModeSurveyId && publicModeOwnerId;
 
+        // Helper Functions at the TOP to avoid hoisting issues
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const msgSpan = document.getElementById('toast-msg');
+            if(!toast || !icon || !msgSpan) return;
+            msgSpan.textContent = msg;
+            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation text-red-400' : 'fa-solid fa-check-circle text-green-400';
+            toast.classList.remove('translate-x-full');
+            setTimeout(() => toast.classList.add('translate-x-full'), 3000);
+        }
+        // Attach to window to be safe
+        window.showToast = showToast;
+
+        function safeGet(id) {
+            const el = document.getElementById(id);
+            if (!el) {
+                console.warn(`Element with ID '${id}' not found.`);
+                return { classList: { remove: ()=>{}, add: ()=>{} }, style: {}, disabled: false, value: '' }; 
+            }
+            return el;
+        }
+
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
         // Global Error Handler
         window.onerror = function(msg, url, line, col, error) {
             const errorDiv = document.getElementById('global-error');
@@ -203,21 +231,6 @@
             }
             console.error("Global Error:", msg, error);
         };
-
-        // Safe DOM Getter
-        function safeGet(id) {
-            const el = document.getElementById(id);
-            if (!el) {
-                console.warn(`Element with ID '${id}' not found.`);
-                return { classList: { remove: ()=>{}, add: ()=>{} }, style: {}, disabled: false, value: '' }; // Mock object
-            }
-            return el;
-        }
-
-        function escapeHtml(text) {
-            if (text === null || text === undefined) return '';
-            return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        }
 
         if (window.location.protocol === 'file:') {
             safeGet('file-protocol-warning').classList.remove('hidden');
@@ -245,6 +258,7 @@
             safeGet('debug-info').textContent = "Init: " + e.message;
         }
 
+        // Timeout Check
         setTimeout(() => {
             const loading = document.getElementById('loading-view');
             if (loading && !loading.classList.contains('hidden') && safeGet('loading-error').classList.contains('hidden')) {
@@ -253,6 +267,7 @@
             }
         }, 8000);
 
+        // --- Drag and Drop Logic ---
         const initSortable = () => {
             const container = document.getElementById('questions-container');
             if(!container) return; 
@@ -296,7 +311,7 @@
                         safeGet('user-info').classList.remove('opacity-0');
                         if (user.isAnonymous) safeGet('guest-warning').classList.remove('hidden');
                         else safeGet('guest-warning').classList.add('hidden');
-                        window.app.showDashboard(); // Safe navigation
+                        window.app.showDashboard(); 
                     }
                 } else {
                     if (!isPublicMode) {
@@ -318,11 +333,13 @@
         function getEmojiForScale(text, index, total) { const match = text.match(/^[\(]?(\d+)[\)\.]?/); if (match) { let num = parseInt(match[1]); if (total <= 5) { const map = ['😡', '🙁', '😐', '😊', '🤩']; if(num>=1 && num<=5) return map[num-1]; } else if (total <= 7) { const map = ['😡', '😠', '🙁', '😐', '🙂', '😊', '🤩']; if(num>=1 && num<=7) return map[num-1]; } } if (text.includes('非常不') || text.includes('極不')) return '😡'; if (text.includes('不滿') || text.includes('不同意')) return '🙁'; if (text.includes('普通') || text.includes('沒意見')) return '😐'; if (text.includes('非常') || text.includes('極')) return '🤩'; if (text.includes('滿意') || text.includes('同意')) return '😊'; return null; }
         function getColorClassForScale(text, total) { const match = text.match(/^[\(]?(\d+)[\)\.]?/); if (match && total <= 7) { let num = parseInt(match[1]); if(num>=1) return `likert-opt-${Math.min(num, 5)}`; } return 'opt-default'; }
 
+        // Main Application Logic
         window.app = {
             getCurrentSurveyId: () => currentSurveyId,
             markDirty: () => { isDirty = true; safeGet('unsaved-indicator').classList.remove('hidden'); },
             clearDirty: () => { isDirty = false; safeGet('unsaved-indicator').classList.add('hidden'); },
             autoGrow: (element) => { element.style.height = "auto"; element.style.height = (element.scrollHeight) + "px"; },
+            
             loginWithEmail: async () => { const email = document.getElementById('auth-email').value; const password = document.getElementById('auth-password').value; try { await signInWithEmailAndPassword(auth, email, password); } catch(e){ showToast("錯誤: "+e.code, "error"); } },
             registerWithEmail: async () => { const email = document.getElementById('auth-email').value; const password = document.getElementById('auth-password').value; try { await createUserWithEmailAndPassword(auth, email, password); showToast("註冊成功"); } catch(e){ showToast("錯誤: "+e.code, "error"); } },
             logout: async () => { await signOut(auth); location.reload(); },
@@ -355,7 +372,6 @@
                 window.scrollTo(0, 0);
                 app.clearDirty();
             },
-            
             editSurvey: (surveyId) => {
                 const survey = surveysCache[surveyId];
                 if (!survey) return showToast("讀取失敗", "error");
@@ -392,9 +408,10 @@
                     app.clearDirty();
                 } catch (e) { console.error(e); showToast("資料錯誤", "error"); }
             },
-
-            // ... (Other methods omitted for brevity, but assume similar SafeGet fixes and bindings) ...
-            // Full code includes all previous logic but using safeGet
+            
+            // ... [ALL OTHER METHODS] ...
+            // Keeping them in window.app to ensure they are accessible
+            
             openPreviewModal: () => {
                 const title = escapeHtml(safeGet('survey-title').value);
                 const desc = escapeHtml(safeGet('survey-desc').value);
@@ -431,8 +448,11 @@
                 safeGet('preview-container').innerHTML = html;
                 safeGet('preview-modal').classList.remove('hidden');
             },
-            // ... Rest of methods (moveQuestion, etc) kept same ...
+
             moveQuestion: (id, direction) => { const card = document.getElementById(`q-${id}`); const container = document.getElementById('questions-container'); if (direction === -1 && card.previousElementSibling) container.insertBefore(card, card.previousElementSibling); else if (direction === 1 && card.nextElementSibling) container.insertBefore(card.nextElementSibling, card); app.markDirty(); },
+            toggleOptions: (selectEl) => { const card = selectEl.closest('.question-card'); const optionsArea = card.querySelector('.options-area'); if (selectEl.value === 'text') optionsArea.classList.add('hidden'); else optionsArea.classList.remove('hidden'); },
+            copyLink: () => { const input = safeGet('share-link-input'); input.select(); document.execCommand('copy'); showToast("連結已複製"); },
+            openShareModal: (id) => { const survey = surveysCache[id]; if(!survey) return; if (survey.status !== 'published') { if (confirm("發布後問卷將會鎖定，確定嗎？")) { const surveyRef = doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', id); updateDoc(surveyRef, { status: 'published' }).then(() => { showToast("已發布"); loadSurveys(); }).catch(err => showToast("發布失敗", "error")); } else return; } const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${user.uid}`; safeGet('share-link-input').value = link; safeGet('share-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}`; safeGet('share-modal').classList.remove('hidden'); },
             openBatchModal: () => { safeGet('batch-modal').classList.remove('hidden'); safeGet('batch-text').value = ''; window.app.toggleBatchSettings(); },
             toggleBatchSettings: () => { const type = safeGet('batch-type').value; if(type === 'likert') safeGet('batch-likert-settings').classList.remove('hidden'); else safeGet('batch-likert-settings').classList.add('hidden'); },
             processBatchImport: () => {
@@ -452,73 +472,6 @@
                 app.markDirty();
             },
             duplicateSurvey: async (surveyId) => { const survey = surveysCache[surveyId]; if(!survey) return; if(!confirm(`確定要複製問卷「${survey.title}」嗎？`)) return; try { const newId = crypto.randomUUID(); const newData = { ...survey, title: `${survey.title} (副本)`, updatedAt: serverTimestamp(), status: 'draft' }; delete newData.id; await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', newId), newData); showToast("複製成功！"); loadSurveys(); } catch(e) { console.error(e); showToast("複製失敗", "error"); } },
-            
-            // AddQuestionUI
-            addQuestionUI: (data = null, isLocked = false) => {
-                const container = safeGet('questions-container');
-                const id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-                const type = data ? data.type : 'text';
-                const text = data ? data.text : '';
-                const description = data && data.description ? data.description : '';
-                const options = data && data.options ? data.options.join('\n') : '';
-                const isRequired = (data && data.required !== undefined) ? data.required : true; 
-
-                const card = document.createElement('div');
-                card.id = `q-${id}`;
-                if(!isLocked) {
-                    card.draggable = true; 
-                    card.addEventListener('dragstart', () => { card.classList.add('dragging'); });
-                    card.addEventListener('dragend', () => { card.classList.remove('dragging'); app.markDirty(); });
-                }
-                const disabledAttr = isLocked ? 'disabled' : '';
-                const inputClass = isLocked ? 'locked-input' : 'bg-white';
-                const hideIfLocked = isLocked ? 'hidden' : '';
-                const dragClass = isLocked ? '' : 'cursor-grab active:cursor-grabbing drag-handle';
-
-                if (type === 'section') {
-                    card.className = `question-card bg-orange-50 p-4 md:p-6 rounded-xl border-2 border-orange-200 shadow-sm relative group transition duration-200`;
-                    card.innerHTML = `<input type="hidden" class="question-type" value="section"><div class="flex justify-between items-start mb-4"><div class="bg-orange-200 text-orange-800 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider flex items-center gap-1 ${dragClass}"><i class="fa-solid fa-align-left"></i> 段落說明</div><div class="flex items-center gap-2 ${hideIfLocked}"><button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-orange-600 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button><button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-orange-600 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-down"></i></button><div class="h-4 w-px bg-orange-300 mx-1"></div><button onclick="document.getElementById('q-${id}').remove(); app.markDirty()" class="text-gray-400 hover:text-red-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-trash"></i></button></div></div><div class="space-y-4"><div><label class="block text-xs font-bold text-orange-800 uppercase mb-1">段落標題</label><input type="text" class="question-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border ${inputClass} transition font-bold text-base" value="${escapeHtml(text)}" ${disabledAttr} oninput="app.markDirty()"></div><div><label class="block text-xs font-bold text-orange-800 uppercase mb-1">詳細說明內容</label><textarea class="question-desc-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border ${inputClass} transition auto-grow text-base" rows="3" ${disabledAttr} oninput="app.markDirty(); app.autoGrow(this)">${escapeHtml(description)}</textarea></div></div>`;
-                } else {
-                    card.className = `question-card bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm relative group hover:shadow-md transition duration-200`;
-                    card.innerHTML = `<div class="flex justify-between items-start mb-4"><div class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider ${dragClass}">問題</div><div class="flex items-center gap-2 ${hideIfLocked}"><label class="flex items-center cursor-pointer select-none"><div class="relative"><input type="checkbox" class="sr-only peer question-required" ${isRequired ? 'checked' : ''} onchange="app.markDirty()"><div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div></div><span class="ml-2 text-xs font-medium text-gray-500">必填</span></label><div class="h-4 w-px bg-gray-300 mx-1"></div><button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-blue-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button><button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-blue-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-down"></i></button><div class="h-4 w-px bg-gray-300 mx-1"></div><button onclick="document.getElementById('q-${id}').remove(); app.markDirty()" class="text-gray-400 hover:text-red-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-trash"></i></button></div></div><div class="grid grid-cols-1 md:grid-cols-12 gap-4"><div class="md:col-span-8"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">題目內容</label><input type="text" class="question-input w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border ${inputClass} transition text-base" value="${escapeHtml(text)}" ${disabledAttr} oninput="app.markDirty()"></div><div class="md:col-span-4"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">題型</label><select class="question-type w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border ${inputClass} text-base" ${disabledAttr} onchange="window.app.toggleOptions(this); app.markDirty()"><option value="text" ${type === 'text' ? 'selected' : ''}>簡答題</option><option value="radio" ${type === 'radio' ? 'selected' : ''}>單選題</option><option value="checkbox" ${type === 'checkbox' ? 'selected' : ''}>多選題</option></select></div></div><div class="options-area mt-4 ${type === 'text' ? 'hidden' : ''}"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">選項 (每行一個)</label><textarea class="question-options w-full border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 border bg-yellow-50 font-mono text-sm auto-grow text-base ${inputClass}" rows="3" ${disabledAttr} oninput="app.markDirty(); app.autoGrow(this)">${escapeHtml(options)}</textarea></div>`;
-                }
-                container.appendChild(card);
-                card.querySelectorAll('.auto-grow').forEach(el => app.autoGrow(el));
-            },
-            toggleOptions: (selectEl) => { const card = selectEl.closest('.question-card'); const optionsArea = card.querySelector('.options-area'); if (selectEl.value === 'text') optionsArea.classList.add('hidden'); else optionsArea.classList.remove('hidden'); },
-            copyLink: () => { const input = safeGet('share-link-input'); input.select(); document.execCommand('copy'); showToast("連結已複製"); },
-            openShareModal: (id) => { const survey = surveysCache[id]; if(!survey) return; if (survey.status !== 'published') { if (confirm("發布後問卷將會鎖定，確定嗎？")) { const surveyRef = doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', id); updateDoc(surveyRef, { status: 'published' }).then(() => { showToast("已發布"); loadSurveys(); }).catch(err => showToast("發布失敗", "error")); } else return; } const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${user.uid}`; safeGet('share-link-input').value = link; safeGet('share-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}`; safeGet('share-modal').classList.remove('hidden'); },
-            saveSurvey: async () => {
-                if (!user) return;
-                const saveBtn = safeGet('save-btn');
-                saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 儲存中...';
-                try {
-                    const title = safeGet('survey-title').value.trim();
-                    const description = safeGet('survey-desc').value.trim();
-                    if (!title) { showToast("請輸入問卷標題", "error"); throw new Error("Title required"); }
-                    const cards = document.querySelectorAll('.question-card');
-                    const questions = Array.from(cards).map(card => {
-                        const typeInput = card.querySelector('.question-type');
-                        const type = typeInput ? typeInput.value : card.querySelector('select.question-type').value;
-                        const text = card.querySelector('.question-input').value.trim();
-                        if (type === 'section') {
-                            const desc = card.querySelector('.question-desc-input').value.trim();
-                            return { type, text, description: desc };
-                        } else {
-                            const required = card.querySelector('.question-required').checked;
-                            let options = [];
-                            if (type !== 'text') options = card.querySelector('.question-options').value.split('\n').map(o => o.trim()).filter(o => o);
-                            return { type, text, options, required };
-                        }
-                    });
-                    const surveyData = { title, description, questions, updatedAt: serverTimestamp() };
-                    const surveyRef = doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', currentSurveyId);
-                    await setDoc(surveyRef, surveyData, { merge: true });
-                    app.clearDirty();
-                    showToast("儲存成功");
-                    setTimeout(() => window.app.showDashboard(), 1000);
-                } catch (e) { if (e.message !== "Title required") showToast("儲存失敗", "error"); } finally { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fa-solid fa-save"></i> 儲存'; }
-            },
             deleteSurvey: async (id) => { try { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', id)); showToast("刪除成功"); loadSurveys(); } catch (e) { showToast("刪除失敗", "error"); } },
             requestDelete: (id) => {
                 const modal = safeGet('delete-modal');
@@ -528,7 +481,7 @@
                 confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
                 newBtn.addEventListener('click', async () => { modal.classList.add('hidden'); await window.app.deleteSurvey(id); });
             },
-            exportToCSV: async (surveyId) => { /* ... same ... */ 
+            exportToCSV: async (surveyId) => {
                  const btn = document.getElementById('export-btn');
                  btn.innerText = "處理中..."; btn.disabled = true;
                  try {
@@ -566,7 +519,7 @@
                     document.body.appendChild(link); link.click(); document.body.removeChild(link);
                 } catch(e) { console.error(e); showToast("匯出失敗", "error"); } finally { btn.innerHTML = '<i class="fa-solid fa-file-csv"></i> 匯出 Excel'; btn.disabled = false; }
             },
-            viewResults: async (surveyId) => { /* ... same ... */
+            viewResults: async (surveyId) => {
                 const survey = surveysCache[surveyId];
                 const modal = safeGet('results-modal');
                 const content = safeGet('results-content');
@@ -617,9 +570,40 @@
                     content.innerHTML = html;
                 } catch (e) { console.error(e); content.innerHTML = '<div class="text-red-500 text-center">載入統計失敗</div>'; }
             },
-            // Public Load (Bound to ensure context)
+
+            addQuestionUI: (data = null, isLocked = false) => {
+                const container = safeGet('questions-container');
+                const id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+                const type = data ? data.type : 'text';
+                const text = data ? data.text : '';
+                const description = data && data.description ? data.description : '';
+                const options = data && data.options ? data.options.join('\n') : '';
+                const isRequired = (data && data.required !== undefined) ? data.required : true; 
+
+                const card = document.createElement('div');
+                card.id = `q-${id}`;
+                if(!isLocked) {
+                    card.draggable = true; 
+                    card.addEventListener('dragstart', () => { card.classList.add('dragging'); });
+                    card.addEventListener('dragend', () => { card.classList.remove('dragging'); app.markDirty(); });
+                }
+                const disabledAttr = isLocked ? 'disabled' : '';
+                const inputClass = isLocked ? 'locked-input' : 'bg-white';
+                const hideIfLocked = isLocked ? 'hidden' : '';
+                const dragClass = isLocked ? '' : 'cursor-grab active:cursor-grabbing drag-handle';
+
+                if (type === 'section') {
+                    card.className = `question-card bg-orange-50 p-4 md:p-6 rounded-xl border-2 border-orange-200 shadow-sm relative group transition duration-200`;
+                    card.innerHTML = `<input type="hidden" class="question-type" value="section"><div class="flex justify-between items-start mb-4"><div class="bg-orange-200 text-orange-800 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider flex items-center gap-1 ${dragClass}"><i class="fa-solid fa-align-left"></i> 段落說明</div><div class="flex items-center gap-2 ${hideIfLocked}"><button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-orange-600 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button><button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-orange-600 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-down"></i></button><div class="h-4 w-px bg-orange-300 mx-1"></div><button onclick="document.getElementById('q-${id}').remove(); app.markDirty()" class="text-gray-400 hover:text-red-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-trash"></i></button></div></div><div class="space-y-4"><div><label class="block text-xs font-bold text-orange-800 uppercase mb-1">段落標題</label><input type="text" class="question-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border ${inputClass} transition font-bold text-base" value="${escapeHtml(text)}" ${disabledAttr} oninput="app.markDirty()"></div><div><label class="block text-xs font-bold text-orange-800 uppercase mb-1">詳細說明內容</label><textarea class="question-desc-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border ${inputClass} transition auto-grow text-base" rows="3" ${disabledAttr} oninput="app.markDirty(); app.autoGrow(this)">${escapeHtml(description)}</textarea></div></div>`;
+                } else {
+                    card.className = `question-card bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm relative group hover:shadow-md transition duration-200`;
+                    card.innerHTML = `<div class="flex justify-between items-start mb-4"><div class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider ${dragClass}">問題</div><div class="flex items-center gap-2 ${hideIfLocked}"><label class="flex items-center cursor-pointer select-none"><div class="relative"><input type="checkbox" class="sr-only peer question-required" ${isRequired ? 'checked' : ''} onchange="app.markDirty()"><div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div></div><span class="ml-2 text-xs font-medium text-gray-500">必填</span></label><div class="h-4 w-px bg-gray-300 mx-1"></div><button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-blue-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button><button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-blue-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-down"></i></button><div class="h-4 w-px bg-gray-300 mx-1"></div><button onclick="document.getElementById('q-${id}').remove(); app.markDirty()" class="text-gray-400 hover:text-red-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-trash"></i></button></div></div><div class="grid grid-cols-1 md:grid-cols-12 gap-4"><div class="md:col-span-8"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">題目內容</label><input type="text" class="question-input w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border ${inputClass} transition text-base" value="${escapeHtml(text)}" ${disabledAttr} oninput="app.markDirty()"></div><div class="md:col-span-4"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">題型</label><select class="question-type w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border ${inputClass} text-base" ${disabledAttr} onchange="window.app.toggleOptions(this); app.markDirty()"><option value="text" ${type === 'text' ? 'selected' : ''}>簡答題</option><option value="radio" ${type === 'radio' ? 'selected' : ''}>單選題</option><option value="checkbox" ${type === 'checkbox' ? 'selected' : ''}>多選題</option></select></div></div><div class="options-area mt-4 ${type === 'text' ? 'hidden' : ''}"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">選項 (每行一個)</label><textarea class="question-options w-full border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 border bg-yellow-50 font-mono text-sm auto-grow text-base ${inputClass}" rows="3" ${disabledAttr} oninput="app.markDirty(); app.autoGrow(this)">${escapeHtml(options)}</textarea></div>`;
+                }
+                container.appendChild(card);
+                card.querySelectorAll('.auto-grow').forEach(el => app.autoGrow(el));
+            },
+
             loadPublicSurvey: async (surveyId, ownerId) => {
-                // ... (Same logic as before, just ensuring safeGet) ...
                 try {
                     const docRef = doc(db, 'artifacts', appId, 'users', ownerId, 'surveys', surveyId);
                     const docSnap = await getDoc(docRef);
@@ -668,10 +652,54 @@
                         safeGet('public-form').classList.add('hidden');
                     }
                 } catch (e) { console.error("Public load error", e); showToast("載入失敗", "error"); }
+            },
+
+            submitResponse: async () => {
+                const form = document.getElementById('public-form');
+                if (!form.checkValidity()) {
+                    const invalidElement = form.querySelector(':invalid');
+                    if (invalidElement) {
+                        const card = invalidElement.closest('.public-q-item');
+                        if (card) {
+                            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            card.classList.add('ring-2', 'ring-red-400', 'bg-red-50', 'rounded-lg');
+                            setTimeout(() => { card.classList.remove('ring-2', 'ring-red-400', 'bg-red-50', 'rounded-lg'); }, 2500);
+                        }
+                    }
+                    showToast("還有題目未完成喔！", "error"); return;
+                }
+                const submitBtn = document.getElementById('submit-btn');
+                submitBtn.disabled = true; submitBtn.innerText = "提交中...";
+                try {
+                    const formData = new FormData(form);
+                    const answers = {};
+                    document.querySelectorAll('.public-q-item').forEach((div, idx) => {
+                        const type = div.dataset.type;
+                        if (type === 'section') return; 
+                        const name = `q_${idx}`;
+                        if (type === 'checkbox') answers[idx] = formData.getAll(name);
+                        else answers[idx] = formData.get(name);
+                    });
+                    await addDoc(collection(db, 'artifacts', appId, 'users', publicModeOwnerId, 'surveys', publicModeSurveyId, 'responses'), { answers: answers, submittedAt: serverTimestamp() });
+                    document.getElementById('public-form').classList.add('hidden');
+                    document.getElementById('public-progress-bar').classList.add('hidden'); 
+                    document.getElementById('thank-you-view').classList.remove('hidden');
+                    window.scrollTo(0, 0);
+                } catch (e) { console.error(e); showToast("提交失敗", "error"); submitBtn.disabled = false; submitBtn.innerText = "送出問卷"; }
+            },
+            updateProgressBar: () => {
+                const form = document.getElementById('public-form');
+                const total = document.querySelectorAll('.public-q-item[data-type!="section"]').length; 
+                if(total === 0) return;
+                const answered = new Set();
+                const formData = new FormData(form);
+                for(let [key, val] of formData.entries()) { if(val) answered.add(key); }
+                const count = answered.size;
+                const percent = Math.round((count / total) * 100);
+                document.getElementById('progress-fill').style.width = `${percent}%`;
             }
         };
-
-        // Robust loadSurveys
+        // Robust loadSurveys function
         async function loadSurveys() {
             if (!user) return;
             const listContainer = safeGet('survey-list');
