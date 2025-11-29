@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- 引入圓潤字體 -->
-    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
 
     <style>
         /* 吉卜力風格基礎設定 */
@@ -15,17 +15,17 @@
             --ghibli-cream: #FAF7F0;
             --ghibli-sky: #D8E9F0;
             --ghibli-green: #568A66;
-            --ghibli-green-dark: #3E664B;
+            --ghibli-green-dark: #2F4F3A; /* 更深的綠色 */
             --ghibli-brown: #8B5E3C;
             --ghibli-red: #E67F65;
             --ghibli-text: #4A4A4A;
+            --ghibli-select-bg: #B8D8C5; /* 強烈的選中背景色 */
         }
 
         html, body { 
             overflow-x: hidden; 
             min-height: 100dvh; 
             background-color: var(--ghibli-cream); 
-            /* 加上淡淡的紙張紋理背景 */
             background-image: radial-gradient(#E5E0D0 1px, transparent 1px);
             background-size: 20px 20px;
             font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif; 
@@ -45,22 +45,25 @@
             border-radius: 20px;
             box-shadow: 
                 0 4px 6px -1px rgba(0, 0, 0, 0.05), 
-                0 10px 15px -3px rgba(86, 138, 102, 0.1); /* 淡淡的綠色陰影 */
+                0 10px 15px -3px rgba(86, 138, 102, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.5);
             transition: all 0.3s ease;
         }
         
-        /* 選項互動 */
+        /* 選項互動 - 強烈反差版 */
         input:checked + div { 
-            transform: scale(0.98) translateY(2px); 
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); 
-            font-weight: bold; 
-            background-color: #F0F7F4; /* 極淡的綠 */
-            border-color: var(--ghibli-green);
-            color: var(--ghibli-green-dark);
+            transform: scale(0.95) translateY(2px); /* 按壓感更強 */
+            box-shadow: 
+                inset 0 0 0 3px var(--ghibli-green-dark), /* 內粗框 */
+                0 2px 4px rgba(0,0,0,0.2);
+            font-weight: 900; /* 字體加粗 */
+            background-color: var(--ghibli-select-bg) !important; /* 強制深色背景 */
+            border-color: transparent !important; /* 讓內陰影取代邊框 */
+            color: var(--ghibli-green-dark) !important; /* 深色文字 */
+            z-index: 10; /* 確保浮在最上層 */
         }
 
-        /* 按鈕風格：像果實或寶石 */
+        /* 按鈕風格 */
         .btn-ghibli-primary {
             background-color: var(--ghibli-green);
             color: white;
@@ -80,10 +83,10 @@
         }
 
         /* 錯誤震動 */
-        .error-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: var(--ghibli-red) !important; background-color: #FFF5F5 !important; }
+        .error-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border: 2px solid var(--ghibli-red) !important; background-color: #FFF5F5 !important; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
 
-        /* 雲朵裝飾 (純 CSS) */
+        /* 雲朵裝飾 */
         .cloud {
             position: absolute;
             background: white;
@@ -105,7 +108,7 @@
         .drag-handle:active { cursor: grabbing; }
         .locked-input { background-color: #f3f3f3; border-color: #ddd; color: #999; cursor: not-allowed; }
         
-        /* 量表顏色：柔和版 */
+        /* 量表顏色 (未選中時) */
         .likert-opt-1 { color: #C05555; border-color: #EECBCB; background-color: #FFF5F5; } 
         .likert-opt-2 { color: #D98C5F; border-color: #F5DDC9; background-color: #FFFBF7; } 
         .likert-opt-3 { color: #C4A83C; border-color: #F2EBC3; background-color: #FFFFF0; } 
@@ -128,11 +131,10 @@
             const colorClass = type === 'error' ? 'text-red-500' : 'text-green-700';
             const bgClass = type === 'error' ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200';
             
-            // 重置並套用新樣式
-            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation ' + colorClass : 'fa-solid fa-leaf ' + colorClass; // 用葉子代替勾勾
+            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation ' + colorClass : 'fa-solid fa-leaf ' + colorClass;
             toast.className = `fixed top-20 right-5 z-[100] px-6 py-3 rounded-2xl shadow-lg flex items-center gap-3 transition-transform duration-300 border-2 ${bgClass}`;
             
-            toast.style.transform = 'translateX(0) rotate(-2deg)'; // 微微傾斜增加童趣
+            toast.style.transform = 'translateX(0) rotate(-2deg)';
             setTimeout(() => { toast.style.transform = 'translateX(150%) rotate(0)'; }, 3000);
         };
 
@@ -178,11 +180,9 @@
 </head>
 <body class="text-gray-800">
 
-    <!-- 裝飾雲朵 -->
     <div class="cloud cloud-1"></div>
     <div class="cloud cloud-2"></div>
 
-    <!-- 全域錯誤提示 -->
     <div id="global-error" class="hidden fixed inset-0 bg-red-50/90 z-[200] flex flex-col items-center justify-center p-6 text-center backdrop-blur-sm">
         <div class="text-red-500 text-6xl mb-4"><i class="fa-solid fa-robot"></i></div>
         <h2 class="text-2xl font-bold text-gray-800 mb-2">哎呀，出了一點小問題</h2>
@@ -190,12 +190,10 @@
         <button onclick="location.reload()" class="mt-6 btn-ghibli-primary px-6 py-3">重新整理森林</button>
     </div>
 
-    <!-- 進度條 (像植物生長) -->
     <div id="public-progress-bar" class="fixed top-0 left-0 w-full h-2 bg-gray-200 z-[60] hidden">
         <div id="progress-fill" class="h-full bg-[#568A66] transition-all duration-500 ease-out rounded-r-full" style="width: 0%"></div>
     </div>
 
-    <!-- 導覽列 -->
     <nav id="admin-nav" class="bg-[#568A66] text-white shadow-lg sticky top-0 z-50 hidden">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -211,7 +209,6 @@
 
     <main class="flex-1 w-full max-w-5xl mx-auto p-4 pb-20 safe-pb relative z-10">
         
-        <!-- 載入中 -->
         <div id="loading-view" class="fixed inset-0 flex flex-col items-center justify-center bg-[#FAF7F0] z-[150]">
             <i class="fa-solid fa-seedling fa-bounce text-5xl text-[#568A66] mb-4"></i>
             <p class="text-[#8B5E3C] font-bold tracking-widest">讀取中...</p>
@@ -221,7 +218,6 @@
             </div>
         </div>
 
-        <!-- Toast 容器 -->
         <div id="toast" class="fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 translate-x-full border-l-4 border-green-500">
             <i id="toast-icon"></i><span id="toast-msg"></span>
         </div>
@@ -279,7 +275,6 @@
                 <button onclick="window.app.duplicateCurrent()" class="underline font-bold">複製以編輯</button>
             </div>
             
-            <!-- 問卷標題區塊 -->
             <div class="ghibli-card p-6 md:p-8 mb-8 relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-2 h-full bg-[#568A66]"></div>
                 <input type="text" id="edit-title" class="w-full text-2xl font-bold border-b-2 border-transparent hover:border-[#ddd] focus:border-[#568A66] outline-none py-2 transition bg-transparent text-[#2D3748] placeholder-gray-300" placeholder="請輸入問卷標題" oninput="window.app.markDirty()">
@@ -299,11 +294,10 @@
             </div>
         </div>
 
-        <!-- 4. 公開填寫 (Public View) -->
+        <!-- 4. 公開填寫 -->
         <div id="view-public" class="hidden w-full max-w-2xl mx-auto fade-in pb-24 pt-4">
             <div class="ghibli-card overflow-hidden mb-8">
                 <div class="bg-[#D8E9F0] h-32 relative">
-                    <!-- 裝飾性天空 -->
                     <div class="cloud cloud-1" style="top: 10px; left: 10px; opacity: 0.9; transform: scale(0.6);"></div>
                     <div class="cloud cloud-2" style="top: 40px; right: 20px; opacity: 0.8; transform: scale(0.8);"></div>
                 </div>
@@ -327,7 +321,6 @@
         <!-- 5. 感謝頁 -->
         <div id="view-thankyou" class="hidden flex flex-col items-center justify-center min-h-[80vh] text-center fade-in px-4 relative">
             <div class="ghibli-card p-12 w-full max-w-md relative overflow-hidden">
-                <!-- 光暈背景 -->
                 <div class="absolute -top-10 -left-10 w-40 h-40 bg-[#D8E9F0] rounded-full blur-3xl opacity-50"></div>
                 <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-[#F4FDF0] rounded-full blur-3xl opacity-50"></div>
                 
@@ -347,12 +340,10 @@
         </div>
     </main>
 
-    <!-- Modals -->
     <div id="modal-overlay" class="hidden fixed inset-0 bg-[#5B6C78]/50 z-[60] flex items-center justify-center p-4 fade-in backdrop-blur-sm">
         <div id="modal-content" class="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden relative border-4 border-white"></div>
     </div>
 
-    <!-- Delete Modal -->
     <div id="delete-modal" class="hidden fixed inset-0 bg-[#5B6C78]/50 z-[70] flex items-center justify-center p-4 fade-in backdrop-blur-sm">
         <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center border-4 border-white">
             <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-trash-can text-2xl"></i></div>
