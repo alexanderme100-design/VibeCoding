@@ -30,9 +30,8 @@
         /* 選項卡片被選中時的動畫 */
         input:checked + div { 
             transform: scale(0.98); 
-            border-color: #2563eb; 
-            background-color: #eff6ff; 
-            box-shadow: inset 0 0 0 1px #2563eb;
+            box-shadow: inset 0 0 0 2px currentColor; /* 使用 currentColor 讓邊框跟隨文字顏色 */
+            font-weight: bold;
         }
 
         /* 手機優化：點擊區域 */
@@ -62,6 +61,16 @@
         .drag-handle:active {
             cursor: grabbing;
         }
+
+        /* 量表顏色邏輯 (CSS 變數由 JS 動態注入，或使用預設類別) */
+        .likert-opt-1 { color: #ef4444; border-color: #fca5a5; background-color: #fef2f2; } /* Red */
+        .likert-opt-2 { color: #f97316; border-color: #fdba74; background-color: #fff7ed; } /* Orange */
+        .likert-opt-3 { color: #eab308; border-color: #fde047; background-color: #fefce8; } /* Yellow */
+        .likert-opt-4 { color: #84cc16; border-color: #bef264; background-color: #f7fee7; } /* Lime */
+        .likert-opt-5 { color: #22c55e; border-color: #86efac; background-color: #f0fdf4; } /* Green */
+        /* Default Blue for non-likert */
+        .opt-default { color: #374151; border-color: #e5e7eb; background-color: white; }
+        input:checked + div.opt-default { border-color: #2563eb; background-color: #eff6ff; color: #1d4ed8; }
     </style>
 </head>
 <body class="text-gray-800">
@@ -168,14 +177,24 @@
 
         <!-- Editor View -->
         <div id="editor-view" class="hidden fade-in pb-32 max-w-4xl mx-auto">
-            <div class="flex justify-between items-center mb-4 sticky top-[60px] z-20 bg-[#f3f4f6] py-2 px-1">
-                <button onclick="app.showDashboard()" class="text-gray-500 hover:text-blue-600 flex items-center gap-2 transition px-2 py-1 bg-white rounded-lg shadow-sm border border-gray-100">
-                    <i class="fa-solid fa-arrow-left"></i> <span class="hidden md:inline">返回列表</span>
-                </button>
+            <div class="flex flex-wrap justify-between items-center mb-4 sticky top-[60px] z-20 bg-[#f3f4f6] py-2 px-1 gap-2">
+                <div class="flex gap-2">
+                    <button onclick="app.showDashboard()" class="text-gray-500 hover:text-blue-600 flex items-center gap-2 transition px-2 py-1 bg-white rounded-lg shadow-sm border border-gray-100">
+                        <i class="fa-solid fa-arrow-left"></i> <span class="hidden md:inline">返回</span>
+                    </button>
+                    <span id="unsaved-indicator" class="hidden flex items-center text-xs text-orange-500 bg-orange-50 px-2 rounded-full border border-orange-200">
+                        <i class="fa-solid fa-circle text-[8px] mr-1"></i> 未儲存
+                    </span>
+                </div>
                 
-                <button onclick="app.openBatchModal()" class="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-200 transition bg-white shadow-sm">
-                    <i class="fa-solid fa-bolt mr-1"></i> 批量匯入
-                </button>
+                <div class="flex gap-2">
+                    <button onclick="app.openPreviewModal()" class="text-gray-600 hover:bg-gray-100 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 transition bg-white shadow-sm flex items-center gap-1">
+                        <i class="fa-solid fa-eye"></i> <span class="hidden sm:inline">預覽</span>
+                    </button>
+                    <button onclick="app.openBatchModal()" class="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-200 transition bg-white shadow-sm flex items-center gap-1">
+                        <i class="fa-solid fa-bolt"></i> <span class="hidden sm:inline">匯入</span>
+                    </button>
+                </div>
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -183,11 +202,11 @@
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">問卷標題</label>
-                            <input type="text" id="survey-title" class="w-full text-lg md:text-xl font-bold border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2" placeholder="請輸入問卷標題">
+                            <input type="text" id="survey-title" class="w-full text-lg md:text-xl font-bold border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2" placeholder="請輸入問卷標題" oninput="app.markDirty()">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">問卷說明</label>
-                            <textarea id="survey-desc" rows="2" class="w-full text-gray-600 border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2" placeholder="請輸入問卷的簡短說明..."></textarea>
+                            <textarea id="survey-desc" rows="2" class="w-full text-gray-600 border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 auto-grow" placeholder="請輸入問卷的簡短說明..." oninput="app.markDirty(); app.autoGrow(this)"></textarea>
                         </div>
                     </div>
                 </div>
@@ -195,14 +214,13 @@
                 <div id="questions-container" class="p-4 md:p-6 space-y-6 bg-gray-50/50 min-h-[300px]"></div>
 
                 <div class="p-4 md:p-6 border-t border-gray-200 bg-white flex flex-col md:flex-row justify-center gap-3">
-                    <button onclick="app.addQuestionUI()" class="group flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition w-full max-w-[200px] tap-target">
+                    <button onclick="app.addQuestionUI(); app.markDirty()" class="group flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition w-full max-w-[200px] tap-target">
                         <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition">
                             <i class="fa-solid fa-plus"></i>
                         </div>
                         <span class="text-gray-500 font-medium group-hover:text-blue-600">新增題目</span>
                     </button>
-                    <!-- 新增段落說明按鈕 -->
-                    <button onclick="app.addQuestionUI({type:'section'})" class="group flex flex-col items-center gap-2 p-4 border-2 border-dashed border-orange-200 rounded-xl hover:border-orange-400 hover:bg-orange-50 transition w-full max-w-[200px] tap-target">
+                    <button onclick="app.addQuestionUI({type:'section'}); app.markDirty()" class="group flex flex-col items-center gap-2 p-4 border-2 border-dashed border-orange-200 rounded-xl hover:border-orange-400 hover:bg-orange-50 transition w-full max-w-[200px] tap-target">
                         <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center group-hover:scale-110 transition">
                             <i class="fa-solid fa-align-left"></i>
                         </div>
@@ -254,6 +272,25 @@
         </div>
     </main>
 
+    <!-- Modal (Preview) -->
+    <div id="preview-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-[60] flex items-center justify-center fade-in p-0 md:p-4">
+        <div class="bg-gray-100 w-full h-full md:max-w-[400px] md:h-[80vh] md:rounded-3xl shadow-2xl flex flex-col overflow-hidden relative border-8 border-gray-800">
+            <!-- Mock Phone Header -->
+            <div class="bg-gray-800 text-white px-4 py-2 flex justify-between items-center text-xs">
+                <span>9:41</span>
+                <div class="flex gap-1"><i class="fa-solid fa-signal"></i> <i class="fa-solid fa-wifi"></i> <i class="fa-solid fa-battery-full"></i></div>
+            </div>
+            <!-- Preview Content Frame -->
+            <div class="flex-1 overflow-y-auto bg-f3f4f6 scrollbar-hide relative" id="preview-container">
+                <!-- Cloned content will go here -->
+            </div>
+            <!-- Close Button -->
+            <button onclick="document.getElementById('preview-modal').classList.add('hidden')" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white rounded-full p-3 shadow-lg hover:bg-gray-700 transition z-50">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+    </div>
+
     <!-- Modal (Batch Import) -->
     <div id="batch-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center fade-in p-4">
         <div class="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full flex flex-col max-h-[90vh]">
@@ -297,7 +334,7 @@
 
             <div class="pt-4 border-t border-gray-100 flex justify-end gap-2">
                 <button onclick="document.getElementById('batch-modal').classList.add('hidden')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
-                <button onclick="app.processBatchImport()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow">匯入</button>
+                <button onclick="app.processBatchImport(); app.markDirty()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow">匯入</button>
             </div>
         </div>
     </div>
@@ -379,6 +416,7 @@
         let currentSurveyId = null;
         let publicSurveyOwnerId = null;
         let surveysCache = {};
+        let isDirty = false; // Track unsaved changes
 
         const urlParams = new URLSearchParams(window.location.search);
         const publicModeSurveyId = urlParams.get('s');
@@ -425,7 +463,7 @@
             }
         }, 8000); // 8 seconds timeout
 
-        // Drag and Drop Logic
+        // --- Drag and Drop Logic ---
         const initSortable = () => {
             const container = document.getElementById('questions-container');
             
@@ -433,9 +471,9 @@
                 e.preventDefault();
                 const afterElement = getDragAfterElement(container, e.clientY);
                 const draggable = document.querySelector('.dragging');
-                if (afterElement == null) {
+                if (draggable && afterElement == null) {
                     container.appendChild(draggable);
-                } else {
+                } else if(draggable) {
                     container.insertBefore(draggable, afterElement);
                 }
             });
@@ -458,6 +496,14 @@
         // Initialize drag events on load
         window.addEventListener('DOMContentLoaded', () => {
             initSortable();
+        });
+
+        // --- Unsaved Changes Protection ---
+        window.addEventListener('beforeunload', (e) => {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = ''; // Chrome requires returnValue to be set
+            }
         });
 
         onAuthStateChanged(auth, (currentUser) => {
@@ -483,7 +529,7 @@
                     document.getElementById('editor-view').classList.add('hidden');
                     document.getElementById('login-view').classList.remove('hidden');
                 } else {
-                    // Public mode with NO user (auth failed/loading)
+                    // Public mode error handled by fallback HTML injection
                     const main = document.getElementById('main-container');
                     main.innerHTML = `
                         <div class="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 fade-in">
@@ -492,14 +538,6 @@
                             </div>
                             <h2 class="text-xl font-bold text-gray-800 mb-2">無法載入問卷</h2>
                             <p class="text-gray-500 mb-6 max-w-md">系統無法驗證您的身份。這通常是因為此網域未被授權連接至資料庫。</p>
-                            <div class="text-xs text-gray-500 bg-white border border-gray-200 p-4 rounded-lg text-left shadow-sm max-w-sm w-full">
-                                <p class="font-bold text-gray-700 mb-2"><i class="fa-solid fa-wrench mr-1"></i> 給管理員的修復建議：</p>
-                                <ol class="list-decimal pl-4 space-y-1">
-                                    <li>前往 <a href="https://console.firebase.google.com/" target="_blank" class="text-blue-600 underline">Firebase Console</a></li>
-                                    <li>點擊 <strong>Authentication</strong> > <strong>Settings</strong></li>
-                                    <li>在 <strong>Authorized domains</strong> 新增此網域</li>
-                                </ol>
-                            </div>
                         </div>
                     `;
                 }
@@ -527,7 +565,45 @@
             return null; 
         }
 
+        // Helper to get Color Class for Likert scale (Visual Optimization)
+        function getColorClassForScale(text, total) {
+            const match = text.match(/^[\(]?(\d+)[\)\.]?/);
+            if (match && total <= 5) {
+                let num = parseInt(match[1]);
+                if(num >=1 && num <= 5) return `likert-opt-${num}`;
+            }
+            // For 7 point or text only, heuristics?
+            if (total === 7 && match) {
+                 let num = parseInt(match[1]);
+                 // Map 1-7 to 5 colors somewhat
+                 if(num===1) return 'likert-opt-1';
+                 if(num===2) return 'likert-opt-1';
+                 if(num===3) return 'likert-opt-2';
+                 if(num===4) return 'likert-opt-3';
+                 if(num===5) return 'likert-opt-4';
+                 if(num===6) return 'likert-opt-5';
+                 if(num===7) return 'likert-opt-5';
+            }
+            return 'opt-default';
+        }
+
         window.app = {
+            // --- Helper Methods ---
+            markDirty: () => {
+                isDirty = true;
+                document.getElementById('unsaved-indicator').classList.remove('hidden');
+            },
+            
+            clearDirty: () => {
+                isDirty = false;
+                document.getElementById('unsaved-indicator').classList.add('hidden');
+            },
+
+            autoGrow: (element) => {
+                element.style.height = "auto";
+                element.style.height = (element.scrollHeight) + "px";
+            },
+
             loginWithEmail: async () => {
                 const email = document.getElementById('auth-email').value;
                 const password = document.getElementById('auth-password').value;
@@ -544,6 +620,8 @@
 
             // --- Navigation ---
             showDashboard: () => {
+                if (isDirty && !confirm("您有未儲存的變更，確定要離開嗎？")) return;
+                app.clearDirty();
                 document.getElementById('editor-view').classList.add('hidden');
                 document.getElementById('dashboard-view').classList.remove('hidden');
                 loadSurveys();
@@ -559,19 +637,101 @@
                 document.getElementById('dashboard-view').classList.add('hidden');
                 document.getElementById('editor-view').classList.remove('hidden');
                 window.scrollTo(0, 0);
+                app.clearDirty(); // Start clean
             },
             editSurvey: (surveyId) => {
                 const survey = surveysCache[surveyId];
                 if (!survey) return showToast("讀取失敗", "error");
                 currentSurveyId = surveyId;
                 document.getElementById('survey-title').value = survey.title || '';
-                document.getElementById('survey-desc').value = survey.description || '';
+                const descArea = document.getElementById('survey-desc');
+                descArea.value = survey.description || '';
+                app.autoGrow(descArea); // Auto height on load
+
                 const container = document.getElementById('questions-container');
                 container.innerHTML = '';
                 (survey.questions || []).forEach(q => window.app.addQuestionUI(q));
                 document.getElementById('dashboard-view').classList.add('hidden');
                 document.getElementById('editor-view').classList.remove('hidden');
                 window.scrollTo(0, 0);
+                app.clearDirty(); // Reset dirty state after load
+            },
+
+            // --- PREVIEW FEATURES ---
+            openPreviewModal: () => {
+                const title = document.getElementById('survey-title').value;
+                const desc = document.getElementById('survey-desc').value;
+                
+                // Construct preview HTML similar to loadPublicSurvey but with current DOM inputs
+                let html = `
+                    <div class="bg-blue-600 text-white p-6 pb-8">
+                        <h1 class="text-xl font-bold mb-2">${title || '預覽標題'}</h1>
+                        <p class="text-blue-100 text-sm whitespace-pre-wrap">${desc || '問卷說明...'}</p>
+                    </div>
+                    <div class="p-4 space-y-6 -mt-4">
+                `;
+
+                // Iterate over current question cards
+                const cards = document.querySelectorAll('.question-card');
+                cards.forEach((card, idx) => {
+                    const typeInput = card.querySelector('.question-type');
+                    const type = typeInput ? typeInput.value : card.querySelector('select.question-type').value;
+                    const text = card.querySelector('.question-input').value;
+                    
+                    if (type === 'section') {
+                        const sectionDesc = card.querySelector('.question-desc-input').value;
+                        html += `
+                        <div class="pt-2 pb-1 border-b border-gray-300">
+                            <h3 class="font-bold text-lg text-gray-800 border-l-4 border-orange-400 pl-2 mb-1">${text}</h3>
+                            <div class="text-sm text-gray-600 whitespace-pre-wrap">${sectionDesc}</div>
+                        </div>`;
+                    } else {
+                        const required = card.querySelector('.question-required').checked;
+                        const reqMark = required ? '<span class="text-red-500">*</span>' : '';
+                        let inputHtml = '';
+                        
+                        if (type === 'text') {
+                            inputHtml = `<input type="text" disabled class="w-full border-gray-300 rounded p-2 border bg-gray-50" placeholder="預覽模式無法填寫">`;
+                        } else {
+                            const optionsText = card.querySelector('.question-options').value;
+                            const options = optionsText.split('\n').map(o=>o.trim()).filter(o=>o);
+                            const optionsCount = options.length;
+                            
+                            // Re-use logic for grid class
+                            let gridClass = (type === 'radio') ? `grid grid-cols-3 gap-2` : `space-y-2`;
+                            if (type === 'radio' && optionsCount > 7) gridClass = `grid grid-cols-4 gap-1`; 
+
+                            if (type === 'radio') {
+                                inputHtml = `<div class="${gridClass}">` + options.map((opt, i) => {
+                                    const emoji = getEmojiForScale(opt, i, optionsCount);
+                                    const colorClass = getColorClassForScale(opt, optionsCount);
+                                    const emojiHtml = emoji ? `<div class="text-lg">${emoji}</div>` : '';
+                                    return `
+                                    <div class="border rounded p-2 flex flex-col items-center justify-center text-center bg-white ${colorClass} opacity-80">
+                                        ${emojiHtml}
+                                        <div class="text-xs font-bold mt-1">${opt}</div>
+                                    </div>`;
+                                }).join('') + `</div>`;
+                            } else {
+                                inputHtml = `<div class="space-y-2">` + options.map(opt => `
+                                    <div class="flex items-center gap-2 text-sm text-gray-700">
+                                        <div class="w-4 h-4 border rounded bg-white"></div> ${opt}
+                                    </div>`).join('') + `</div>`;
+                            }
+                        }
+
+                        html += `
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            <div class="font-bold text-gray-800 mb-2 text-sm">${idx + 1}. ${text} ${reqMark}</div>
+                            ${inputHtml}
+                        </div>`;
+                    }
+                });
+
+                html += `</div>`; // Close container
+                
+                document.getElementById('preview-container').innerHTML = html;
+                document.getElementById('preview-modal').classList.remove('hidden');
             },
 
             // --- REORDER FEATURES ---
@@ -584,6 +744,7 @@
                     if (card.nextElementSibling) container.insertBefore(card.nextElementSibling, card);
                 }
                 window.app.renumberQuestions();
+                app.markDirty();
             },
 
             // --- BATCH IMPORT FEATURES ---
@@ -631,6 +792,7 @@
 
                 document.getElementById('batch-modal').classList.add('hidden');
                 showToast(`已新增 ${lines.length} 個題目`);
+                app.markDirty();
             },
 
             // --- NEW FEATURES: Duplicate & Export ---
@@ -835,7 +997,11 @@
                 
                 // Add event listeners for Drag and Drop
                 card.addEventListener('dragstart', () => { card.classList.add('dragging'); });
-                card.addEventListener('dragend', () => { card.classList.remove('dragging'); window.app.renumberQuestions(); });
+                card.addEventListener('dragend', () => { 
+                    card.classList.remove('dragging'); 
+                    window.app.renumberQuestions(); 
+                    app.markDirty();
+                });
 
                 // Handle Section Type UI
                 if (type === 'section') {
@@ -851,17 +1017,17 @@
                                 <button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-orange-600 p-1 transition"><i class="fa-solid fa-arrow-up"></i></button>
                                 <button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-orange-600 p-1 transition"><i class="fa-solid fa-arrow-down"></i></button>
                                 <div class="h-4 w-px bg-orange-300 mx-1"></div>
-                                <button onclick="document.getElementById('q-${id}').remove(); window.app.renumberQuestions();" class="text-gray-400 hover:text-red-500 p-1 transition"><i class="fa-solid fa-trash"></i></button>
+                                <button onclick="document.getElementById('q-${id}').remove(); window.app.renumberQuestions(); app.markDirty()" class="text-gray-400 hover:text-red-500 p-1 transition"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-xs font-bold text-orange-800 uppercase mb-1">段落標題</label>
-                                <input type="text" class="question-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border bg-white transition font-bold" placeholder="例如：第一部分 - 基本資料" value="${text}">
+                                <input type="text" class="question-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border bg-white transition font-bold" placeholder="例如：第一部分 - 基本資料" value="${text}" oninput="app.markDirty()">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-orange-800 uppercase mb-1">詳細說明內容</label>
-                                <textarea class="question-desc-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border bg-white transition" rows="3" placeholder="請在此輸入針對此部分的詳細說明或解釋...">${description}</textarea>
+                                <textarea class="question-desc-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border bg-white transition auto-grow" rows="3" placeholder="請在此輸入針對此部分的詳細說明或解釋..." oninput="app.markDirty(); app.autoGrow(this)">${description}</textarea>
                             </div>
                         </div>`;
                 } else {
@@ -876,7 +1042,7 @@
                         <div class="flex items-center gap-2">
                              <label class="flex items-center cursor-pointer select-none">
                                 <div class="relative">
-                                    <input type="checkbox" class="sr-only peer question-required" ${isRequired ? 'checked' : ''}>
+                                    <input type="checkbox" class="sr-only peer question-required" ${isRequired ? 'checked' : ''} onchange="app.markDirty()">
                                     <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                                 </div>
                                 <span class="ml-2 text-xs font-medium text-gray-500">必填</span>
@@ -886,17 +1052,17 @@
                             <button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-blue-500 p-1 transition"><i class="fa-solid fa-arrow-up"></i></button>
                             <button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-blue-500 p-1 transition"><i class="fa-solid fa-arrow-down"></i></button>
                             <div class="h-4 w-px bg-gray-300 mx-1"></div>
-                            <button onclick="document.getElementById('q-${id}').remove(); window.app.renumberQuestions();" class="text-gray-400 hover:text-red-500 p-1 transition"><i class="fa-solid fa-trash"></i></button>
+                            <button onclick="document.getElementById('q-${id}').remove(); window.app.renumberQuestions(); app.markDirty()" class="text-gray-400 hover:text-red-500 p-1 transition"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                         <div class="md:col-span-8">
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">題目內容</label>
-                            <input type="text" class="question-input w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border bg-gray-50 focus:bg-white transition" placeholder="例如：您對今天的服務滿意嗎？" value="${text}">
+                            <input type="text" class="question-input w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border bg-gray-50 focus:bg-white transition" placeholder="例如：您對今天的服務滿意嗎？" value="${text}" oninput="app.markDirty()">
                         </div>
                         <div class="md:col-span-4">
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">題型</label>
-                            <select class="question-type w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border bg-white" onchange="window.app.toggleOptions(this)">
+                            <select class="question-type w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border bg-white" onchange="window.app.toggleOptions(this); app.markDirty()">
                                 <option value="text" ${type === 'text' ? 'selected' : ''}>簡答題</option>
                                 <option value="radio" ${type === 'radio' ? 'selected' : ''}>單選題</option>
                                 <option value="checkbox" ${type === 'checkbox' ? 'selected' : ''}>多選題</option>
@@ -905,11 +1071,14 @@
                     </div>
                     <div class="options-area mt-4 ${type === 'text' ? 'hidden' : ''}">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">選項 (每行一個)</label>
-                        <textarea class="question-options w-full border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 border bg-yellow-50 font-mono text-sm" rows="3" placeholder="非常滿意&#10;普通&#10;不滿意">${options}</textarea>
+                        <textarea class="question-options w-full border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 border bg-yellow-50 font-mono text-sm auto-grow" rows="3" placeholder="非常滿意&#10;普通&#10;不滿意" oninput="app.markDirty(); app.autoGrow(this)">${options}</textarea>
                     </div>`;
                 }
                 
                 container.appendChild(card);
+                
+                // Initialize auto-grow for new elements
+                card.querySelectorAll('.auto-grow').forEach(el => app.autoGrow(el));
             },
             renumberQuestions: () => { 
                 // Only renumber actual questions, not sections
@@ -962,6 +1131,7 @@
                     const surveyData = { title, description, questions, updatedAt: serverTimestamp() };
                     const surveyRef = doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', currentSurveyId);
                     await setDoc(surveyRef, surveyData, { merge: true });
+                    app.clearDirty();
                     showToast("儲存成功");
                     setTimeout(() => window.app.showDashboard(), 1000);
                 } catch (e) { if (e.message !== "Title required") showToast("儲存失敗", "error"); } finally { saveBtn.disabled = false; saveBtn.innerHTML = originalBtnText; }
@@ -1111,24 +1281,24 @@
                         } else if (q.type === 'radio') {
                             const optionsCount = q.options.length;
                             
-                            let gridClass = `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${Math.min(optionsCount, 5)} gap-3`;
-                            if(optionsCount > 5) gridClass = `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${Math.min(optionsCount, 7)} gap-3`;
-
+                            let gridClass = `grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-${Math.min(optionsCount, 7)} gap-2`;
+                            
                             inputHtml = `<div class="${gridClass}">` + 
                                 q.options.map(opt => {
                                     const emoji = getEmojiForScale(opt, idx, optionsCount);
-                                    const emojiHtml = emoji ? `<div class="text-3xl mb-2">${emoji}</div>` : '';
-                                    // Add onchange handler for auto-scroll
+                                    const colorClass = getColorClassForScale(opt, optionsCount); // NEW: Color Logic
+                                    const emojiHtml = emoji ? `<div class="text-xl md:text-3xl mb-1">${emoji}</div>` : '';
+                                    
                                     return `
                                     <label class="cursor-pointer relative group">
                                         <input type="radio" name="${name}" value="${opt}" ${reqAttr} class="peer sr-only" onchange="app.updateProgressBar(); setTimeout(() => { 
                                             const next = document.getElementById('pq-${idx+1}'); 
-                                            // Ensure we don't scroll to a section header by accident if it's the immediate next thing, actually scrolling to section is fine.
                                             if(next) next.scrollIntoView({behavior: 'smooth', block: 'center'}); 
                                         }, 300)">
-                                        <div class="h-full p-2 md:p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition flex flex-col items-center justify-center text-center min-h-[60px]">
+                                        <!-- Applied color class to the card -->
+                                        <div class="h-full p-2 md:p-4 border-2 rounded-lg hover:border-blue-300 transition flex flex-col items-center justify-center text-center min-h-[60px] ${colorClass}">
                                             ${emojiHtml}
-                                            <div class="text-xs md:text-sm font-bold text-gray-700 peer-checked:text-blue-700 break-words leading-tight">${opt}</div>
+                                            <div class="text-xs md:text-sm font-bold text-gray-700 break-words leading-tight">${opt}</div>
                                         </div>
                                     </label>
                                 `}).join('') + `</div>`;
