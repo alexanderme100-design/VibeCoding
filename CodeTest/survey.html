@@ -14,7 +14,7 @@
         
         /* 2. 動畫 */
         .fade-in { animation: fadeIn 0.4s ease-in-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
         /* 3. 選項互動樣式 */
         input:checked + div { 
@@ -24,11 +24,30 @@
             background-color: #eff6ff; 
         }
 
-        /* 4. 錯誤震動 */
+        /* 4. 錯誤提示震動 */
         .error-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; background-color: #fef2f2 !important; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
 
-        /* 5. 工具類 */
+        /* 5. 背景動態光暈 (讓畫面感覺活著) */
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob { animation: blob 7s infinite; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+
+        /* 6. 成功打勾彈跳動畫 */
+        @keyframes success-pop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-success-pop { animation: success-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        /* 工具類 */
         .tap-target { min-height: 48px; cursor: pointer; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom, 20px); }
         .question-card.dragging { opacity: 0.5; border: 2px dashed #3b82f6; background-color: #eff6ff; }
@@ -36,7 +55,7 @@
         .drag-handle:active { cursor: grabbing; }
         .locked-input { background-color: #f9fafb; border-color: #e5e7eb; color: #6b7280; cursor: not-allowed; }
         
-        /* 6. 量表顏色 */
+        /* 量表顏色 */
         .likert-opt-1 { color: #ef4444; border-color: #fca5a5; background-color: #fef2f2; } 
         .likert-opt-2 { color: #f97316; border-color: #fdba74; background-color: #fff7ed; } 
         .likert-opt-3 { color: #eab308; border-color: #fde047; background-color: #fefce8; } 
@@ -45,10 +64,9 @@
         .opt-default { color: #374151; border-color: #e5e7eb; background-color: white; }
     </style>
 
-    <!-- 全域工具函式 (優先載入) -->
     <script>
         window.app = {}; 
-        
+
         window.showToast = function(msg, type = 'success') {
             const toast = document.getElementById('toast');
             const icon = document.getElementById('toast-icon');
@@ -66,20 +84,17 @@
             setTimeout(() => { toast.style.transform = 'translateX(120%)'; }, 3000);
         };
 
-        // 防呆 DOM 獲取
         window.safeGet = function(id) {
             const el = document.getElementById(id);
             if (!el) return { classList: { remove:()=>{}, add:()=>{}, toggle:()=>{}, contains:()=>false }, style: {}, value: '', disabled: false, innerHTML: '', addEventListener: ()=>{} }; 
             return el;
         };
 
-        // XSS 防護
         window.escapeHtml = function(text) {
             if (text === null || text === undefined) return '';
             return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
 
-        // 全域錯誤攔截
         window.onerror = function(msg, url, line, col, error) {
             const errorDiv = document.getElementById('global-error');
             const errorMsg = document.getElementById('global-error-msg');
@@ -87,12 +102,10 @@
                 errorDiv.classList.remove('hidden');
                 errorMsg.innerText = `${msg} (Line: ${line})`;
             }
-            console.error("Global Error:", msg, error);
             const loading = document.getElementById('loading-view');
             if(loading) loading.classList.add('hidden');
         };
 
-        // 自動捲動邏輯
         window.scrollToNext = function(currentElement) {
             const currentCard = currentElement.closest('.public-q-item');
             if (!currentCard) return;
@@ -106,6 +119,15 @@
                 }, 300);
             }
         };
+        
+        // 嘗試關閉視窗
+        window.closeWindow = function() {
+            try {
+                window.close();
+            } catch(e) {
+                console.log("Script cannot close window");
+            }
+        }
     </script>
 </head>
 <body class="text-gray-800">
@@ -230,11 +252,31 @@
             </div>
         </div>
 
-        <!-- 5. 感謝頁 -->
-        <div id="view-thankyou" class="hidden flex flex-col items-center justify-center min-h-[60vh] text-center fade-in px-4">
-            <div class="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-6"><i class="fa-solid fa-check text-4xl"></i></div>
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">感謝您的填寫！</h2>
-            <p class="text-gray-500">您的回覆已成功送出。</p>
+        <!-- 5. 感謝頁 (動態版) -->
+        <div id="view-thankyou" class="hidden flex flex-col items-center justify-center min-h-[90vh] text-center fade-in px-4 relative overflow-hidden">
+            <!-- 動態背景 -->
+            <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+                 <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-green-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
+                 <div class="absolute top-1/3 right-1/4 w-64 h-64 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
+                 <div class="absolute bottom-1/4 left-1/3 w-64 h-64 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
+            </div>
+            
+            <div class="relative z-10 bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-white shadow-xl w-full max-w-sm">
+                <!-- 彈跳動畫 -->
+                <div class="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-success-pop">
+                    <i class="fa-solid fa-check text-5xl"></i>
+                </div>
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">感謝您的填寫！</h2>
+                <p class="text-gray-600 mb-8">您的回覆已成功送出。</p>
+                
+                <div class="border-t border-gray-200 pt-6">
+                    <p class="text-sm text-gray-500 mb-3">您現在可以安全地關閉此視窗</p>
+                    <button onclick="window.closeWindow()" class="w-full bg-gray-800 text-white font-bold py-3 rounded-xl shadow hover:bg-gray-700 transition transform active:scale-95 flex items-center justify-center gap-2">
+                        <span>關閉視窗</span> <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    <p class="text-xs text-gray-400 mt-2">(若按鈕無效，請直接關閉瀏覽器分頁)</p>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -324,14 +366,12 @@
             let survey = state.surveysCache[surveyId];
             if (!survey) {
                 try {
-                    showToast("資料下載中...", "info");
-                    const docRef = doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', surveyId);
-                    const snap = await getDoc(docRef);
-                    if (snap.exists()) {
+                    const snap = await getDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', surveyId));
+                    if(snap.exists()) {
                         survey = { id: snap.id, ...snap.data() };
                         state.surveysCache[surveyId] = survey;
                     } else {
-                        return showToast("問卷不存在或已刪除", "error");
+                        return showToast("問卷不存在", "error");
                     }
                 } catch (e) { return showToast("資料讀取失敗", "error"); }
             }
@@ -429,7 +469,7 @@
                         questions.push({ type: type, text, required: req, options: opts });
                     }
                 });
-                const data = { title, description: desc, questions, updatedAt: serverTimestamp(), status: state.surveysCache[state.currentSurveyId]?.status || 'draft' };
+                const data = { title, description: desc, questions, updatedAt: serverTimestamp(), status: state.surveysCache[state.currentSurveyId]?.status || 'published' };
                 await setDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', state.currentSurveyId), data, {merge: true});
                 state.isDirty = false; updateDirtyUI(); showToast('儲存成功');
                 state.surveysCache[state.currentSurveyId] = { ...data, id: state.currentSurveyId };
@@ -540,10 +580,6 @@
             safeGet(id).classList.remove('hidden');
             window.scrollTo(0,0);
         }
-        function updateLock(isLocked) {
-            // Removed input disabling logic
-            // Removed hidden toggles for toolbar/banners
-        }
         function updateDirtyUI() { safeGet('unsaved-badge').classList.toggle('hidden', !state.isDirty); }
         
         function renderList() {
@@ -576,7 +612,7 @@
                 
                 const form = safeGet('public-form');
                 form.innerHTML = (data.questions || []).map((q, idx) => {
-                    if (q.type === 'section') return `<div class="public-q-item border-b pb-2 mb-6 mt-8" data-type="section"><h3 class="text-xl font-bold text-blue-800">${escapeHtml(q.text)}</h3><p class="text-gray-600">${escapeHtml(q.description)}</p></div>`;
+                    if (q.type === 'section') return `<div class="public-q-item border-b pb-2 mb-6 mt-8" data-type="section"><h3 class="text-xl font-bold text-blue-800">${escapeHtml(q.text)}</h3><p class="text-gray-600 whitespace-pre-wrap">${escapeHtml(q.description)}</p></div>`;
                     
                     const name = `q_${idx}`;
                     const reqAttr = q.required ? 'data-req="true"' : '';
