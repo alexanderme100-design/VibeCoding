@@ -18,6 +18,7 @@
             min-height: 100vh;
             background-color: #f3f4f6;
             font-family: 'Noto Sans TC', sans-serif;
+            /* 修正 iOS 點擊高亮顏色 */
             -webkit-tap-highlight-color: transparent;
         }
         
@@ -36,7 +37,7 @@
             font-weight: bold;
         }
 
-        /* 手機優化：點擊區域 */
+        /* 手機優化：確保點擊區域夠大 (48px) */
         .tap-target {
             min-height: 48px;
         }
@@ -199,7 +200,7 @@
 
         <!-- Editor View -->
         <div id="editor-view" class="hidden fade-in pb-32 max-w-4xl mx-auto">
-            <!-- Locked Banner (New) -->
+            <!-- Locked Banner -->
             <div id="locked-banner" class="hidden bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 p-4 mb-4 sticky top-[60px] z-30 shadow-md">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
@@ -288,6 +289,7 @@
             </div>
 
             <!-- Survey Form -->
+            <!-- 使用 button type="button" 觸發 submitResponse，避免預設提交行為導致的體驗問題 -->
             <form id="public-form" class="bg-white shadow-lg md:rounded-b-2xl p-5 md:p-8 space-y-8 mt-4 md:mt-0 rounded-xl md:rounded-none">
                 <div id="public-questions" class="space-y-10">
                     <!-- Questions injected here -->
@@ -314,11 +316,14 @@
     <!-- Modal (Preview) -->
     <div id="preview-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-[60] flex items-center justify-center fade-in p-0 md:p-4">
         <div class="bg-gray-100 w-full h-full md:max-w-[400px] md:h-[80vh] md:rounded-3xl shadow-2xl flex flex-col overflow-hidden relative border-8 border-gray-800">
+            <!-- Mock Phone Header -->
             <div class="bg-gray-800 text-white px-4 py-2 flex justify-between items-center text-xs">
                 <span>9:41</span>
                 <div class="flex gap-1"><i class="fa-solid fa-signal"></i> <i class="fa-solid fa-wifi"></i> <i class="fa-solid fa-battery-full"></i></div>
             </div>
+            <!-- Preview Content Frame -->
             <div class="flex-1 overflow-y-auto bg-f3f4f6 scrollbar-hide relative" id="preview-container"></div>
+            <!-- Close Button -->
             <button onclick="document.getElementById('preview-modal').classList.add('hidden')" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white rounded-full p-3 shadow-lg hover:bg-gray-700 transition z-50 tap-target flex items-center justify-center w-12 h-12">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
@@ -332,13 +337,15 @@
                 <h3 class="text-lg font-bold text-gray-800"><i class="fa-solid fa-bolt text-yellow-500 mr-2"></i>批量新增</h3>
                 <button onclick="document.getElementById('batch-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
+            
             <div class="overflow-y-auto flex-1 pr-2">
                 <div class="mb-4">
-                    <label class="block text-sm font-bold text-gray-700 mb-1">題目列表 (一行一題，可自動編號)</label>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">題目列表 (一行一題)</label>
                     <textarea id="batch-text" rows="6" class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 text-sm text-base" placeholder="例如：
 1. 您對環境滿意嗎？
 2. 服務人員態度如何？"></textarea>
                 </div>
+
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-700 mb-1">類型</label>
                     <select id="batch-type" onchange="app.toggleBatchSettings()" class="w-full border-gray-300 rounded-lg p-2.5 border bg-white text-sm text-base">
@@ -347,6 +354,8 @@
                         <option value="radio">單選題</option>
                     </select>
                 </div>
+
+                <!-- Likert Settings -->
                 <div id="batch-likert-settings" class="hidden bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
                     <div class="flex gap-4 items-center">
                         <div class="flex-1">
@@ -361,6 +370,7 @@
                     </div>
                 </div>
             </div>
+
             <div class="pt-4 border-t border-gray-100 flex justify-end gap-2">
                 <button onclick="document.getElementById('batch-modal').classList.add('hidden')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg tap-target">取消</button>
                 <button onclick="app.processBatchImport(); app.markDirty()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow tap-target">匯入</button>
@@ -380,7 +390,10 @@
                     <button onclick="document.getElementById('results-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 ml-2 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
                 </div>
             </div>
-            <div id="results-content" class="overflow-y-auto flex-1 space-y-6 p-2"></div>
+            
+            <div id="results-content" class="overflow-y-auto flex-1 space-y-6 p-2">
+                <div class="text-center text-gray-500 py-10">載入中...</div>
+            </div>
         </div>
     </div>
 
@@ -393,10 +406,13 @@
                 <input type="text" id="share-link-input" readonly class="w-full bg-gray-50 border border-gray-300 text-gray-600 text-sm rounded-lg p-2.5 text-base">
                 <button onclick="app.copyLink()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg text-sm font-medium whitespace-nowrap tap-target">複製</button>
             </div>
+            
+            <!-- QR Code Area -->
             <div class="text-center bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <div class="text-xs text-gray-500 mb-2 uppercase font-bold tracking-wider">手機掃描填寫</div>
                 <img id="share-qr-img" src="" alt="QR Code" class="mx-auto w-40 h-40 bg-gray-200 rounded">
             </div>
+
             <button onclick="document.getElementById('share-modal').classList.add('hidden')" class="w-full mt-4 py-2 text-gray-500 hover:bg-gray-50 rounded-lg tap-target">關閉</button>
         </div>
     </div>
@@ -424,6 +440,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, GoogleAuthProvider, signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Configuration
         const firebaseConfig = {
           apiKey: "AIzaSyAexk_JbIOQWV1Jw7hqfiZDDZYY9YF-Sdk",
           authDomain: "survey-49e8d.firebaseapp.com",
@@ -438,13 +455,14 @@
         let currentSurveyId = null;
         let publicSurveyOwnerId = null;
         let surveysCache = {};
-        let isDirty = false;
+        let isDirty = false; // Track unsaved changes
 
         const urlParams = new URLSearchParams(window.location.search);
         const publicModeSurveyId = urlParams.get('s');
         const publicModeOwnerId = urlParams.get('u');
         const isPublicMode = publicModeSurveyId && publicModeOwnerId;
 
+        // Security: Escape HTML to prevent XSS
         function escapeHtml(text) {
             if (!text) return text;
             return String(text)
@@ -455,6 +473,7 @@
                 .replace(/'/g, "&#039;");
         }
 
+        // Check for local file protocol
         if (window.location.protocol === 'file:') {
             document.getElementById('file-protocol-warning').classList.remove('hidden');
         }
@@ -464,11 +483,13 @@
             auth = getAuth(app);
             db = getFirestore(app);
             
+            // Auth Flow
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                 signInWithCustomToken(auth, __initial_auth_token);
             } else if (isPublicMode) {
+                // Public mode auth attempt
                 signInAnonymously(auth).catch(e => {
-                    console.error("Auth Failed", e);
+                    console.error("Anon Auth Failed:", e);
                     setTimeout(() => {
                         document.getElementById('loading-error').classList.remove('hidden');
                         document.getElementById('debug-info').textContent = "Auth Error: " + e.code;
@@ -481,6 +502,7 @@
             document.getElementById('debug-info').textContent = "Init Error: " + e.message;
         }
 
+        // Safety Timeout for Loading Screen
         setTimeout(() => {
             const loading = document.getElementById('loading-view');
             if (!loading.classList.contains('hidden') && document.getElementById('loading-error').classList.contains('hidden')) {
@@ -489,6 +511,7 @@
             }
         }, 8000);
 
+        // --- Drag and Drop Logic ---
         const initSortable = () => {
             const container = document.getElementById('questions-container');
             container.addEventListener('dragover', e => {
@@ -516,8 +539,17 @@
             }, { offset: Number.NEGATIVE_INFINITY }).element;
         };
 
-        window.addEventListener('DOMContentLoaded', () => { initSortable(); });
-        window.addEventListener('beforeunload', (e) => { if (isDirty) { e.preventDefault(); e.returnValue = ''; } });
+        window.addEventListener('DOMContentLoaded', () => {
+            initSortable();
+        });
+
+        // --- Unsaved Changes Protection ---
+        window.addEventListener('beforeunload', (e) => {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
 
         onAuthStateChanged(auth, (currentUser) => {
             document.getElementById('loading-view').classList.add('hidden');
@@ -544,13 +576,21 @@
                     document.getElementById('editor-view').classList.add('hidden');
                     document.getElementById('login-view').classList.remove('hidden');
                 } else {
+                    // Public mode fallback
                     const main = document.getElementById('main-container');
-                    main.innerHTML = `<div class="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 fade-in"><div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6"><i class="fa-solid fa-user-lock text-4xl text-red-500"></i></div><h2 class="text-xl font-bold text-gray-800 mb-2">無法載入問卷</h2><p class="text-gray-500 mb-6 max-w-md">系統無法驗證您的身份。這通常是因為此網域未被授權連接至資料庫。</p></div>`;
+                    main.innerHTML = `
+                        <div class="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 fade-in">
+                            <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
+                                <i class="fa-solid fa-user-lock text-4xl text-red-500"></i>
+                            </div>
+                            <h2 class="text-xl font-bold text-gray-800 mb-2">無法載入問卷</h2>
+                            <p class="text-gray-500 mb-6 max-w-md">系統無法驗證您的身份。這通常是因為此網域未被授權連接至資料庫。</p>
+                        </div>
+                    `;
                 }
             }
         });
 
-        // Emojis and Colors
         function getEmojiForScale(text, index, total) {
             const match = text.match(/^[\(]?(\d+)[\)\.]?/);
             if (match) {
@@ -598,17 +638,19 @@
             loginWithEmail: async () => { /* ... (Same auth logic) */
                 const email = document.getElementById('auth-email').value;
                 const password = document.getElementById('auth-password').value;
-                try { await signInWithEmailAndPassword(auth, email, password); } catch(e){ showToast("Error: "+e.code, "error"); }
+                try { await signInWithEmailAndPassword(auth, email, password); } 
+                catch (error) { showToast("登入失敗: " + error.code, "error"); }
             },
             registerWithEmail: async () => {
                 const email = document.getElementById('auth-email').value;
                 const password = document.getElementById('auth-password').value;
-                try { await createUserWithEmailAndPassword(auth, email, password); } catch(e){ showToast("Error: "+e.code, "error"); }
+                try { await createUserWithEmailAndPassword(auth, email, password); showToast("註冊成功"); } 
+                catch (error) { showToast("註冊失敗: " + error.code, "error"); }
             },
             logout: async () => { await signOut(auth); location.reload(); },
 
             showDashboard: () => {
-                if (isDirty && !confirm("未儲存的變更將會遺失，確定嗎？")) return;
+                if (isDirty && !confirm("您有未儲存的變更，確定要離開嗎？")) return;
                 app.clearDirty();
                 document.getElementById('editor-view').classList.add('hidden');
                 document.getElementById('dashboard-view').classList.remove('hidden');
@@ -620,14 +662,6 @@
                 currentSurveyId = crypto.randomUUID();
                 document.getElementById('survey-title').value = '';
                 document.getElementById('survey-desc').value = '';
-                // Enable inputs
-                document.getElementById('survey-title').disabled = false;
-                document.getElementById('survey-desc').disabled = false;
-                document.getElementById('locked-banner').classList.add('hidden');
-                document.getElementById('editor-actions').classList.remove('hidden');
-                document.getElementById('save-bar').classList.remove('hidden');
-                document.getElementById('btn-batch-import').classList.remove('hidden');
-                
                 document.getElementById('questions-container').innerHTML = '';
                 window.app.addQuestionUI();
                 document.getElementById('dashboard-view').classList.add('hidden');
@@ -635,12 +669,11 @@
                 window.scrollTo(0, 0);
                 app.clearDirty(); 
             },
-            
-            // --- UPDATED EDIT SURVEY (LOCK LOGIC) ---
             editSurvey: (surveyId) => {
                 const survey = surveysCache[surveyId];
                 if (!survey) return showToast("讀取失敗", "error");
                 
+                // Safety parse check
                 try {
                     currentSurveyId = surveyId;
                     document.getElementById('survey-title').value = survey.title || '';
@@ -685,181 +718,317 @@
                 }
             },
 
-            openShareModal: (id) => {
-                const survey = surveysCache[id];
-                if (!survey) return;
+            openPreviewModal: () => {
+                const title = escapeHtml(document.getElementById('survey-title').value);
+                const desc = escapeHtml(document.getElementById('survey-desc').value);
+                
+                let html = `
+                    <div class="bg-blue-600 text-white p-6 pb-8">
+                        <h1 class="text-xl font-bold mb-2">${title || '預覽標題'}</h1>
+                        <p class="text-blue-100 text-sm whitespace-pre-wrap">${desc || '問卷說明...'}</p>
+                    </div>
+                    <div class="p-4 space-y-6 -mt-4">
+                `;
 
-                // --- PUBLISH CONFIRMATION LOGIC ---
-                if (survey.status !== 'published') {
-                    if (confirm("【重要】發布後問卷將會「鎖定」，無法再修改題目以確保統計資料正確。\n\n確定要發布並鎖定嗎？")) {
-                        // Update DB to published
-                        const surveyRef = doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', id);
-                        updateDoc(surveyRef, { status: 'published' }).then(() => {
-                            showToast("問卷已發布並鎖定");
-                            loadSurveys(); // Refresh local cache
-                        }).catch(err => {
-                            console.error(err);
-                            showToast("發布失敗，請重試", "error");
-                        });
-                        // Proceed to show link anyway, or wait? 
-                        // It's safer to just show link now as user expects it.
+                const cards = document.querySelectorAll('.question-card');
+                cards.forEach((card, idx) => {
+                    const typeInput = card.querySelector('.question-type');
+                    const type = typeInput ? typeInput.value : card.querySelector('select.question-type').value;
+                    const text = escapeHtml(card.querySelector('.question-input').value);
+                    
+                    if (type === 'section') {
+                        const sectionDesc = escapeHtml(card.querySelector('.question-desc-input').value);
+                        html += `
+                        <div class="pt-2 pb-1 border-b border-gray-300">
+                            <h3 class="font-bold text-lg text-gray-800 border-l-4 border-orange-400 pl-2 mb-1">${text}</h3>
+                            <div class="text-sm text-gray-600 whitespace-pre-wrap">${sectionDesc}</div>
+                        </div>`;
                     } else {
-                        return; // Cancelled
-                    }
-                }
+                        const required = card.querySelector('.question-required').checked;
+                        const reqMark = required ? '<span class="text-red-500">*</span>' : '';
+                        let inputHtml = '';
+                        
+                        if (type === 'text') {
+                            inputHtml = `<input type="text" disabled class="w-full border-gray-300 rounded p-2 border bg-gray-50 text-base" placeholder="預覽模式無法填寫">`;
+                        } else {
+                            const optionsText = card.querySelector('.question-options').value;
+                            const options = optionsText.split('\n').map(o=>o.trim()).filter(o=>o);
+                            const optionsCount = options.length;
+                            
+                            let gridClass = (type === 'radio') ? `grid grid-cols-3 gap-2` : `space-y-2`;
+                            if (type === 'radio' && optionsCount > 7) gridClass = `grid grid-cols-4 gap-1`; 
 
-                const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${user.uid}`;
-                document.getElementById('share-link-input').value = link;
-                document.getElementById('share-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}`;
-                document.getElementById('share-modal').classList.remove('hidden');
+                            if (type === 'radio') {
+                                inputHtml = `<div class="${gridClass}">` + options.map((opt, i) => {
+                                    const emoji = getEmojiForScale(opt, i, optionsCount);
+                                    const colorClass = getColorClassForScale(opt, optionsCount);
+                                    const emojiHtml = emoji ? `<div class="text-lg">${emoji}</div>` : '';
+                                    return `
+                                    <div class="border rounded p-2 flex flex-col items-center justify-center text-center bg-white ${colorClass} opacity-80">
+                                        ${emojiHtml}
+                                        <div class="text-xs font-bold mt-1">${escapeHtml(opt)}</div>
+                                    </div>`;
+                                }).join('') + `</div>`;
+                            } else {
+                                inputHtml = `<div class="space-y-2">` + options.map(opt => `
+                                    <div class="flex items-center gap-2 text-sm text-gray-700">
+                                        <div class="w-4 h-4 border rounded bg-white"></div> ${escapeHtml(opt)}
+                                    </div>`).join('') + `</div>`;
+                            }
+                        }
+
+                        html += `
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            <div class="font-bold text-gray-800 mb-2 text-sm">${text} ${reqMark}</div>
+                            ${inputHtml}
+                        </div>`;
+                    }
+                });
+
+                html += `</div>`;
+                
+                document.getElementById('preview-container').innerHTML = html;
+                document.getElementById('preview-modal').classList.remove('hidden');
             },
 
-            // ... (copyLink, moveQuestion, etc. same as before)
-            copyLink: () => { const input = document.getElementById('share-link-input'); input.select(); document.execCommand('copy'); showToast("連結已複製"); },
-            moveQuestion: (id, direction) => { /* Same logic */
+            moveQuestion: (id, direction) => {
                 const card = document.getElementById(`q-${id}`);
                 const container = document.getElementById('questions-container');
-                if (direction === -1 && card.previousElementSibling) container.insertBefore(card, card.previousElementSibling);
-                else if (direction === 1 && card.nextElementSibling) container.insertBefore(card.nextElementSibling, card);
+                if (direction === -1) {
+                    if (card.previousElementSibling) container.insertBefore(card, card.previousElementSibling);
+                } else {
+                    if (card.nextElementSibling) container.insertBefore(card.nextElementSibling, card);
+                }
+                window.app.renumberQuestions();
                 app.markDirty();
             },
+
             openBatchModal: () => {
                 document.getElementById('batch-modal').classList.remove('hidden');
                 document.getElementById('batch-text').value = '';
+                document.getElementById('batch-type').value = 'text';
                 window.app.toggleBatchSettings();
             },
             toggleBatchSettings: () => {
                 const type = document.getElementById('batch-type').value;
-                if(type === 'likert') document.getElementById('batch-likert-settings').classList.remove('hidden');
-                else document.getElementById('batch-likert-settings').classList.add('hidden');
+                const settingDiv = document.getElementById('batch-likert-settings');
+                if(type === 'likert') settingDiv.classList.remove('hidden');
+                else settingDiv.classList.add('hidden');
             },
-            processBatchImport: () => { /* Same logic */
+            processBatchImport: () => {
                 const text = document.getElementById('batch-text').value;
                 const type = document.getElementById('batch-type').value;
                 const scale = parseInt(document.getElementById('likert-scale').value);
+                
                 if(!text.trim()) return showToast("請輸入題目", "error");
+
                 const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+                
                 lines.forEach(line => {
                     let qData = { text: line, type: 'text', options: [], required: true };
-                    if(type === 'radio') { qData.type = 'radio'; qData.options = ['選項1', '選項2']; }
-                    else if(type === 'likert') {
-                        qData.type = 'radio'; qData.options = [];
+                    
+                    if(type === 'radio') {
+                        qData.type = 'radio';
+                        qData.options = ['選項1', '選項2']; 
+                    } else if(type === 'likert') {
+                        qData.type = 'radio';
+                        qData.options = [];
                         for(let i=1; i<=scale; i++) {
                             let label = `(${i})`;
-                            if(i===1) label += " 非常不滿意"; else if(i===scale) label += " 非常滿意";
+                            if(i === 1) label += " 非常不滿意";
+                            else if(i === scale) label += " 非常滿意";
+                            else if(scale === 5 && i===3) label += " 普通";
+                            else if(scale === 7 && i===4) label += " 普通";
                             qData.options.push(label);
                         }
                     }
                     window.app.addQuestionUI(qData);
                 });
+
                 document.getElementById('batch-modal').classList.add('hidden');
                 showToast(`已新增 ${lines.length} 個題目`);
                 app.markDirty();
             },
-            duplicateSurvey: async (surveyId) => { /* Same logic */ 
+
+            duplicateSurvey: async (surveyId) => {
                 const survey = surveysCache[surveyId];
                 if(!survey) return;
-                if(!confirm(`確定要複製問卷「${survey.title}」嗎？`)) return;
+                
+                const confirmCopy = confirm(`確定要複製問卷「${survey.title}」嗎？`);
+                if(!confirmCopy) return;
+
                 try {
                     const newId = crypto.randomUUID();
-                    const newData = { ...survey, title: `${survey.title} (副本)`, updatedAt: serverTimestamp(), status: 'draft' }; // Reset status to draft
+                    const newData = {
+                        ...survey,
+                        title: `${survey.title} (副本)`,
+                        updatedAt: serverTimestamp()
+                    };
                     delete newData.id; 
+
                     await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', newId), newData);
-                    showToast("複製成功！"); loadSurveys();
-                } catch(e) { console.error(e); showToast("複製失敗", "error"); }
+                    showToast("複製成功！");
+                    loadSurveys();
+                } catch(e) {
+                    console.error(e);
+                    showToast("複製失敗", "error");
+                }
             },
-            exportToCSV: async (surveyId) => { /* Same logic */
-                // ... (Previous CSV export logic)
-                // For brevity, using the same logic block
+
+            exportToCSV: async (surveyId) => {
                 const btn = document.getElementById('export-btn');
                 const originalText = btn.innerHTML;
                 btn.innerText = "處理中...";
                 btn.disabled = true;
+
                 try {
                     const survey = surveysCache[surveyId];
                     const resRef = collection(db, 'artifacts', appId, 'users', user.uid, 'surveys', surveyId, 'responses');
                     const snapshot = await getDocs(resRef);
-                    if(snapshot.empty) { alert("目前沒有資料可以匯出。"); return; }
+                    
+                    if(snapshot.empty) {
+                        alert("目前沒有資料可以匯出。");
+                        return;
+                    }
+
                     let csvContent = "\uFEFF"; 
                     let headers = ["提交時間"];
                     survey.questions.forEach((q, idx) => {
-                        if(q.type === 'section') headers.push(`"SECTION: ${q.text.replace(/"/g, '""')}"`);
-                        else headers.push(`"Q${idx+1}: ${q.text.replace(/"/g, '""')}"`);
+                        if(q.type === 'section') {
+                            headers.push(`"SECTION: ${q.text.replace(/"/g, '""')}"`);
+                        } else {
+                            const safeText = q.text.replace(/"/g, '""');
+                            headers.push(`"Q${idx+1}: ${safeText}"`);
+                        }
                     });
                     csvContent += headers.join(",") + "\n";
+
                     snapshot.forEach(doc => {
                         const data = doc.data();
                         const time = data.submittedAt ? new Date(data.submittedAt.seconds * 1000).toLocaleString('zh-TW') : "未知時間";
                         let row = [`"${time}"`];
+                        
                         survey.questions.forEach((q, idx) => {
-                            if(q.type === 'section') row.push('""');
-                            else {
+                            if(q.type === 'section') {
+                                row.push('""');
+                            } else {
                                 let ans = data.answers && data.answers[idx];
                                 if(!ans) ans = "";
                                 if(Array.isArray(ans)) ans = ans.join("; "); 
-                                row.push(`"${String(ans).replace(/"/g, '""')}"`);
+                                ans = String(ans).replace(/"/g, '""');
+                                row.push(`"${ans}"`);
                             }
                         });
                         csvContent += row.join(",") + "\n";
                     });
+
                     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement("a");
                     link.setAttribute("href", url);
-                    link.setAttribute("download", `問卷匯出_${survey.title}.csv`);
-                    document.body.appendChild(link); link.click(); document.body.removeChild(link);
-                } catch(e) { console.error(e); showToast("匯出失敗", "error"); } finally { btn.innerHTML = originalText; btn.disabled = false; }
+                    link.setAttribute("download", `問卷匯出_${survey.title}_${new Date().toISOString().slice(0,10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                } catch(e) {
+                    console.error(e);
+                    showToast("匯出失敗", "error");
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
             },
-            viewResults: async (surveyId) => { /* Same logic */
+
+            viewResults: async (surveyId) => {
                 const survey = surveysCache[surveyId];
                 const modal = document.getElementById('results-modal');
                 const content = document.getElementById('results-content');
                 modal.classList.remove('hidden');
+                
                 document.getElementById('export-btn').onclick = () => app.exportToCSV(surveyId);
-                content.innerHTML = '<div class="text-center py-10"><i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-500"></i></div>';
+
+                content.innerHTML = '<div class="text-center py-10"><i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-500"></i><br>正在計算數據...</div>';
+
                 try {
                     const resRef = collection(db, 'artifacts', appId, 'users', user.uid, 'surveys', surveyId, 'responses');
                     const snapshot = await getDocs(resRef);
-                    if(snapshot.empty) { content.innerHTML = '<div class="text-center py-10 text-gray-500">目前還沒有人填寫這份問卷。</div>'; return; }
+                    
+                    if(snapshot.empty) {
+                        content.innerHTML = '<div class="text-center py-10 text-gray-500">目前還沒有人填寫這份問卷。</div>';
+                        return;
+                    }
+
                     let totalResponses = snapshot.size;
                     let stats = {}; 
+                    
                     (survey.questions || []).forEach((q, idx) => {
                         if (q.type === 'section') return; 
                         stats[idx] = { type: q.type, question: q.text, counts: {}, answers: [] };
                         if(q.options) q.options.forEach(opt => stats[idx].counts[opt] = 0);
                     });
+
                     snapshot.forEach(doc => {
                         const data = doc.data();
                         const answers = data.answers || {};
+                        
                         Object.keys(answers).forEach(qIdx => {
                             const val = answers[qIdx];
                             if(!stats[qIdx]) return;
-                            if(stats[qIdx].type === 'text') { if(val) stats[qIdx].answers.push(val); }
-                            else if (Array.isArray(val)) { val.forEach(v => { if(stats[qIdx].counts[v] !== undefined) stats[qIdx].counts[v]++; }); }
-                            else { if(stats[qIdx].counts[val] !== undefined) stats[qIdx].counts[val]++; }
+
+                            if(stats[qIdx].type === 'text') {
+                                if(val) stats[qIdx].answers.push(val);
+                            } else if (Array.isArray(val)) {
+                                val.forEach(v => {
+                                    if(stats[qIdx].counts[v] !== undefined) stats[qIdx].counts[v]++;
+                                });
+                            } else {
+                                if(stats[qIdx].counts[val] !== undefined) stats[qIdx].counts[val]++;
+                            }
                         });
                     });
+
                     let html = `<div class="mb-6 bg-blue-50 p-4 rounded-lg text-center font-bold text-blue-800">總填答人數：${totalResponses} 人</div>`;
+                    
                     Object.keys(stats).sort((a,b) => parseInt(a)-parseInt(b)).forEach(idx => {
                         const item = stats[idx];
-                        html += `<div class="bg-gray-50 p-4 rounded-xl border border-gray-200"><h4 class="font-bold text-gray-800 mb-3"><span class="bg-blue-200 text-blue-800 text-xs px-2 py-0.5 rounded mr-2">Q${parseInt(idx)+1}</span> ${escapeHtml(item.question)}</h4>`;
+                        html += `<div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                    <h4 class="font-bold text-gray-800 mb-3"><span class="bg-blue-200 text-blue-800 text-xs px-2 py-0.5 rounded mr-2">Q${parseInt(idx)+1}</span> ${escapeHtml(item.question)}</h4>`;
+                        
                         if(item.type === 'text') {
                             html += `<div class="max-h-40 overflow-y-auto space-y-2">`;
-                            item.answers.forEach(ans => { html += `<div class="text-sm bg-white p-2 rounded border border-gray-100 text-gray-600">${escapeHtml(ans)}</div>`; });
+                            if(item.answers.length === 0) html += `<div class="text-sm text-gray-400 italic">無回應</div>`;
+                            item.answers.forEach(ans => {
+                                html += `<div class="text-sm bg-white p-2 rounded border border-gray-100 text-gray-600">${escapeHtml(ans)}</div>`;
+                            });
                             html += `</div>`;
                         } else {
                             html += `<div class="space-y-3">`;
                             Object.keys(item.counts).forEach(opt => {
                                 const count = item.counts[opt];
                                 const percent = totalResponses > 0 ? Math.round((count / totalResponses) * 100) : 0;
-                                html += `<div><div class="flex justify-between text-xs text-gray-600 mb-1"><span>${escapeHtml(opt)}</span><span>${count} 票 (${percent}%)</span></div><div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-blue-600 h-2.5 rounded-full" style="width: ${percent}%"></div></div></div>`;
+                                html += `
+                                    <div>
+                                        <div class="flex justify-between text-xs text-gray-600 mb-1">
+                                            <span>${escapeHtml(opt)}</span>
+                                            <span>${count} 票 (${percent}%)</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                            <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${percent}%"></div>
+                                        </div>
+                                    </div>`;
                             });
                             html += `</div>`;
                         }
                         html += `</div>`;
                     });
+
                     content.innerHTML = html;
-                } catch (e) { console.error(e); content.innerHTML = '<div class="text-red-500 text-center">載入統計失敗</div>'; }
+
+                } catch (e) {
+                    console.error(e);
+                    content.innerHTML = '<div class="text-red-500 text-center">載入統計失敗</div>';
+                }
             },
 
             addQuestionUI: (data = null, isLocked = false) => {
@@ -873,27 +1042,25 @@
 
                 const card = document.createElement('div');
                 card.id = `q-${id}`;
-                if(!isLocked) {
-                    card.draggable = true; 
-                    card.addEventListener('dragstart', () => { card.classList.add('dragging'); });
-                    card.addEventListener('dragend', () => { card.classList.remove('dragging'); app.markDirty(); });
-                }
-
-                // UI components based on Locked state
-                const disabledAttr = isLocked ? 'disabled' : '';
-                const inputClass = isLocked ? 'locked-input' : 'bg-white';
-                const hideIfLocked = isLocked ? 'hidden' : '';
-                const dragClass = isLocked ? '' : 'cursor-grab active:cursor-grabbing drag-handle';
+                card.draggable = true; 
+                
+                card.addEventListener('dragstart', () => { card.classList.add('dragging'); });
+                card.addEventListener('dragend', () => { 
+                    card.classList.remove('dragging'); 
+                    window.app.renumberQuestions(); 
+                    app.markDirty();
+                });
 
                 if (type === 'section') {
-                    card.className = `question-card bg-orange-50 p-4 md:p-6 rounded-xl border-2 border-orange-200 shadow-sm relative group transition duration-200`;
+                    card.className = 'question-card bg-orange-50 p-4 md:p-6 rounded-xl border-2 border-orange-200 shadow-sm relative group transition duration-200';
                     card.innerHTML = `
                         <input type="hidden" class="question-type" value="section">
                         <div class="flex justify-between items-start mb-4">
-                            <div class="bg-orange-200 text-orange-800 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider flex items-center gap-1 ${dragClass}">
+                            <div class="bg-orange-200 text-orange-800 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider flex items-center gap-1 cursor-grab active:cursor-grabbing drag-handle">
+                                <i class="fa-solid fa-grip-vertical mr-1 opacity-50"></i>
                                 <i class="fa-solid fa-align-left"></i> 段落說明
                             </div>
-                            <div class="flex items-center gap-2 ${hideIfLocked}">
+                            <div class="flex items-center gap-2">
                                 <button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-orange-600 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button>
                                 <button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-orange-600 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-down"></i></button>
                                 <div class="h-4 w-px bg-orange-300 mx-1"></div>
@@ -903,21 +1070,22 @@
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-xs font-bold text-orange-800 uppercase mb-1">段落標題</label>
-                                <input type="text" class="question-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border ${inputClass} transition font-bold text-base" value="${escapeHtml(text)}" ${disabledAttr} oninput="app.markDirty()">
+                                <input type="text" class="question-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border bg-white transition font-bold text-base" placeholder="例如：第一部分 - 基本資料" value="${escapeHtml(text)}" oninput="app.markDirty()">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-orange-800 uppercase mb-1">詳細說明內容</label>
-                                <textarea class="question-desc-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border ${inputClass} transition auto-grow text-base" rows="3" ${disabledAttr} oninput="app.markDirty(); app.autoGrow(this)">${escapeHtml(description)}</textarea>
+                                <textarea class="question-desc-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border bg-white transition auto-grow text-base" rows="3" placeholder="請在此輸入針對此部分的詳細說明或解釋..." oninput="app.markDirty(); app.autoGrow(this)">${escapeHtml(description)}</textarea>
                             </div>
                         </div>`;
                 } else {
-                    card.className = `question-card bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm relative group hover:shadow-md transition duration-200`;
+                    card.className = 'question-card bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm relative group hover:shadow-md transition duration-200';
                     card.innerHTML = `
                     <div class="flex justify-between items-start mb-4">
-                        <div class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider ${dragClass}">
+                        <div class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider cursor-grab active:cursor-grabbing drag-handle">
+                            <i class="fa-solid fa-grip-vertical mr-1 opacity-50"></i>
                             問題
                         </div>
-                        <div class="flex items-center gap-2 ${hideIfLocked}">
+                        <div class="flex items-center gap-2">
                              <label class="flex items-center cursor-pointer select-none">
                                 <div class="relative">
                                     <input type="checkbox" class="sr-only peer question-required" ${isRequired ? 'checked' : ''} onchange="app.markDirty()">
@@ -926,6 +1094,7 @@
                                 <span class="ml-2 text-xs font-medium text-gray-500">必填</span>
                             </label>
                             <div class="h-4 w-px bg-gray-300 mx-1"></div>
+                            <!-- 上下移動按鈕 -->
                             <button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-blue-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button>
                             <button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-blue-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-down"></i></button>
                             <div class="h-4 w-px bg-gray-300 mx-1"></div>
@@ -935,11 +1104,11 @@
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                         <div class="md:col-span-8">
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">題目內容</label>
-                            <input type="text" class="question-input w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border ${inputClass} transition text-base" value="${escapeHtml(text)}" ${disabledAttr} oninput="app.markDirty()">
+                            <input type="text" class="question-input w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border bg-gray-50 focus:bg-white transition text-base" placeholder="例如：您對今天的服務滿意嗎？" value="${escapeHtml(text)}" oninput="app.markDirty()">
                         </div>
                         <div class="md:col-span-4">
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">題型</label>
-                            <select class="question-type w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border ${inputClass} text-base" ${disabledAttr} onchange="window.app.toggleOptions(this); app.markDirty()">
+                            <select class="question-type w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border bg-white text-base" onchange="window.app.toggleOptions(this); app.markDirty()">
                                 <option value="text" ${type === 'text' ? 'selected' : ''}>簡答題</option>
                                 <option value="radio" ${type === 'radio' ? 'selected' : ''}>單選題</option>
                                 <option value="checkbox" ${type === 'checkbox' ? 'selected' : ''}>多選題</option>
@@ -948,7 +1117,7 @@
                     </div>
                     <div class="options-area mt-4 ${type === 'text' ? 'hidden' : ''}">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">選項 (每行一個)</label>
-                        <textarea class="question-options w-full border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 border bg-yellow-50 font-mono text-sm auto-grow text-base ${inputClass}" rows="3" ${disabledAttr} oninput="app.markDirty(); app.autoGrow(this)">${escapeHtml(options)}</textarea>
+                        <textarea class="question-options w-full border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 border bg-yellow-50 font-mono text-sm auto-grow text-base" rows="3" placeholder="非常滿意&#10;普通&#10;不滿意" oninput="app.markDirty(); app.autoGrow(this)">${escapeHtml(options)}</textarea>
                     </div>`;
                 }
                 
@@ -956,51 +1125,102 @@
                 card.querySelectorAll('.auto-grow').forEach(el => app.autoGrow(el));
             },
             
-            openPreviewModal: () => { /* Same logic */ 
-                // ... (Preview logic from previous snippet)
-                const title = escapeHtml(document.getElementById('survey-title').value);
-                const desc = escapeHtml(document.getElementById('survey-desc').value);
-                let html = `<div class="bg-blue-600 text-white p-6 pb-8"><h1 class="text-xl font-bold mb-2">${title || '預覽標題'}</h1><p class="text-blue-100 text-sm whitespace-pre-wrap">${desc || '問卷說明...'}</p></div><div class="p-4 space-y-6 -mt-4">`;
-                const cards = document.querySelectorAll('.question-card');
-                cards.forEach((card, idx) => {
+            renumberQuestions: () => { 
+                // Only renumber actual questions, not sections
+                let qIndex = 0;
+                const badges = document.querySelectorAll('.question-card');
+                badges.forEach(card => {
                     const typeInput = card.querySelector('.question-type');
-                    const type = typeInput ? typeInput.value : card.querySelector('select.question-type').value;
-                    const text = escapeHtml(card.querySelector('.question-input').value);
-                    if (type === 'section') {
-                        const sectionDesc = escapeHtml(card.querySelector('.question-desc-input').value);
-                        html += `<div class="pt-2 pb-1 border-b border-gray-300"><h3 class="font-bold text-lg text-gray-800 border-l-4 border-orange-400 pl-2 mb-1">${text}</h3><div class="text-sm text-gray-600 whitespace-pre-wrap">${sectionDesc}</div></div>`;
-                    } else {
-                        const required = card.querySelector('.question-required').checked;
-                        const reqMark = required ? '<span class="text-red-500">*</span>' : '';
-                        let inputHtml = '';
-                        if (type === 'text') { inputHtml = `<input type="text" disabled class="w-full border-gray-300 rounded p-2 border bg-gray-50 text-base" placeholder="預覽模式無法填寫">`; } 
-                        else {
-                            const optionsText = card.querySelector('.question-options').value;
-                            const options = optionsText.split('\n').map(o=>o.trim()).filter(o=>o);
-                            const optionsCount = options.length;
-                            let gridClass = (type === 'radio') ? `grid grid-cols-3 gap-2` : `space-y-2`;
-                            if (type === 'radio' && optionsCount > 7) gridClass = `grid grid-cols-4 gap-1`; 
-                            if (type === 'radio') {
-                                inputHtml = `<div class="${gridClass}">` + options.map((opt, i) => {
-                                    const emoji = getEmojiForScale(opt, i, optionsCount);
-                                    const colorClass = getColorClassForScale(opt, optionsCount);
-                                    const emojiHtml = emoji ? `<div class="text-lg">${emoji}</div>` : '';
-                                    return `<div class="border rounded p-2 flex flex-col items-center justify-center text-center bg-white ${colorClass} opacity-80">${emojiHtml}<div class="text-xs font-bold mt-1">${escapeHtml(opt)}</div></div>`;
-                                }).join('') + `</div>`;
-                            } else {
-                                inputHtml = `<div class="space-y-2">` + options.map(opt => `<div class="flex items-center gap-2 text-sm text-gray-700"><div class="w-4 h-4 border rounded bg-white"></div> ${escapeHtml(opt)}</div>`).join('') + `</div>`;
-                            }
-                        }
-                        html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200"><div class="font-bold text-gray-800 mb-2 text-sm">${text} ${reqMark}</div>${inputHtml}</div>`;
+                    if (typeInput && typeInput.value === 'section') return; // Skip sections
+                    
+                    const badge = card.querySelector('.bg-blue-100'); // Note: selector might need adjustment if badge structure changes
+                    // Correctly target the text inside the badge div, excluding the icon
+                    if(badge) {
+                        qIndex++;
+                        // Preserve the icon if it exists, or just rewrite text
+                        badge.innerHTML = `<i class="fa-solid fa-grip-vertical mr-1 opacity-50"></i> 題目 ${qIndex}`;
                     }
                 });
-                html += `</div>`;
-                document.getElementById('preview-container').innerHTML = html;
-                document.getElementById('preview-modal').classList.remove('hidden');
+            },
+            toggleOptions: (selectEl) => {
+                const card = selectEl.closest('.question-card');
+                const optionsArea = card.querySelector('.options-area');
+                if (selectEl.value === 'text') optionsArea.classList.add('hidden');
+                else optionsArea.classList.remove('hidden');
+            },
+            saveSurvey: async () => {
+                if (!user) return;
+                const saveBtn = document.getElementById('save-btn');
+                const originalBtnText = saveBtn.innerHTML;
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 儲存中...';
+                try {
+                    const title = document.getElementById('survey-title').value.trim();
+                    const description = document.getElementById('survey-desc').value.trim();
+                    if (!title) { showToast("請輸入問卷標題", "error"); throw new Error("Title required"); }
+                    const cards = document.querySelectorAll('.question-card');
+                    const questions = Array.from(cards).map(card => {
+                        const type = card.querySelector('.question-type') ? card.querySelector('.question-type').value : card.querySelector('select.question-type').value;
+                        const text = card.querySelector('.question-input').value.trim();
+                        
+                        if (type === 'section') {
+                            const desc = card.querySelector('.question-desc-input').value.trim();
+                            return { type, text, description: desc };
+                        } else {
+                            const required = card.querySelector('.question-required').checked;
+                            let options = [];
+                            if (type !== 'text') options = card.querySelector('.question-options').value.split('\n').map(o => o.trim()).filter(o => o);
+                            return { type, text, options, required };
+                        }
+                    });
+                    const surveyData = { title, description, questions, updatedAt: serverTimestamp() };
+                    const surveyRef = doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', currentSurveyId);
+                    await setDoc(surveyRef, surveyData, { merge: true });
+                    app.clearDirty();
+                    showToast("儲存成功");
+                    setTimeout(() => window.app.showDashboard(), 1000);
+                } catch (e) { if (e.message !== "Title required") showToast("儲存失敗", "error"); } finally { saveBtn.disabled = false; saveBtn.innerHTML = originalBtnText; }
+            },
+            deleteSurvey: async (id) => {
+                try { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', id)); showToast("刪除成功"); loadSurveys(); } catch (e) { showToast("刪除失敗", "error"); }
+            },
+            requestDelete: (id) => {
+                const modal = document.getElementById('delete-modal');
+                const confirmBtn = document.getElementById('confirm-delete-btn');
+                modal.classList.remove('hidden');
+                const newBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+                newBtn.addEventListener('click', async () => { modal.classList.add('hidden'); await window.app.deleteSurvey(id); });
+            },
+            openShareModal: (id) => {
+                const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${user.uid}`;
+                document.getElementById('share-link-input').value = link;
+                document.getElementById('share-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}`;
+                document.getElementById('share-modal').classList.remove('hidden');
+            },
+            copyLink: () => {
+                const input = document.getElementById('share-link-input');
+                input.select();
+                document.execCommand('copy');
+                showToast("連結已複製");
             },
             
-            submitResponse: async () => { /* Same logic */
-                // ... (Submit logic from previous snippet)
+            // --- PUBLIC VIEW LOGIC (UPDATED) ---
+            updateProgressBar: () => {
+                const form = document.getElementById('public-form');
+                const total = document.querySelectorAll('.public-q-item[data-type!="section"]').length; 
+                if(total === 0) return;
+                const answered = new Set();
+                const formData = new FormData(form);
+                for(let [key, val] of formData.entries()) {
+                    if(val) answered.add(key);
+                }
+                const count = answered.size;
+                const percent = Math.round((count / total) * 100);
+                document.getElementById('progress-fill').style.width = `${percent}%`;
+            },
+            
+            submitResponse: async () => {
                 const form = document.getElementById('public-form');
                 if (!form.checkValidity()) {
                     const invalidElement = form.querySelector(':invalid');
@@ -1009,19 +1229,25 @@
                         if (card) {
                             card.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             card.classList.add('ring-2', 'ring-red-400', 'bg-red-50', 'rounded-lg');
-                            setTimeout(() => { card.classList.remove('ring-2', 'ring-red-400', 'bg-red-50', 'rounded-lg'); }, 2500);
+                            setTimeout(() => {
+                                card.classList.remove('ring-2', 'ring-red-400', 'bg-red-50', 'rounded-lg');
+                            }, 2500);
                         }
                     }
-                    showToast("還有題目未完成喔！", "error"); return;
+                    showToast("還有題目未完成喔！", "error");
+                    return;
                 }
+
                 const submitBtn = document.getElementById('submit-btn');
-                submitBtn.disabled = true; submitBtn.innerText = "提交中...";
+                submitBtn.disabled = true;
+                submitBtn.innerText = "提交中...";
                 try {
                     const formData = new FormData(form);
                     const answers = {};
                     document.querySelectorAll('.public-q-item').forEach((div, idx) => {
                         const type = div.dataset.type;
                         if (type === 'section') return; 
+
                         const name = `q_${idx}`;
                         if (type === 'checkbox') answers[idx] = formData.getAll(name);
                         else answers[idx] = formData.get(name);
