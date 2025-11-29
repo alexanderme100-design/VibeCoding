@@ -3,41 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Firebase 問卷系統</title>
+    <title>問卷の森</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- 引入圓潤字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
 
     <style>
-        html, body { overflow-x: hidden; min-height: 100vh; background-color: #f3f4f6; font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
+        /* 吉卜力風格基礎設定 */
+        :root {
+            --ghibli-cream: #FAF7F0;
+            --ghibli-sky: #D8E9F0;
+            --ghibli-green: #568A66;
+            --ghibli-green-dark: #3E664B;
+            --ghibli-brown: #8B5E3C;
+            --ghibli-red: #E67F65;
+            --ghibli-text: #4A4A4A;
+        }
+
+        html, body { 
+            overflow-x: hidden; 
+            min-height: 100dvh; 
+            background-color: var(--ghibli-cream); 
+            /* 加上淡淡的紙張紋理背景 */
+            background-image: radial-gradient(#E5E0D0 1px, transparent 1px);
+            background-size: 20px 20px;
+            font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif; 
+            color: var(--ghibli-text);
+            -webkit-tap-highlight-color: transparent; 
+        }
+        
         body { display: flex; flex-direction: column; }
-        .fade-in { animation: fadeIn 0.4s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        input:checked + div { transform: scale(0.98); box-shadow: inset 0 0 0 2px currentColor; font-weight: bold; background-color: #eff6ff; }
-        .tap-target { min-height: 48px; }
-        .progress-transition { transition: width 0.3s ease-out; }
+        
+        /* 柔和的浮現動畫 */
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        
+        /* 吉卜力風格卡片 */
+        .ghibli-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 
+                0 4px 6px -1px rgba(0, 0, 0, 0.05), 
+                0 10px 15px -3px rgba(86, 138, 102, 0.1); /* 淡淡的綠色陰影 */
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        /* 選項互動 */
+        input:checked + div { 
+            transform: scale(0.98) translateY(2px); 
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); 
+            font-weight: bold; 
+            background-color: #F0F7F4; /* 極淡的綠 */
+            border-color: var(--ghibli-green);
+            color: var(--ghibli-green-dark);
+        }
+
+        /* 按鈕風格：像果實或寶石 */
+        .btn-ghibli-primary {
+            background-color: var(--ghibli-green);
+            color: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 0 var(--ghibli-green-dark);
+            transition: all 0.1s;
+        }
+        .btn-ghibli-primary:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 var(--ghibli-green-dark);
+        }
+        .btn-ghibli-primary:disabled {
+            background-color: #ccc;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 錯誤震動 */
+        .error-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: var(--ghibli-red) !important; background-color: #FFF5F5 !important; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+
+        /* 雲朵裝飾 (純 CSS) */
+        .cloud {
+            position: absolute;
+            background: white;
+            border-radius: 100px;
+            box-shadow: 0 8px 5px rgba(0,0,0,0.05);
+            z-index: -1;
+        }
+        .cloud::after, .cloud::before {
+            content: ''; position: absolute; background: white; z-index: -1;
+        }
+        .cloud-1 { width: 100px; height: 40px; top: 20px; left: -10px; opacity: 0.8; animation: float 20s infinite linear; }
+        .cloud-2 { width: 160px; height: 60px; top: 50px; right: -30px; opacity: 0.6; animation: float 35s infinite linear reverse; }
+        @keyframes float { 0% { transform: translateX(0); } 50% { transform: translateX(20px); } 100% { transform: translateX(0); } }
+
+        .tap-target { min-height: 48px; cursor: pointer; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom, 20px); }
-        .question-card.dragging { opacity: 0.5; border: 2px dashed #3b82f6; background-color: #eff6ff; }
+        .question-card.dragging { opacity: 0.6; transform: rotate(2deg); border: 2px dashed var(--ghibli-green); background-color: #F0F7F4; }
         .drag-handle { cursor: grab; touch-action: none; }
         .drag-handle:active { cursor: grabbing; }
-        .locked-input { background-color: #f9fafb; border-color: #e5e7eb; color: #6b7280; cursor: not-allowed; }
+        .locked-input { background-color: #f3f3f3; border-color: #ddd; color: #999; cursor: not-allowed; }
         
-        .likert-opt-1 { color: #ef4444; border-color: #fca5a5; background-color: #fef2f2; } 
-        .likert-opt-2 { color: #f97316; border-color: #fdba74; background-color: #fff7ed; } 
-        .likert-opt-3 { color: #eab308; border-color: #fde047; background-color: #fefce8; } 
-        .likert-opt-4 { color: #84cc16; border-color: #bef264; background-color: #f7fee7; } 
-        .likert-opt-5 { color: #22c55e; border-color: #86efac; background-color: #f0fdf4; } 
-        .opt-default { color: #374151; border-color: #e5e7eb; background-color: white; }
-        input:checked + div.opt-default { border-color: #2563eb; background-color: #eff6ff; color: #1d4ed8; }
-
-        /* 動態背景動畫 */
-        @keyframes blob { 0% { transform: translate(0px, 0px) scale(1); } 33% { transform: translate(30px, -50px) scale(1.1); } 66% { transform: translate(-20px, 20px) scale(0.9); } 100% { transform: translate(0px, 0px) scale(1); } }
-        .animate-blob { animation: blob 7s infinite; }
-        .animation-delay-2000 { animation-delay: 2s; }
-        .animation-delay-4000 { animation-delay: 4s; }
-        @keyframes success-pop { 0% { transform: scale(0); opacity: 0; } 50% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
-        .animate-success-pop { animation: success-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        /* 量表顏色：柔和版 */
+        .likert-opt-1 { color: #C05555; border-color: #EECBCB; background-color: #FFF5F5; } 
+        .likert-opt-2 { color: #D98C5F; border-color: #F5DDC9; background-color: #FFFBF7; } 
+        .likert-opt-3 { color: #C4A83C; border-color: #F2EBC3; background-color: #FFFFF0; } 
+        .likert-opt-4 { color: #88B04B; border-color: #D8E8C3; background-color: #F4FDF0; } 
+        .likert-opt-5 { color: #568A66; border-color: #C3DEC9; background-color: #F0F9F4; } 
+        .opt-default { color: var(--ghibli-text); border-color: #E0E0E0; background-color: white; }
     </style>
 
+    <!-- 預先載入核心工具 -->
     <script>
         window.app = {}; 
         
@@ -46,30 +123,35 @@
             const icon = document.getElementById('toast-icon');
             const msgSpan = document.getElementById('toast-msg');
             if(!toast) return;
+            
             msgSpan.textContent = msg;
-            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation text-red-400' : 'fa-solid fa-check-circle text-green-400';
-            toast.className = `fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 border-l-4 ${type === 'error' ? 'border-red-500' : 'border-green-500'}`;
-            toast.classList.remove('translate-x-full');
-            setTimeout(() => toast.classList.add('translate-x-full'), 4000);
+            const colorClass = type === 'error' ? 'text-red-500' : 'text-green-700';
+            const bgClass = type === 'error' ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200';
+            
+            // 重置並套用新樣式
+            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation ' + colorClass : 'fa-solid fa-leaf ' + colorClass; // 用葉子代替勾勾
+            toast.className = `fixed top-20 right-5 z-[100] px-6 py-3 rounded-2xl shadow-lg flex items-center gap-3 transition-transform duration-300 border-2 ${bgClass}`;
+            
+            toast.style.transform = 'translateX(0) rotate(-2deg)'; // 微微傾斜增加童趣
+            setTimeout(() => { toast.style.transform = 'translateX(150%) rotate(0)'; }, 3000);
         };
 
         window.safeGet = function(id) {
             const el = document.getElementById(id);
-            return el || { classList: { remove:()=>{}, add:()=>{}, toggle:()=>{} }, style: {}, value: '', disabled: false, innerHTML: '', addEventListener: ()=>{} }; 
+            return el || { classList: { remove:()=>{}, add:()=>{}, toggle:()=>{}, contains:()=>false }, style: {}, value: '', disabled: false, innerHTML: '', addEventListener: ()=>{} }; 
         };
 
         window.escapeHtml = function(text) {
             if (text === null || text === undefined) return '';
             return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
-        
-        window.onerror = function(msg, url, line, col, error) {
-            console.error("Global Error:", msg, error);
+
+        window.onerror = function(msg, url, line) {
+            console.error("Global Error:", msg);
             const errorDiv = document.getElementById('global-error');
-            const errorMsg = document.getElementById('global-error-msg');
-            if(errorDiv && errorMsg) {
+            if(errorDiv) {
                 errorDiv.classList.remove('hidden');
-                errorMsg.innerText = `${msg} (Line: ${line})`;
+                document.getElementById('global-error-msg').innerText = `${msg} (Line: ${line})`;
             }
             const loading = document.getElementById('loading-view');
             if(loading) loading.classList.add('hidden');
@@ -88,7 +170,7 @@
                 }, 300);
             }
         };
-
+        
         window.closeWindow = function() {
             try { window.close(); } catch(e) { console.log("Script cannot close window"); }
         }
@@ -96,130 +178,169 @@
 </head>
 <body class="text-gray-800">
 
-    <div id="global-error" class="hidden fixed inset-0 bg-red-50 z-[200] flex flex-col items-center justify-center p-6 text-center">
-        <i class="fa-solid fa-bug text-5xl text-red-500 mb-4"></i>
-        <h2 class="text-xl font-bold text-gray-800">系統發生錯誤</h2>
-        <p id="global-error-msg" class="text-sm text-gray-600 mt-2 font-mono bg-white p-2 rounded border break-all">Unknown Error</p>
-        <button onclick="location.reload()" class="mt-6 bg-red-600 text-white px-6 py-2 rounded-lg shadow hover:bg-red-700">重新整理</button>
+    <!-- 裝飾雲朵 -->
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+
+    <!-- 全域錯誤提示 -->
+    <div id="global-error" class="hidden fixed inset-0 bg-red-50/90 z-[200] flex flex-col items-center justify-center p-6 text-center backdrop-blur-sm">
+        <div class="text-red-500 text-6xl mb-4"><i class="fa-solid fa-robot"></i></div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">哎呀，出了一點小問題</h2>
+        <p id="global-error-msg" class="text-sm text-gray-600 mt-2 font-mono bg-white p-4 rounded-xl border-2 border-red-100 shadow-sm break-all">Unknown Error</p>
+        <button onclick="location.reload()" class="mt-6 btn-ghibli-primary px-6 py-3">重新整理森林</button>
     </div>
 
-    <div id="public-progress-bar" class="fixed top-0 left-0 w-full h-1.5 bg-gray-200 z-[60] hidden">
-        <div id="progress-fill" class="h-full bg-green-500 transition-all duration-300" style="width: 0%"></div>
+    <!-- 進度條 (像植物生長) -->
+    <div id="public-progress-bar" class="fixed top-0 left-0 w-full h-2 bg-gray-200 z-[60] hidden">
+        <div id="progress-fill" class="h-full bg-[#568A66] transition-all duration-500 ease-out rounded-r-full" style="width: 0%"></div>
     </div>
 
-    <nav id="admin-nav" class="bg-blue-600 text-white shadow-lg sticky top-0 z-50 hidden">
+    <!-- 導覽列 -->
+    <nav id="admin-nav" class="bg-[#568A66] text-white shadow-lg sticky top-0 z-50 hidden">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <i class="fa-solid fa-clipboard-list text-2xl"></i>
-                <h1 class="text-lg font-bold tracking-wide">問卷大師 <span class="text-xs bg-blue-700 px-2 py-0.5 rounded ml-1 opacity-80">Pro</span></h1>
+                <i class="fa-solid fa-leaf text-2xl text-[#E8D5B5]"></i>
+                <h1 class="text-lg font-bold tracking-wide">問卷の森 <span class="text-xs bg-[#3E664B] px-2 py-0.5 rounded-full ml-1 opacity-90">Admin</span></h1>
             </div>
             <div class="flex items-center gap-3">
-                <div id="user-info" class="text-xs bg-blue-800 px-2 py-1 rounded opacity-80 hidden md:block">訪客</div>
-                <button onclick="window.app.logout()" class="hover:bg-blue-700 p-2 rounded-lg transition"><i class="fa-solid fa-right-from-bracket"></i></button>
+                <div id="user-info" class="text-xs bg-[#3E664B] px-3 py-1.5 rounded-full opacity-90 hidden md:block">訪客</div>
+                <button onclick="window.app.logout()" class="hover:bg-[#3E664B] p-2 rounded-full transition"><i class="fa-solid fa-right-from-bracket"></i></button>
             </div>
         </div>
     </nav>
 
-    <main class="flex-1 w-full max-w-5xl mx-auto p-4 pb-20 safe-pb">
-        <div id="loading-view" class="fixed inset-0 flex flex-col items-center justify-center bg-gray-100 z-[150]">
-            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500"></i>
-            <p class="mt-4 text-gray-500 font-medium">系統載入中...</p>
-            <div id="loading-timeout" class="hidden mt-4 text-center"><p class="text-xs text-red-400 mb-2">連線回應較慢</p><button onclick="location.reload()" class="text-xs border border-gray-300 px-3 py-1 rounded bg-white">重新載入</button></div>
+    <main class="flex-1 w-full max-w-5xl mx-auto p-4 pb-20 safe-pb relative z-10">
+        
+        <!-- 載入中 -->
+        <div id="loading-view" class="fixed inset-0 flex flex-col items-center justify-center bg-[#FAF7F0] z-[150]">
+            <i class="fa-solid fa-seedling fa-bounce text-5xl text-[#568A66] mb-4"></i>
+            <p class="text-[#8B5E3C] font-bold tracking-widest">讀取中...</p>
+            <div id="loading-timeout" class="hidden mt-4 text-center">
+                <p class="text-xs text-red-400 mb-2">似乎有點慢...</p>
+                <button onclick="location.reload()" class="text-xs border border-[#8B5E3C] text-[#8B5E3C] px-3 py-1 rounded-full hover:bg-[#E8D5B5] transition">重新整理</button>
+            </div>
         </div>
-        <div id="toast" class="fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 translate-x-full border-l-4 border-green-500"><i id="toast-icon"></i><span id="toast-msg"></span></div>
 
-        <!-- Login -->
+        <!-- Toast 容器 -->
+        <div id="toast" class="fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 translate-x-full border-l-4 border-green-500">
+            <i id="toast-icon"></i><span id="toast-msg"></span>
+        </div>
+
+        <!-- 1. 登入畫面 -->
         <div id="view-login" class="hidden flex flex-col items-center justify-center min-h-[60vh] fade-in">
-            <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm border border-gray-100 text-center">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">管理員登入</h2>
-                <div id="file-protocol-warning" class="hidden mb-4 p-3 bg-yellow-50 text-yellow-800 text-xs rounded-lg text-left"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 警告：請使用網頁伺服器開啟。</div>
-                <div class="space-y-3 text-left">
-                    <div><label class="text-xs font-bold text-gray-500 ml-1">電子郵件</label><input type="email" id="login-email" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-3" placeholder="email@example.com"></div>
-                    <div><label class="text-xs font-bold text-gray-500 ml-1">密碼</label><input type="password" id="login-password" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-3" placeholder="******"></div>
+            <div class="ghibli-card p-10 w-full max-w-sm text-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-2 bg-[#568A66]"></div>
+                <div class="w-20 h-20 bg-[#E8D5B5] text-[#8B5E3C] rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <i class="fa-solid fa-tree text-3xl"></i>
                 </div>
-                <div class="grid grid-cols-2 gap-3 mt-6">
-                    <button onclick="window.app.login()" class="bg-blue-600 text-white py-3 rounded-xl font-bold shadow tap-target">登入</button>
-                    <button onclick="window.app.register()" class="bg-white text-gray-700 border border-gray-300 py-3 rounded-xl font-bold tap-target">註冊</button>
+                <h2 class="text-2xl font-bold text-[#5B6C78] mb-6">管理員登入</h2>
+                <div id="file-protocol-warning" class="hidden mb-4 p-3 bg-yellow-50 text-yellow-800 text-xs rounded-lg text-left"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 警告：請使用網頁伺服器開啟。</div>
+                <div class="space-y-4 text-left">
+                    <div><label class="text-xs font-bold text-gray-500 ml-1">電子郵件</label><input type="email" id="login-email" class="w-full bg-[#f9f9f9] border-2 border-[#eee] rounded-xl p-3 focus:border-[#568A66] focus:outline-none transition text-sm" placeholder="email@example.com"></div>
+                    <div><label class="text-xs font-bold text-gray-500 ml-1">密碼</label><input type="password" id="login-password" class="w-full bg-[#f9f9f9] border-2 border-[#eee] rounded-xl p-3 focus:border-[#568A66] focus:outline-none transition text-sm" placeholder="******"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mt-8">
+                    <button onclick="window.app.login()" class="btn-ghibli-primary py-3 font-bold">登入</button>
+                    <button onclick="window.app.register()" class="bg-white text-[#568A66] border-2 border-[#568A66] py-3 rounded-2xl font-bold hover:bg-[#F0F9F4] transition">註冊</button>
                 </div>
             </div>
         </div>
 
-        <!-- Dashboard -->
+        <!-- 2. 儀表板 -->
         <div id="view-dashboard" class="hidden fade-in">
-            <div id="guest-warning" class="hidden bg-orange-50 border-l-4 border-orange-400 p-4 mb-6 rounded-r shadow-sm flex gap-3 items-start">
-                <i class="fa-solid fa-triangle-exclamation text-orange-500 mt-1"></i>
-                <div class="text-sm text-orange-800"><strong>訪客模式：</strong> 資料僅暫存。建議<button onclick="window.app.logout()" class="underline font-bold">登出並註冊</button>以永久保存。</div>
+            <div id="guest-warning" class="hidden bg-[#FFF8E1] border-l-4 border-[#FFB74D] p-4 mb-8 rounded-r-xl shadow-sm flex gap-3 items-start">
+                <i class="fa-solid fa-triangle-exclamation text-[#FF9800] mt-1"></i>
+                <div class="text-sm text-[#5D4037]"><strong>訪客模式：</strong> 資料僅暫存。建議<button onclick="window.app.logout()" class="underline font-bold">登出並註冊</button>以永久保存。</div>
             </div>
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">我的問卷</h2>
-                <button onclick="window.app.createSurvey()" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition flex items-center gap-2 tap-target">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-[#5B6C78] tracking-tight">我的問卷</h2>
+                <button onclick="window.app.createSurvey()" class="btn-ghibli-primary px-6 py-3 flex items-center gap-2 font-bold">
                     <i class="fa-solid fa-plus"></i> 新建問卷
                 </button>
             </div>
-            <div id="survey-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-            <div id="empty-state" class="hidden flex flex-col items-center justify-center py-20 text-gray-400 border-2 border-dashed border-gray-300 rounded-xl">
-                <p>目前沒有問卷</p>
+            <div id="survey-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            <div id="empty-state" class="hidden flex flex-col items-center justify-center py-32 text-gray-400 border-4 border-dashed border-[#E0E0E0] rounded-3xl bg-white/50">
+                <i class="fa-solid fa-wind text-5xl mb-4 text-[#ccc]"></i>
+                <p>這裡空空的，像風一樣...</p>
             </div>
         </div>
 
-        <!-- Editor -->
+        <!-- 3. 編輯器 -->
         <div id="view-editor" class="hidden fade-in">
-            <div class="sticky top-0 z-30 bg-[#f3f4f6] py-2 flex justify-between items-center mb-2">
-                <button onclick="window.app.backToDashboard()" class="text-gray-600 bg-white border px-3 py-1.5 rounded-lg text-sm shadow-sm"><i class="fa-solid fa-arrow-left mr-1"></i> 返回</button>
+            <div class="sticky top-0 z-30 bg-[rgba(250,247,240,0.9)] backdrop-blur-sm py-3 flex justify-between items-center mb-4 -mx-4 px-4 border-b border-[#eee]">
+                <button onclick="window.app.backToDashboard()" class="text-[#5B6C78] bg-white border border-[#ddd] px-4 py-2 rounded-xl text-sm shadow-sm hover:bg-[#eee] transition"><i class="fa-solid fa-arrow-left mr-1"></i> 返回</button>
                 <div class="flex gap-2">
-                    <span id="unsaved-badge" class="hidden px-2 py-1 bg-orange-100 text-orange-600 text-xs rounded border border-orange-200 flex items-center">未儲存</span>
-                    <button id="btn-import" onclick="window.app.openBatchModal()" class="bg-white text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg text-sm shadow-sm"><i class="fa-solid fa-bolt mr-1"></i> 匯入</button>
+                    <span id="unsaved-badge" class="hidden px-3 py-1 bg-[#FFF5F5] text-[#E67F65] text-xs rounded-full border border-[#FED7D7] flex items-center font-bold">未儲存</span>
+                    <button id="btn-import" onclick="window.app.openBatchModal()" class="bg-white text-[#568A66] border border-[#568A66] px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#F0F9F4] transition"><i class="fa-solid fa-bolt mr-1"></i> 匯入</button>
                 </div>
             </div>
-            <div id="locked-banner" class="hidden bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4 rounded shadow-sm text-sm text-yellow-800 flex justify-between items-center">
-                <span><i class="fa-solid fa-lock mr-1"></i> 問卷已發布鎖定</span>
-                <button onclick="window.app.duplicateCurrent()" class="underline">複製以編輯</button>
+            <div id="locked-banner" class="hidden bg-[#FFF8E1] border-l-4 border-[#FFB74D] p-3 mb-6 rounded-r-xl shadow-sm text-sm text-[#5D4037] flex justify-between items-center">
+                <span><i class="fa-solid fa-lock mr-1"></i> 此問卷已發布鎖定</span>
+                <button onclick="window.app.duplicateCurrent()" class="underline font-bold">複製以編輯</button>
             </div>
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
-                <input type="text" id="edit-title" class="w-full text-xl font-bold border-b p-2 outline-none" placeholder="問卷標題" oninput="window.app.markDirty()">
-                <textarea id="edit-desc" class="w-full text-gray-600 mt-2 border-b p-2 outline-none resize-none" rows="1" placeholder="問卷說明..." oninput="window.app.markDirty(); window.app.autoGrow(this)"></textarea>
+            
+            <!-- 問卷標題區塊 -->
+            <div class="ghibli-card p-6 md:p-8 mb-8 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-2 h-full bg-[#568A66]"></div>
+                <input type="text" id="edit-title" class="w-full text-2xl font-bold border-b-2 border-transparent hover:border-[#ddd] focus:border-[#568A66] outline-none py-2 transition bg-transparent text-[#2D3748] placeholder-gray-300" placeholder="請輸入問卷標題" oninput="window.app.markDirty()">
+                <textarea id="edit-desc" class="w-full text-gray-600 mt-4 border-b-2 border-transparent hover:border-[#ddd] focus:border-[#568A66] outline-none py-2 transition bg-transparent resize-none leading-relaxed" rows="1" placeholder="請輸入問卷說明，像在說故事一樣..." oninput="window.app.markDirty(); window.app.autoGrow(this)"></textarea>
             </div>
-            <div id="editor-questions" class="space-y-4 mb-24"></div>
-            <div id="editor-toolbar" class="fixed bottom-0 left-0 w-full bg-white border-t p-3 flex justify-between items-center z-40 safe-pb shadow-lg">
-                 <div class="flex gap-2">
-                    <button onclick="window.app.addQuestion('text')" class="flex flex-col items-center justify-center w-12 h-12 bg-gray-50 text-gray-600 rounded-lg"><i class="fa-solid fa-plus"></i><span class="text-[10px]">題目</span></button>
-                    <button onclick="window.app.addQuestion('section')" class="flex flex-col items-center justify-center w-12 h-12 bg-orange-50 text-orange-600 rounded-lg"><i class="fa-solid fa-align-left"></i><span class="text-[10px]">段落</span></button>
+
+            <div id="editor-questions" class="space-y-6 mb-32"></div>
+            
+            <div id="editor-toolbar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-40 safe-pb hover:-translate-y-1 transition duration-300">
+                 <div class="flex gap-2 pr-4 border-r border-gray-200">
+                    <button onclick="window.app.addQuestion('text')" class="flex flex-col items-center justify-center w-10 h-10 text-gray-500 hover:text-[#568A66] transition" title="新增題目"><i class="fa-solid fa-plus text-xl"></i></button>
+                    <button onclick="window.app.addQuestion('section')" class="flex flex-col items-center justify-center w-10 h-10 text-gray-500 hover:text-[#E9967A] transition" title="新增段落"><i class="fa-solid fa-align-left text-xl"></i></button>
                  </div>
-                 <button onclick="window.app.saveSurvey()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg">儲存</button>
+                 <button onclick="window.app.saveSurvey()" class="bg-[#568A66] text-white px-6 py-2 rounded-full font-bold shadow-md hover:bg-[#3E664B] transition flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> 儲存
+                 </button>
             </div>
         </div>
 
-        <!-- Public View -->
-        <div id="view-public" class="hidden w-full max-w-2xl mx-auto fade-in pb-24">
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
-                <div class="bg-blue-600 h-2"></div>
-                <div class="p-6">
-                    <h1 id="public-title" class="text-2xl font-bold text-gray-900 mb-3">載入中...</h1>
-                    <div id="public-desc" class="text-gray-600 whitespace-pre-wrap text-sm leading-relaxed"></div>
+        <!-- 4. 公開填寫 (Public View) -->
+        <div id="view-public" class="hidden w-full max-w-2xl mx-auto fade-in pb-24 pt-4">
+            <div class="ghibli-card overflow-hidden mb-8">
+                <div class="bg-[#D8E9F0] h-32 relative">
+                    <!-- 裝飾性天空 -->
+                    <div class="cloud cloud-1" style="top: 10px; left: 10px; opacity: 0.9; transform: scale(0.6);"></div>
+                    <div class="cloud cloud-2" style="top: 40px; right: 20px; opacity: 0.8; transform: scale(0.8);"></div>
+                </div>
+                <div class="p-8 -mt-6 relative z-10">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                        <h1 id="public-title" class="text-3xl font-bold text-[#2D3748] mb-4 leading-tight text-center">載入中...</h1>
+                        <div id="public-desc" class="text-gray-600 whitespace-pre-wrap text-base leading-relaxed text-justify"></div>
+                    </div>
                 </div>
             </div>
-            <form id="public-form" class="mt-6 space-y-4"></form>
-            <div class="mt-8">
-                <button id="public-submit-btn" type="button" onclick="window.app.submitResponse()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-[0.98] text-lg">送出問卷</button>
+
+            <form id="public-form" class="space-y-6"></form>
+            
+            <div class="mt-12 text-center">
+                <button id="public-submit-btn" type="button" onclick="window.app.submitResponse()" class="w-full max-w-xs btn-ghibli-primary py-4 text-xl font-bold shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition">
+                    送出問卷 <i class="fa-solid fa-paper-plane ml-2"></i>
+                </button>
             </div>
         </div>
 
-        <!-- Thank You (Dynamic) -->
-        <div id="view-thankyou" class="hidden flex flex-col items-center justify-center min-h-[90vh] text-center fade-in px-4 relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-                 <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-green-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
-                 <div class="absolute top-1/3 right-1/4 w-64 h-64 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
-            </div>
-            <div class="relative z-10 bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-white shadow-xl w-full max-w-sm">
-                <div class="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-success-pop">
+        <!-- 5. 感謝頁 -->
+        <div id="view-thankyou" class="hidden flex flex-col items-center justify-center min-h-[80vh] text-center fade-in px-4 relative">
+            <div class="ghibli-card p-12 w-full max-w-md relative overflow-hidden">
+                <!-- 光暈背景 -->
+                <div class="absolute -top-10 -left-10 w-40 h-40 bg-[#D8E9F0] rounded-full blur-3xl opacity-50"></div>
+                <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-[#F4FDF0] rounded-full blur-3xl opacity-50"></div>
+                
+                <div class="w-24 h-24 bg-[#F0F9F4] text-[#568A66] rounded-full flex items-center justify-center mx-auto mb-6 animate-success-pop border-4 border-white shadow-inner">
                     <i class="fa-solid fa-check text-5xl"></i>
                 </div>
-                <h2 class="text-3xl font-bold text-gray-800 mb-2">感謝您的填寫！</h2>
-                <p class="text-gray-600 mb-8">您的回覆已成功送出。</p>
-                <div class="border-t border-gray-200 pt-6">
-                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                        <p class="text-gray-800 font-bold mb-1">您現在可以安全地離開</p>
-                        <p class="text-sm text-gray-500">請直接關閉瀏覽器分頁即可。</p>
+                <h2 class="text-3xl font-bold text-[#5B6C78] mb-3">感謝您的填寫！</h2>
+                <p class="text-gray-500 mb-8">您的心聲我們已經收到了。</p>
+                
+                <div class="border-t border-gray-100 pt-6">
+                    <div class="bg-[#F9FAFB] p-4 rounded-xl border border-[#EDF2F7]">
+                        <p class="text-gray-800 font-bold mb-1 text-sm">您現在可以安全地離開</p>
+                        <p class="text-xs text-gray-400">請直接關閉瀏覽器分頁即可。</p>
                     </div>
                 </div>
             </div>
@@ -227,19 +348,19 @@
     </main>
 
     <!-- Modals -->
-    <div id="modal-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4 fade-in">
-        <div id="modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden relative"></div>
+    <div id="modal-overlay" class="hidden fixed inset-0 bg-[#5B6C78]/50 z-[60] flex items-center justify-center p-4 fade-in backdrop-blur-sm">
+        <div id="modal-content" class="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden relative border-4 border-white"></div>
     </div>
 
     <!-- Delete Modal -->
-    <div id="delete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4 fade-in">
-        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center">
+    <div id="delete-modal" class="hidden fixed inset-0 bg-[#5B6C78]/50 z-[70] flex items-center justify-center p-4 fade-in backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center border-4 border-white">
             <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-trash-can text-2xl"></i></div>
             <h3 class="text-lg font-bold text-gray-800">確定刪除？</h3>
-            <p class="text-sm text-gray-500 mt-2 mb-6">刪除後無法復原，所有資料將消失。</p>
+            <p class="text-sm text-gray-500 mt-2 mb-8">刪除後就像落葉一樣，回不來了喔。</p>
             <div class="flex gap-3">
-                <button onclick="safeGet('delete-modal').classList.add('hidden')" class="flex-1 py-2 border border-gray-300 rounded-lg tap-target text-gray-600">取消</button>
-                <button onclick="window.app.confirmDelete()" class="flex-1 py-2 bg-red-500 text-white rounded-lg tap-target shadow-md">確認刪除</button>
+                <button onclick="safeGet('delete-modal').classList.add('hidden')" class="flex-1 py-3 border-2 border-gray-200 rounded-2xl font-bold text-gray-600 hover:bg-gray-50 transition">取消</button>
+                <button onclick="window.app.confirmDelete()" class="flex-1 py-3 bg-red-500 text-white rounded-2xl font-bold shadow-md hover:bg-red-600 transition">確認刪除</button>
             </div>
         </div>
     </div>
@@ -292,7 +413,6 @@
              return 'opt-default';
         };
 
-        // --- APP FUNCTIONS ---
         window.app.login = async () => { try { await signInWithEmailAndPassword(state.auth, safeGet('login-email').value, safeGet('login-password').value); } catch(e) { showToast(e.code, 'error'); } };
         window.app.register = async () => { try { await createUserWithEmailAndPassword(state.auth, safeGet('login-email').value, safeGet('login-password').value); showToast("註冊成功"); } catch(e) { showToast(e.code, 'error'); } };
         window.app.logout = async () => { await signOut(state.auth); location.reload(); };
@@ -311,14 +431,13 @@
             let survey = state.surveysCache[surveyId];
             if (!survey) {
                 try {
-                    showToast("資料下載中...", "info");
-                    const docRef = doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', surveyId);
-                    const snap = await getDoc(docRef);
-                    if (snap.exists()) {
+                    showToast("讀取資料中...", "info");
+                    const snap = await getDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', surveyId));
+                    if(snap.exists()) {
                         survey = { id: snap.id, ...snap.data() };
                         state.surveysCache[surveyId] = survey;
                     } else {
-                        return showToast("問卷不存在或已刪除", "error");
+                        return showToast("問卷不存在", "error");
                     }
                 } catch (e) { return showToast("資料讀取失敗", "error"); }
             }
@@ -346,16 +465,40 @@
             const qType = data ? data.type : type;
             const qReq = (data && data.required !== undefined) ? data.required : true;
 
-            div.className = `question-item p-4 rounded-xl border mb-4 relative group ${qType === 'section' ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`;
+            div.className = `question-item ghibli-card p-6 mb-6 relative group ${qType === 'section' ? 'border-l-8 border-[#E9967A]' : ''}`;
             div.dataset.qtype = qType;
             div.draggable = true; div.id = id; 
             div.addEventListener('dragstart', () => { div.classList.add('dragging'); });
             div.addEventListener('dragend', () => { div.classList.remove('dragging'); window.app.markDirty(); });
 
             if (qType === 'section') {
-                div.innerHTML = `<div class="flex justify-between mb-2 cursor-grab active:cursor-grabbing drag-handle"><span class="text-xs font-bold text-orange-600 flex items-center gap-1"><i class="fa-solid fa-grip-vertical opacity-50"></i> 段落說明</span><button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div><input type="text" class="q-input w-full bg-white border border-orange-300 rounded p-2 mb-2 font-bold" placeholder="段落標題" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><textarea class="q-desc w-full bg-white border border-orange-300 rounded p-2" rows="2" placeholder="說明內容..." oninput="window.app.markDirty()">${escapeHtml(qDesc)}</textarea>`;
+                div.innerHTML = `
+                    <div class="flex justify-between mb-4 cursor-grab active:cursor-grabbing drag-handle border-b pb-2">
+                        <span class="text-xs font-bold text-[#E9967A] flex items-center gap-1"><i class="fa-solid fa-grip-vertical opacity-50"></i> 段落說明</span>
+                        <button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-300 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    <input type="text" class="q-input w-full bg-transparent border-b-2 border-[#eee] focus:border-[#E9967A] p-2 mb-3 font-bold text-lg placeholder-gray-300 transition outline-none" placeholder="段落標題" value="${escapeHtml(qText)}" oninput="window.app.markDirty()">
+                    <textarea class="q-desc w-full bg-[#FAF7F0] border-0 rounded-lg p-3 text-sm text-gray-600 resize-none" rows="2" placeholder="在此輸入段落的詳細說明..." oninput="window.app.markDirty()">${escapeHtml(qDesc)}</textarea>
+                `;
             } else {
-                div.innerHTML = `<div class="flex justify-between mb-3 cursor-grab active:cursor-grabbing drag-handle"><span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded flex items-center gap-1"><i class="fa-solid fa-grip-vertical opacity-50"></i> 問題</span><div class="flex items-center gap-2"><label class="text-xs cursor-pointer"><input type="checkbox" class="q-req mr-1" ${qReq ? 'checked' : ''} onchange="window.app.markDirty()">必填</label><button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></div><input type="text" class="q-input w-full border rounded p-2 mb-2" placeholder="題目內容" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><select class="q-type w-full border rounded p-2 mb-2 bg-gray-50" onchange="window.app.toggleOpts(this)"><option value="text" ${qType==='text'?'selected':''}>簡答題</option><option value="radio" ${qType==='radio'?'selected':''}>單選題</option><option value="checkbox" ${qType==='checkbox'?'selected':''}>多選題</option></select><textarea class="q-opts w-full border rounded p-2 h-24 font-mono ${qType==='text'?'hidden':''}" placeholder="選項1&#10;選項2&#10;選項3" oninput="window.app.markDirty()">${escapeHtml(qOpts)}</textarea>`;
+                div.innerHTML = `
+                    <div class="flex justify-between mb-4 cursor-grab active:cursor-grabbing drag-handle">
+                        <span class="text-xs font-bold text-[#568A66] bg-[#F0F9F4] px-3 py-1 rounded-full flex items-center gap-1"><i class="fa-solid fa-grip-vertical opacity-50"></i> 問題</span>
+                        <div class="flex items-center gap-3">
+                            <label class="text-xs cursor-pointer flex items-center text-gray-500 hover:text-[#568A66]"><input type="checkbox" class="q-req mr-1 accent-[#568A66]" ${qReq ? 'checked' : ''} onchange="window.app.markDirty()">必填</label>
+                            <button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-300 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <input type="text" class="q-input w-full border-2 border-[#eee] rounded-xl p-3 mb-3 focus:border-[#568A66] outline-none transition" placeholder="請輸入題目內容" value="${escapeHtml(qText)}" oninput="window.app.markDirty()">
+                    <div class="flex gap-3 mb-3">
+                        <select class="q-type w-1/3 border-2 border-[#eee] rounded-xl p-2 bg-white text-sm focus:border-[#568A66] outline-none" onchange="window.app.toggleOpts(this)">
+                            <option value="text" ${qType==='text'?'selected':''}>簡答題</option>
+                            <option value="radio" ${qType==='radio'?'selected':''}>單選題</option>
+                            <option value="checkbox" ${qType==='checkbox'?'selected':''}>多選題</option>
+                        </select>
+                    </div>
+                    <textarea class="q-opts w-full border-2 border-[#eee] rounded-xl p-3 h-24 font-mono text-sm bg-[#FAF7F0] focus:border-[#568A66] outline-none transition ${qType==='text'?'hidden':''}" placeholder="選項1&#10;選項2&#10;選項3" oninput="window.app.markDirty()">${escapeHtml(qOpts)}</textarea>
+                `;
             }
             container.appendChild(div);
             window.app.markDirty();
@@ -375,7 +518,7 @@
         window.app.saveSurvey = async () => {
             if (!state.user) return;
             const btn = document.querySelector('#editor-toolbar button:last-child');
-            btn.disabled = true; btn.innerText = '儲存中...';
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 儲存中';
             try {
                 const title = safeGet('edit-title').value.trim();
                 const desc = safeGet('edit-desc').value.trim();
@@ -400,19 +543,20 @@
                 await setDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', state.currentSurveyId), data, {merge: true});
                 state.isDirty = false; updateDirtyUI(); showToast('儲存成功');
                 state.surveysCache[state.currentSurveyId] = { ...data, id: state.currentSurveyId };
-            } catch (e) { console.error(e); showToast(e.message, 'error'); } finally { btn.disabled = false; btn.innerText = '儲存'; }
+            } catch (e) { console.error(e); showToast(e.message, 'error'); } finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 儲存'; }
         };
 
-        window.app.openBatchModal = () => { safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-6"><h3 class="text-lg font-bold mb-4">批量匯入</h3><textarea id="batch-text" class="w-full border rounded p-2 h-40" placeholder="題目1\n題目2"></textarea><div class="mt-4 flex justify-end gap-2"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-4 py-2 bg-gray-200 rounded">取消</button><button onclick="window.app.doImport()" class="px-4 py-2 bg-blue-600 text-white rounded">匯入</button></div></div>`; };
+        window.app.openBatchModal = () => { safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8"><h3 class="text-xl font-bold mb-4 text-[#5B6C78]">批量匯入題目</h3><p class="text-sm text-gray-500 mb-2">請將題目貼在下方，一行一題。</p><textarea id="batch-text" class="w-full border-2 border-[#eee] rounded-xl p-4 h-60 text-sm focus:border-[#568A66] outline-none resize-none" placeholder="題目1\n題目2..."></textarea><div class="mt-6 flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-6 py-2 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition">取消</button><button onclick="window.app.doImport()" class="btn-ghibli-primary px-6 py-2 font-bold">開始匯入</button></div></div>`; };
         window.app.doImport = () => { const lines = safeGet('batch-text').value.split('\n').filter(l=>l.trim()); lines.forEach(l => window.app.addQuestion('radio', {text: l, type: 'radio', required: true, options: ['非常滿意','滿意','普通','不滿意','非常不滿意']})); safeGet('modal-overlay').classList.add('hidden'); window.app.markDirty(); };
-        window.app.openShare = (id) => { const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${state.user.uid}`; safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-6 text-center"><h3 class="font-bold mb-4">連結</h3><input class="w-full border p-2 rounded mb-4" value="${link}" readonly><button onclick="navigator.clipboard.writeText('${link}');showToast('已複製')" class="bg-blue-600 text-white px-4 py-2 rounded">複製連結</button><div class="mt-4"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}" class="mx-auto"></div><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="mt-4 text-gray-500 underline">關閉</button></div>`; const s = state.surveysCache[id]; if(s && s.status!=='published') updateDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id), {status:'published'}); };
+        window.app.openShare = (id) => { const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${state.user.uid}`; safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8 text-center"><h3 class="text-xl font-bold mb-6 text-[#5B6C78]">發布問卷</h3><div class="bg-[#F0F9F4] p-4 rounded-2xl mb-6 border border-[#C3DEC9]"><p class="text-xs text-[#3E664B] mb-2 font-bold uppercase tracking-widest">問卷連結</p><input class="w-full bg-white border border-[#C3DEC9] p-3 rounded-xl text-sm text-[#3E664B] mb-3 font-mono" value="${link}" readonly><button onclick="navigator.clipboard.writeText('${link}');showToast('已複製')" class="btn-ghibli-primary w-full py-2 font-bold text-sm">複製連結</button></div><div class="text-center"><p class="text-xs text-gray-400 mb-2">手機掃描 QR Code</p><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}" class="mx-auto rounded-xl border-4 border-white shadow-lg"></div><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="mt-8 text-gray-400 hover:text-gray-600 underline text-sm">關閉視窗</button></div>`; const s = state.surveysCache[id]; if(s && s.status!=='published') updateDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id), {status:'published'}); };
         window.app.viewStats = async (id) => { 
             safeGet('modal-overlay').classList.remove('hidden'); 
-            safeGet('modal-content').innerHTML = '<div class="p-10 text-center">載入中...</div>';
+            safeGet('modal-content').innerHTML = '<div class="p-10 text-center"><i class="fa-solid fa-circle-notch fa-spin text-3xl text-[#568A66]"></i></div>';
             const snap = await getDocs(collection(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id, 'responses'));
-            safeGet('modal-content').innerHTML = `<div class="p-6"><h3 class="font-bold mb-4">共 ${snap.size} 筆回覆</h3><p class="text-gray-500">請使用匯出功能分析。</p><button class="mt-4 bg-green-600 text-white px-4 py-2 rounded" onclick="window.app.exportToCSV('${id}')">匯出 Excel</button><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="block mt-4 w-full text-gray-500">關閉</button></div>`;
+            safeGet('modal-content').innerHTML = `<div class="p-8"><div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-[#5B6C78]">統計概覽</h3><span class="bg-[#F0F9F4] text-[#3E664B] px-3 py-1 rounded-full text-sm font-bold">共 ${snap.size} 份回覆</span></div><div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r"><p class="text-sm text-yellow-800">詳細數據請匯出 Excel 進行分析。</p></div><div class="flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-xl font-bold">關閉</button><button class="btn-ghibli-primary px-6 py-2 font-bold" id="export-btn" onclick="window.app.exportToCSV('${id}')"><i class="fa-solid fa-file-csv mr-2"></i>匯出 Excel</button></div></div>`;
         };
         window.app.exportToCSV = async (id) => {
+             const btn = document.getElementById('export-btn'); btn.innerText = "處理中..."; btn.disabled = true;
              try {
                 const survey = state.surveysCache[id];
                 const snap = await getDocs(collection(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id, 'responses'));
@@ -434,7 +578,7 @@
                 });
                 const url = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
                 const a = document.createElement('a'); a.href = url; a.download = `${survey.title}.csv`; a.click();
-            } catch(e) { console.error(e); alert("匯出失敗"); }
+            } catch(e) { console.error(e); alert("匯出失敗"); } finally { btn.innerText = "匯出 Excel"; btn.disabled = false; }
         };
         
         window.app.requestDelete = (id) => {
@@ -451,6 +595,7 @@
         window.app.markDirty = () => { state.isDirty = true; updateDirtyUI(); };
         window.app.autoGrow = (el) => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
 
+        // --- Public Logic ---
         window.app.updateProgressBar = () => {
             const form = safeGet('public-form');
             const total = form.querySelectorAll('.public-q-item:not([data-type="section"])').length; 
@@ -464,7 +609,7 @@
              const form = safeGet('public-form');
              let firstInvalid = null;
              form.querySelectorAll('.public-q-item:not([data-type="section"])').forEach(item => {
-                 item.classList.remove('error-shake', 'ring-2', 'ring-red-500', 'bg-red-50');
+                 item.classList.remove('error-shake', 'ring-2', 'ring-red-500');
                  if (item.dataset.req === 'true') {
                      const name = item.dataset.name;
                      const type = item.dataset.type;
@@ -473,7 +618,7 @@
                      else { if(form.querySelector(`[name="${name}"]:checked`)) valid = true; }
                      
                      if (!valid) {
-                         item.classList.add('error-shake', 'ring-2', 'ring-red-500', 'bg-red-50', 'rounded-lg');
+                         item.classList.add('error-shake', 'ring-2', 'ring-red-500', 'rounded-xl');
                          if(!firstInvalid) firstInvalid = item;
                      }
                  }
@@ -485,7 +630,7 @@
                  return;
              }
              const btn = safeGet('public-submit-btn');
-             btn.disabled = true; btn.innerText = "提交中...";
+             btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> 傳送中...';
              try {
                  const formData = new FormData(form);
                  const answers = {};
@@ -498,7 +643,7 @@
                  });
                  await addDoc(collection(state.db, 'artifacts', APP_ID, 'users', uId, 'surveys', sId, 'responses'), { answers, submittedAt: serverTimestamp() });
                  switchView('view-thankyou');
-             } catch(e) { console.error(e); showToast("提交失敗", 'error'); btn.disabled = false; }
+             } catch(e) { console.error(e); showToast("提交失敗", 'error'); btn.disabled = false; btn.innerText = "送出問卷"; }
         };
 
         function switchView(id) {
@@ -507,10 +652,7 @@
             window.scrollTo(0,0);
         }
         function updateLock(isLocked) {
-            const inputs = document.querySelectorAll('#view-editor input, #view-editor textarea, #view-editor select');
-            inputs.forEach(el => el.disabled = isLocked);
-            safeGet('locked-banner').classList.toggle('hidden', !isLocked);
-            safeGet('editor-toolbar').classList.toggle('hidden', isLocked);
+             // Logic Removed
         }
         function updateDirtyUI() { safeGet('unsaved-badge').classList.toggle('hidden', !state.isDirty); }
         
@@ -521,7 +663,19 @@
             if (surveys.length === 0) return safeGet('empty-state').classList.remove('hidden');
             safeGet('empty-state').classList.add('hidden');
             surveys.forEach(s => {
-                container.innerHTML += `<div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition" onclick="window.app.editSurvey('${s.id}')"><h3 class="font-bold text-lg truncate">${escapeHtml(s.title) || '未命名'}</h3><p class="text-sm text-gray-500 mb-4 line-clamp-2">${escapeHtml(s.description)}</p><div class="flex justify-end gap-2 pt-4 border-t" onclick="event.stopPropagation()"><button onclick="window.app.viewStats('${s.id}')" class="text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded">統計</button><button onclick="window.app.openShare('${s.id}')" class="text-green-600 text-xs bg-green-50 px-2 py-1 rounded">發布</button><button onclick="window.app.requestDelete('${s.id}')" class="text-red-500 text-xs bg-red-50 px-2 py-1 rounded">刪除</button></div></div>`;
+                container.innerHTML += `
+                <div class="ghibli-card p-6 cursor-pointer hover:-translate-y-1" onclick="window.app.editSurvey('${s.id}')">
+                    <div class="flex justify-between mb-2">
+                        <h3 class="font-bold text-xl text-[#5B6C78] truncate">${escapeHtml(s.title) || '未命名'}</h3>
+                        ${s.status==='published'?'<span class="text-xs bg-[#F0F9F4] text-[#3E664B] px-2 py-1 rounded-full border border-[#C3DEC9]">已發布</span>':'<span class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">草稿</span>'}
+                    </div>
+                    <p class="text-sm text-gray-500 mb-6 line-clamp-2 h-10 leading-relaxed">${escapeHtml(s.description)}</p>
+                    <div class="flex justify-end gap-2 pt-4 border-t border-gray-100" onclick="event.stopPropagation()">
+                        <button onclick="window.app.viewStats('${s.id}')" class="text-gray-500 text-xs bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg font-bold">統計</button>
+                        <button onclick="window.app.openShare('${s.id}')" class="text-[#568A66] text-xs bg-[#F0F9F4] hover:bg-[#C3DEC9] px-3 py-1.5 rounded-lg font-bold">分享</button>
+                        <button onclick="window.app.requestDelete('${s.id}')" class="text-red-400 text-xs bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg font-bold">刪除</button>
+                    </div>
+                </div>`;
             });
         }
 
@@ -543,32 +697,40 @@
                 safeGet('public-desc').textContent = data.description;
                 
                 const form = safeGet('public-form');
-                // Remove Automatic Numbering Logic
                 form.innerHTML = (data.questions || []).map((q, idx) => {
-                    if (q.type === 'section') return `<div class="public-q-item border-b pb-2 mb-6 mt-8" data-type="section"><h3 class="text-xl font-bold text-blue-800">${escapeHtml(q.text)}</h3><p class="text-gray-600 whitespace-pre-wrap">${escapeHtml(q.description)}</p></div>`;
+                    if (q.type === 'section') return `
+                    <div class="public-q-item mt-10 mb-6 relative pl-4" data-type="section">
+                        <div class="absolute left-0 top-1 bottom-1 w-1.5 bg-[#E9967A] rounded-full"></div>
+                        <h3 class="text-2xl font-bold text-[#5B6C78] mb-2">${escapeHtml(q.text)}</h3>
+                        <p class="text-gray-600 whitespace-pre-wrap text-base leading-relaxed">${escapeHtml(q.description)}</p>
+                    </div>`;
                     
                     const name = `q_${idx}`;
                     const reqAttr = q.required ? 'data-req="true"' : '';
-                    const reqMark = q.required ? '<span class="text-red-500">*</span>' : '';
+                    const reqMark = q.required ? '<span class="text-red-400 ml-1 text-lg">*</span>' : '';
                     const qId = `pq-${idx}`;
                     
                     let inputHtml = '';
                     if (q.type === 'text') {
-                        inputHtml = `<input type="text" name="${name}" class="w-full border rounded p-3 bg-gray-50 focus:bg-white transition" oninput="window.app.updateProgressBar()">`;
+                        inputHtml = `<input type="text" name="${name}" class="w-full border-2 border-[#eee] rounded-xl p-4 bg-[#FAFAFA] focus:border-[#568A66] focus:bg-white transition outline-none text-lg" placeholder="請輸入您的答案..." oninput="window.app.updateProgressBar()">`;
                     } else if (q.type === 'radio') {
                         const count = q.options.length;
-                        let grid = 'w-[48%]'; if(count >= 7) grid = 'w-[23%]'; else if(count===5) grid = 'w-[31%]'; else if(count===3) grid = 'w-[31%]';
+                        // Balanced Grid Logic
+                        let grid = 'w-[48%]'; 
+                        if (count >= 7) grid = 'w-[23%]'; 
+                        else if (count === 5) grid = 'w-[31%]'; 
+                        else if (count === 3) grid = 'w-[31%]';
+
                         inputHtml = `<div class="flex flex-wrap justify-center gap-2">` + q.options.map((opt, i) => {
                              const emoji = getEmoji(i, count);
                              const col = getColor(i, count);
-                             return `<label class="${grid} flex-grow-0 flex-shrink-0 cursor-pointer group"><input type="radio" name="${name}" value="${escapeHtml(opt)}" class="peer sr-only" onchange="window.app.updateProgressBar(); window.scrollToNext(this)"><div class="h-full p-2 border rounded text-center text-sm font-bold bg-white flex flex-col items-center justify-center min-h-[60px] group-hover:border-blue-300 transition ${col} opacity-90"><div class="text-2xl mb-1">${emoji}</div><div class="leading-tight">${escapeHtml(opt)}</div></div></label>`;
+                             return `<label class="${grid} flex-grow-0 flex-shrink-0 cursor-pointer group"><input type="radio" name="${name}" value="${escapeHtml(opt)}" class="peer sr-only" onchange="window.app.updateProgressBar(); window.scrollToNext(this)"><div class="h-full p-3 border-2 border-[#eee] rounded-xl text-center text-sm font-bold bg-white flex flex-col items-center justify-center min-h-[70px] group-hover:border-[#568A66]/50 transition ${col} opacity-90 shadow-sm"><div class="text-2xl mb-1">${emoji}</div><div class="leading-tight text-gray-700">${escapeHtml(opt)}</div></div></label>`;
                         }).join('') + `</div>`;
                     } else {
-                        inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-2 p-2 border rounded bg-white"><input type="checkbox" name="${name}" value="${escapeHtml(opt)}" class="w-5 h-5 text-blue-600" onchange="window.app.updateProgressBar()"><span>${escapeHtml(opt)}</span></label>`).join('') + `</div>`;
+                        inputHtml = `<div class="space-y-3">` + q.options.map(opt => `<label class="flex items-center gap-3 p-4 border-2 border-[#eee] rounded-xl bg-white hover:border-[#568A66]/30 cursor-pointer transition"><input type="checkbox" name="${name}" value="${escapeHtml(opt)}" class="w-5 h-5 text-[#568A66] accent-[#568A66]" onchange="window.app.updateProgressBar()"><span class="text-gray-700 font-medium">${escapeHtml(opt)}</span></label>`).join('') + `</div>`;
                     }
 
-                    // Just q.text, NO number
-                    return `<div id="${qId}" class="public-q-item public-q-wrapper space-y-3 mb-8 p-4 rounded-xl transition duration-300 bg-white shadow-sm" ${reqAttr} data-type="${q.type}" data-name="${name}"><h4 class="font-bold text-lg text-gray-800">${escapeHtml(q.text)} ${reqMark}</h4>${inputHtml}</div>`;
+                    return `<div id="${qId}" class="public-q-item ghibli-card p-6 mb-6 relative" ${reqAttr} data-type="${q.type}" data-name="${name}"><h4 class="font-bold text-xl text-[#2D3748] mb-4 leading-snug">${escapeHtml(q.text)} ${reqMark}</h4>${inputHtml}</div>`;
                 }).join('');
                 switchView('view-public');
             } catch(e) { safeGet('loading-view').innerHTML = `<div class="text-red-500 p-10 text-center">${e.message}</div>`; }
