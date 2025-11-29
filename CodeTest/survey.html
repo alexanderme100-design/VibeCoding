@@ -8,35 +8,41 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
     <style>
-        /* 基礎設定 */
+        /* 1. 基礎設定 */
         html, body { overflow-x: hidden; min-height: 100vh; background-color: #f3f4f6; font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
         body { display: flex; flex-direction: column; }
-        .fade-in { animation: fadeIn 0.4s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* 選項互動 */
-        input:checked + div { transform: scale(0.98); box-shadow: inset 0 0 0 2px currentColor; font-weight: bold; background-color: #eff6ff; }
+        /* 2. 動畫 */
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* 3. 選項互動 */
+        input:checked + div { 
+            transform: scale(0.98); 
+            box-shadow: inset 0 0 0 2px currentColor; 
+            font-weight: bold; 
+            background-color: #eff6ff; 
+        }
+
+        /* 4. 錯誤提示 */
         .error-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; background-color: #fef2f2 !important; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
 
         .tap-target { min-height: 48px; cursor: pointer; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom, 20px); }
-        
-        /* 拖曳樣式 */
-        .question-item.dragging { opacity: 0.5; border: 2px dashed #3b82f6; background-color: #eff6ff; transform: scale(0.98); }
-        .drag-handle { cursor: grab; touch-action: none; } /* 手機防誤觸 */
+        .question-card.dragging { opacity: 0.5; border: 2px dashed #3b82f6; background-color: #eff6ff; }
+        .drag-handle { cursor: grab; touch-action: none; }
         .drag-handle:active { cursor: grabbing; }
-        
-        /* 鎖定樣式 */
         .locked-input { background-color: #f9fafb; border-color: #e5e7eb; color: #6b7280; cursor: not-allowed; }
         
-        /* 量表顏色 */
+        /* 5. 量表顏色 */
         .likert-opt-1 { color: #ef4444; border-color: #fca5a5; background-color: #fef2f2; } 
         .likert-opt-2 { color: #f97316; border-color: #fdba74; background-color: #fff7ed; } 
         .likert-opt-3 { color: #eab308; border-color: #fde047; background-color: #fefce8; } 
         .likert-opt-4 { color: #84cc16; border-color: #bef264; background-color: #f7fee7; } 
         .likert-opt-5 { color: #22c55e; border-color: #86efac; background-color: #f0fdf4; } 
         .opt-default { color: #374151; border-color: #e5e7eb; background-color: white; }
+        input:checked + div.opt-default { border-color: #2563eb; background-color: #eff6ff; color: #1d4ed8; }
     </style>
 
     <script>
@@ -47,16 +53,22 @@
             const icon = document.getElementById('toast-icon');
             const msgSpan = document.getElementById('toast-msg');
             if(!toast) return;
+            
             msgSpan.textContent = msg;
-            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation text-red-400' : 'fa-solid fa-check-circle text-green-400';
-            toast.className = `fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 border-l-4 ${type === 'error' ? 'border-red-500' : 'border-green-500'}`;
-            toast.classList.remove('translate-x-full');
-            setTimeout(() => toast.classList.add('translate-x-full'), 3000);
+            const colorClass = type === 'error' ? 'text-red-400' : 'text-green-400';
+            const borderClass = type === 'error' ? 'border-red-500' : 'border-green-500';
+            
+            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation ' + colorClass : 'fa-solid fa-check-circle ' + colorClass;
+            toast.className = `fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 border-l-4 ${borderClass}`;
+            
+            toast.style.transform = 'translateX(0)';
+            setTimeout(() => { toast.style.transform = 'translateX(120%)'; }, 3000);
         };
 
         window.safeGet = function(id) {
             const el = document.getElementById(id);
-            return el || { classList: { remove:()=>{}, add:()=>{}, toggle:()=>{} }, style: {}, value: '', disabled: false, innerHTML: '', addEventListener: ()=>{} }; 
+            if (!el) return { classList: { remove:()=>{}, add:()=>{}, toggle:()=>{}, contains:()=>false }, style: {}, value: '', disabled: false, innerHTML: '', addEventListener: ()=>{} }; 
+            return el;
         };
 
         window.escapeHtml = function(text) {
@@ -160,9 +172,7 @@
                 <input type="text" id="edit-title" class="w-full text-xl font-bold border-b p-2 outline-none" placeholder="問卷標題" oninput="window.app.markDirty()">
                 <textarea id="edit-desc" class="w-full text-gray-600 mt-2 border-b p-2 outline-none resize-none" rows="1" placeholder="問卷說明..." oninput="window.app.markDirty(); window.app.autoGrow(this)"></textarea>
             </div>
-            
             <div id="editor-questions" class="space-y-4 mb-24"></div>
-            
             <div id="editor-toolbar" class="fixed bottom-0 left-0 w-full bg-white border-t p-3 flex justify-between items-center z-40 safe-pb shadow-lg">
                  <div class="flex gap-2">
                     <button onclick="window.app.addQuestion('text')" class="flex flex-col items-center justify-center w-12 h-12 bg-gray-50 text-gray-600 rounded-lg border hover:bg-blue-50"><i class="fa-solid fa-plus"></i><span class="text-[10px]">題目</span></button>
@@ -296,6 +306,7 @@
             safeGet('edit-title').value = survey.title || '';
             safeGet('edit-desc').value = survey.description || '';
             window.app.autoGrow(safeGet('edit-desc'));
+            
             const container = safeGet('editor-questions');
             container.innerHTML = '';
             (survey.questions || []).forEach(q => window.app.addQuestion(q.type, q));
@@ -317,10 +328,9 @@
 
             div.className = `question-item p-4 rounded-xl border mb-4 relative group ${qType === 'section' ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`;
             div.dataset.qtype = qType;
-            div.draggable = true; // Enable Drag on Create
-            div.id = id; // Set ID for drag
+            div.draggable = true; 
+            div.id = id; 
 
-            // Drag Listeners
             div.addEventListener('dragstart', () => { div.classList.add('dragging'); });
             div.addEventListener('dragend', () => { div.classList.remove('dragging'); window.app.markDirty(); });
 
@@ -393,7 +403,6 @@
             } catch (e) { console.error(e); showToast(e.message, 'error'); } finally { btn.disabled = false; btn.innerText = '儲存'; }
         };
 
-        // Import/Export/Share/Delete
         window.app.openBatchModal = () => { safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-6"><h3 class="text-lg font-bold mb-4">批量匯入</h3><textarea id="batch-text" class="w-full border rounded p-2 h-40" placeholder="題目1\n題目2"></textarea><div class="mt-4 flex justify-end gap-2"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-4 py-2 bg-gray-200 rounded">取消</button><button onclick="window.app.doImport()" class="px-4 py-2 bg-blue-600 text-white rounded">匯入</button></div></div>`; };
         window.app.doImport = () => { const lines = safeGet('batch-text').value.split('\n').filter(l=>l.trim()); lines.forEach(l => window.app.addQuestion('radio', {text: l, type: 'radio', required: true, options: ['非常滿意','滿意','普通','不滿意','非常不滿意']})); safeGet('modal-overlay').classList.add('hidden'); window.app.markDirty(); };
         window.app.openShare = (id) => { const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${state.user.uid}`; safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-6 text-center"><h3 class="font-bold mb-4">連結</h3><input class="w-full border p-2 rounded mb-4" value="${link}" readonly><button onclick="navigator.clipboard.writeText('${link}');showToast('已複製')" class="bg-blue-600 text-white px-4 py-2 rounded">複製連結</button><div class="mt-4"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}" class="mx-auto"></div><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="mt-4 text-gray-500 underline">關閉</button></div>`; const s = state.surveysCache[id]; if(s && s.status!=='published') updateDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id), {status:'published'}); };
@@ -445,7 +454,7 @@
         // --- Public Logic ---
         window.app.updateProgressBar = () => {
             const form = safeGet('public-form');
-            // Correct selector
+            // FIX: Correct selector with :not
             const total = form.querySelectorAll('.public-q-item:not([data-type="section"])').length; 
             if(total === 0) return;
             const answered = new Set();
@@ -530,8 +539,16 @@
                 safeGet('public-desc').textContent = data.description;
                 
                 const form = safeGet('public-form');
+                // FIX: Smart Numbering Logic (Skip Sections)
+                let questionCounter = 0;
+                
                 form.innerHTML = (data.questions || []).map((q, idx) => {
                     if (q.type === 'section') return `<div class="public-q-item border-b pb-2 mb-6 mt-8" data-type="section"><h3 class="text-xl font-bold text-blue-800">${escapeHtml(q.text)}</h3><p class="text-gray-600 whitespace-pre-wrap">${escapeHtml(q.description)}</p></div>`;
+                    
+                    questionCounter++;
+                    // Optional: Check if title starts with number manually, if so, don't add counter.
+                    const hasManualNumber = /^\d+[.、]/.test(q.text);
+                    const displayNum = hasManualNumber ? '' : `${questionCounter}. `;
                     
                     const name = `q_${idx}`;
                     const reqAttr = q.required ? 'data-req="true"' : '';
@@ -553,7 +570,7 @@
                         inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-2 p-2 border rounded bg-white"><input type="checkbox" name="${name}" value="${escapeHtml(opt)}" class="w-5 h-5 text-blue-600" onchange="window.app.updateProgressBar()"><span>${escapeHtml(opt)}</span></label>`).join('') + `</div>`;
                     }
 
-                    return `<div id="${qId}" class="public-q-item public-q-wrapper space-y-3 mb-8 p-4 rounded-xl transition duration-300 bg-white shadow-sm" ${reqAttr} data-type="${q.type}" data-name="${name}"><h4 class="font-bold text-lg text-gray-800">${idx+1}. ${escapeHtml(q.text)} ${reqMark}</h4>${inputHtml}</div>`;
+                    return `<div id="${qId}" class="public-q-item public-q-wrapper space-y-3 mb-8 p-4 rounded-xl transition duration-300 bg-white shadow-sm" ${reqAttr} data-type="${q.type}" data-name="${name}"><h4 class="font-bold text-lg text-gray-800">${displayNum}${escapeHtml(q.text)} ${reqMark}</h4>${inputHtml}</div>`;
                 }).join('');
                 switchView('view-public');
             } catch(e) { safeGet('loading-view').innerHTML = `<div class="text-red-500 p-10 text-center">${e.message}</div>`; }
