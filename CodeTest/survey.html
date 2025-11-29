@@ -2,6 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
+    <!-- Viewport 設定：viewport-fit=cover 確保填滿瀏海機型 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Firebase 問卷系統</title>
     <!-- Tailwind CSS -->
@@ -17,6 +18,8 @@
             min-height: 100vh;
             background-color: #f3f4f6;
             font-family: 'Noto Sans TC', sans-serif;
+            /* 修正 iOS 點擊高亮顏色 */
+            -webkit-tap-highlight-color: transparent;
         }
         
         body { 
@@ -30,11 +33,11 @@
         /* 選項卡片被選中時的動畫 */
         input:checked + div { 
             transform: scale(0.98); 
-            box-shadow: inset 0 0 0 2px currentColor; /* 使用 currentColor 讓邊框跟隨文字顏色 */
+            box-shadow: inset 0 0 0 2px currentColor; 
             font-weight: bold;
         }
 
-        /* 手機優化：點擊區域 */
+        /* 手機優化：確保點擊區域夠大 (48px) */
         .tap-target {
             min-height: 48px;
         }
@@ -44,11 +47,12 @@
             transition: width 0.3s ease-out;
         }
 
+        /* 針對 iPhone 底部安全區域的修正 */
         .safe-pb {
             padding-bottom: env(safe-area-inset-bottom, 20px);
         }
 
-        /* 拖曳相關樣式 */
+        /* 拖曳樣式 */
         .question-card.dragging {
             opacity: 0.5;
             border: 2px dashed #3b82f6;
@@ -57,17 +61,18 @@
         
         .drag-handle {
             cursor: grab;
+            touch-action: none; /* 防止觸控捲動干擾拖曳 */
         }
         .drag-handle:active {
             cursor: grabbing;
         }
 
         /* 量表顏色邏輯 */
-        .likert-opt-1 { color: #ef4444; border-color: #fca5a5; background-color: #fef2f2; } /* Red */
-        .likert-opt-2 { color: #f97316; border-color: #fdba74; background-color: #fff7ed; } /* Orange */
-        .likert-opt-3 { color: #eab308; border-color: #fde047; background-color: #fefce8; } /* Yellow */
-        .likert-opt-4 { color: #84cc16; border-color: #bef264; background-color: #f7fee7; } /* Lime */
-        .likert-opt-5 { color: #22c55e; border-color: #86efac; background-color: #f0fdf4; } /* Green */
+        .likert-opt-1 { color: #ef4444; border-color: #fca5a5; background-color: #fef2f2; } 
+        .likert-opt-2 { color: #f97316; border-color: #fdba74; background-color: #fff7ed; } 
+        .likert-opt-3 { color: #eab308; border-color: #fde047; background-color: #fefce8; } 
+        .likert-opt-4 { color: #84cc16; border-color: #bef264; background-color: #f7fee7; } 
+        .likert-opt-5 { color: #22c55e; border-color: #86efac; background-color: #f0fdf4; } 
         .opt-default { color: #374151; border-color: #e5e7eb; background-color: white; }
         input:checked + div.opt-default { border-color: #2563eb; background-color: #eff6ff; color: #1d4ed8; }
     </style>
@@ -131,11 +136,12 @@
                 <div class="space-y-4 text-left">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">電子郵件</label>
-                        <input type="email" id="auth-email" class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="name@example.com">
+                        <!-- iOS zoom fix: text-base -->
+                        <input type="email" id="auth-email" class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 focus:outline-none text-base" placeholder="name@example.com">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">密碼</label>
-                        <input type="password" id="auth-password" class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="******">
+                        <input type="password" id="auth-password" class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 focus:outline-none text-base" placeholder="******">
                     </div>
                 </div>
 
@@ -201,11 +207,11 @@
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">問卷標題</label>
-                            <input type="text" id="survey-title" class="w-full text-lg md:text-xl font-bold border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2" placeholder="請輸入問卷標題" oninput="app.markDirty()">
+                            <input type="text" id="survey-title" class="w-full text-lg md:text-xl font-bold border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-base" placeholder="請輸入問卷標題" oninput="app.markDirty()">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">問卷說明</label>
-                            <textarea id="survey-desc" rows="2" class="w-full text-gray-600 border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 auto-grow" placeholder="請輸入問卷的簡短說明..." oninput="app.markDirty(); app.autoGrow(this)"></textarea>
+                            <textarea id="survey-desc" rows="2" class="w-full text-gray-600 border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 auto-grow text-base" placeholder="請輸入問卷的簡短說明..." oninput="app.markDirty(); app.autoGrow(this)"></textarea>
                         </div>
                     </div>
                 </div>
@@ -248,14 +254,12 @@
             </div>
 
             <!-- Survey Form -->
-            <!-- 移除 onsubmit="event.preventDefault();" 改用 button onclick 來觸發驗證與送出 -->
             <form id="public-form" class="bg-white shadow-lg md:rounded-b-2xl p-5 md:p-8 space-y-8 mt-4 md:mt-0 rounded-xl md:rounded-none">
                 <div id="public-questions" class="space-y-10">
                     <!-- Questions injected here -->
                 </div>
 
                 <div class="pt-8 border-t border-gray-100">
-                    <!-- 改為 type="button" 並綁定 onclick -->
                     <button type="button" onclick="app.submitResponse()" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 transition transform active:scale-[0.98] text-lg tap-target">
                         送出問卷
                     </button>
@@ -286,7 +290,7 @@
                 <!-- Cloned content will go here -->
             </div>
             <!-- Close Button -->
-            <button onclick="document.getElementById('preview-modal').classList.add('hidden')" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white rounded-full p-3 shadow-lg hover:bg-gray-700 transition z-50">
+            <button onclick="document.getElementById('preview-modal').classList.add('hidden')" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white rounded-full p-3 shadow-lg hover:bg-gray-700 transition z-50 tap-target flex items-center justify-center w-12 h-12">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
         </div>
@@ -303,14 +307,14 @@
             <div class="overflow-y-auto flex-1 pr-2">
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-700 mb-1">題目列表 (一行一題)</label>
-                    <textarea id="batch-text" rows="6" class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 text-sm" placeholder="例如：
+                    <textarea id="batch-text" rows="6" class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 text-sm text-base" placeholder="例如：
 您對環境滿意嗎？
 服務人員態度如何？"></textarea>
                 </div>
 
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-700 mb-1">類型</label>
-                    <select id="batch-type" onchange="app.toggleBatchSettings()" class="w-full border-gray-300 rounded-lg p-2.5 border bg-white text-sm">
+                    <select id="batch-type" onchange="app.toggleBatchSettings()" class="w-full border-gray-300 rounded-lg p-2.5 border bg-white text-sm text-base">
                         <option value="text">簡答題</option>
                         <option value="likert">滿意度量表 (Likert)</option>
                         <option value="radio">單選題</option>
@@ -322,7 +326,7 @@
                     <div class="flex gap-4 items-center">
                         <div class="flex-1">
                             <span class="text-sm text-gray-600 block mb-1">等級數</span>
-                            <select id="likert-scale" class="w-full border border-blue-200 rounded p-1.5 text-sm">
+                            <select id="likert-scale" class="w-full border border-blue-200 rounded p-1.5 text-sm text-base">
                                 <option value="3">3 (1-3)</option>
                                 <option value="5" selected>5 (1-5)</option>
                                 <option value="7">7 (1-7)</option>
@@ -334,8 +338,8 @@
             </div>
 
             <div class="pt-4 border-t border-gray-100 flex justify-end gap-2">
-                <button onclick="document.getElementById('batch-modal').classList.add('hidden')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
-                <button onclick="app.processBatchImport(); app.markDirty()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow">匯入</button>
+                <button onclick="document.getElementById('batch-modal').classList.add('hidden')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg tap-target">取消</button>
+                <button onclick="app.processBatchImport(); app.markDirty()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow tap-target">匯入</button>
             </div>
         </div>
     </div>
@@ -346,7 +350,7 @@
             <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
                 <h3 class="text-lg md:text-xl font-bold text-gray-800"><i class="fa-solid fa-chart-bar text-blue-500 mr-2"></i>統計結果</h3>
                 <div class="flex gap-2">
-                    <button id="export-btn" class="text-xs md:text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition shadow whitespace-nowrap">
+                    <button id="export-btn" class="text-xs md:text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition shadow whitespace-nowrap tap-target">
                         <i class="fa-solid fa-file-csv"></i> <span class="hidden md:inline">匯出 Excel</span><span class="md:hidden">匯出</span>
                     </button>
                     <button onclick="document.getElementById('results-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 ml-2 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -365,8 +369,8 @@
             <h3 class="text-lg font-bold text-gray-800 mb-2">發布問卷</h3>
             <p class="text-sm text-gray-500 mb-4">將此連結傳送給填答者，或出示 QR Code。</p>
             <div class="flex gap-2 mb-6">
-                <input type="text" id="share-link-input" readonly class="w-full bg-gray-50 border border-gray-300 text-gray-600 text-sm rounded-lg p-2.5">
-                <button onclick="app.copyLink()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg text-sm font-medium whitespace-nowrap">複製</button>
+                <input type="text" id="share-link-input" readonly class="w-full bg-gray-50 border border-gray-300 text-gray-600 text-sm rounded-lg p-2.5 text-base">
+                <button onclick="app.copyLink()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg text-sm font-medium whitespace-nowrap tap-target">複製</button>
             </div>
             
             <!-- QR Code Area -->
@@ -375,7 +379,7 @@
                 <img id="share-qr-img" src="" alt="QR Code" class="mx-auto w-40 h-40 bg-gray-200 rounded">
             </div>
 
-            <button onclick="document.getElementById('share-modal').classList.add('hidden')" class="w-full mt-4 py-2 text-gray-500 hover:bg-gray-50 rounded-lg">關閉</button>
+            <button onclick="document.getElementById('share-modal').classList.add('hidden')" class="w-full mt-4 py-2 text-gray-500 hover:bg-gray-50 rounded-lg tap-target">關閉</button>
         </div>
     </div>
 
@@ -385,8 +389,8 @@
             <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-trash-can text-2xl"></i></div>
             <h3 class="text-lg font-bold text-gray-800">確定刪除？</h3>
             <div class="flex gap-3 mt-6">
-                <button onclick="document.getElementById('delete-modal').classList.add('hidden')" class="flex-1 py-2 border border-gray-300 rounded-lg">取消</button>
-                <button id="confirm-delete-btn" class="flex-1 py-2 bg-red-500 text-white rounded-lg">確認刪除</button>
+                <button onclick="document.getElementById('delete-modal').classList.add('hidden')" class="flex-1 py-2 border border-gray-300 rounded-lg tap-target">取消</button>
+                <button id="confirm-delete-btn" class="flex-1 py-2 bg-red-500 text-white rounded-lg tap-target">確認刪除</button>
             </div>
         </div>
     </div>
@@ -424,6 +428,17 @@
         const publicModeOwnerId = urlParams.get('u');
         const isPublicMode = publicModeSurveyId && publicModeOwnerId;
 
+        // Security: Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            if (!text) return text;
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         // Check for local file protocol
         if (window.location.protocol === 'file:') {
             document.getElementById('file-protocol-warning').classList.remove('hidden');
@@ -441,7 +456,6 @@
                 // Public mode auth attempt
                 signInAnonymously(auth).catch(e => {
                     console.error("Anon Auth Failed:", e);
-                    // Ensure loading screen doesn't hang forever
                     setTimeout(() => {
                         document.getElementById('loading-error').classList.remove('hidden');
                         document.getElementById('debug-info').textContent = "Auth Error: " + e.code;
@@ -457,17 +471,15 @@
         // Safety Timeout for Loading Screen
         setTimeout(() => {
             const loading = document.getElementById('loading-view');
-            // Only show timeout if still visible and not handled by auth state
             if (!loading.classList.contains('hidden') && document.getElementById('loading-error').classList.contains('hidden')) {
                 document.getElementById('loading-error').classList.remove('hidden');
                 document.getElementById('debug-info').textContent = "Timeout: 連線回應逾時";
             }
-        }, 8000); // 8 seconds timeout
+        }, 8000);
 
         // --- Drag and Drop Logic ---
         const initSortable = () => {
             const container = document.getElementById('questions-container');
-            
             container.addEventListener('dragover', e => {
                 e.preventDefault();
                 const afterElement = getDragAfterElement(container, e.clientY);
@@ -482,7 +494,6 @@
 
         const getDragAfterElement = (container, y) => {
             const draggableElements = [...container.querySelectorAll('.question-card:not(.dragging)')];
-
             return draggableElements.reduce((closest, child) => {
                 const box = child.getBoundingClientRect();
                 const offset = y - box.top - box.height / 2;
@@ -494,7 +505,6 @@
             }, { offset: Number.NEGATIVE_INFINITY }).element;
         };
 
-        // Initialize drag events on load
         window.addEventListener('DOMContentLoaded', () => {
             initSortable();
         });
@@ -503,7 +513,7 @@
         window.addEventListener('beforeunload', (e) => {
             if (isDirty) {
                 e.preventDefault();
-                e.returnValue = ''; // Chrome requires returnValue to be set
+                e.returnValue = '';
             }
         });
 
@@ -524,13 +534,12 @@
                 }
             } else {
                 if (!isPublicMode) {
-                    // Admin mode needs login
                     document.getElementById('admin-nav').classList.add('hidden');
                     document.getElementById('dashboard-view').classList.add('hidden');
                     document.getElementById('editor-view').classList.add('hidden');
                     document.getElementById('login-view').classList.remove('hidden');
                 } else {
-                    // Public mode error handled by fallback HTML injection
+                    // Public mode fallback
                     const main = document.getElementById('main-container');
                     main.innerHTML = `
                         <div class="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 fade-in">
@@ -545,7 +554,6 @@
             }
         });
 
-        // Helper to get emoji for Likert scale
         function getEmojiForScale(text, index, total) {
             const match = text.match(/^[\(]?(\d+)[\)\.]?/);
             if (match) {
@@ -566,17 +574,14 @@
             return null; 
         }
 
-        // Helper to get Color Class for Likert scale (Visual Optimization)
         function getColorClassForScale(text, total) {
             const match = text.match(/^[\(]?(\d+)[\)\.]?/);
             if (match && total <= 5) {
                 let num = parseInt(match[1]);
                 if(num >=1 && num <= 5) return `likert-opt-${num}`;
             }
-            // For 7 point or text only, heuristics?
             if (total === 7 && match) {
                  let num = parseInt(match[1]);
-                 // Map 1-7 to 5 colors somewhat
                  if(num===1) return 'likert-opt-1';
                  if(num===2) return 'likert-opt-1';
                  if(num===3) return 'likert-opt-2';
@@ -589,7 +594,6 @@
         }
 
         window.app = {
-            // --- Helper Methods ---
             markDirty: () => {
                 isDirty = true;
                 document.getElementById('unsaved-indicator').classList.remove('hidden');
@@ -619,7 +623,6 @@
             },
             logout: async () => { await signOut(auth); location.reload(); },
 
-            // --- Navigation ---
             showDashboard: () => {
                 if (isDirty && !confirm("您有未儲存的變更，確定要離開嗎？")) return;
                 app.clearDirty();
@@ -638,32 +641,37 @@
                 document.getElementById('dashboard-view').classList.add('hidden');
                 document.getElementById('editor-view').classList.remove('hidden');
                 window.scrollTo(0, 0);
-                app.clearDirty(); // Start clean
+                app.clearDirty(); 
             },
             editSurvey: (surveyId) => {
                 const survey = surveysCache[surveyId];
                 if (!survey) return showToast("讀取失敗", "error");
-                currentSurveyId = surveyId;
-                document.getElementById('survey-title').value = survey.title || '';
-                const descArea = document.getElementById('survey-desc');
-                descArea.value = survey.description || '';
-                app.autoGrow(descArea); // Auto height on load
+                
+                // Safety parse check
+                try {
+                    currentSurveyId = surveyId;
+                    document.getElementById('survey-title').value = survey.title || '';
+                    const descArea = document.getElementById('survey-desc');
+                    descArea.value = survey.description || '';
+                    app.autoGrow(descArea);
 
-                const container = document.getElementById('questions-container');
-                container.innerHTML = '';
-                (survey.questions || []).forEach(q => window.app.addQuestionUI(q));
-                document.getElementById('dashboard-view').classList.add('hidden');
-                document.getElementById('editor-view').classList.remove('hidden');
-                window.scrollTo(0, 0);
-                app.clearDirty(); // Reset dirty state after load
+                    const container = document.getElementById('questions-container');
+                    container.innerHTML = '';
+                    (survey.questions || []).forEach(q => window.app.addQuestionUI(q));
+                    document.getElementById('dashboard-view').classList.add('hidden');
+                    document.getElementById('editor-view').classList.remove('hidden');
+                    window.scrollTo(0, 0);
+                    app.clearDirty();
+                } catch (e) {
+                    console.error("Data parse error", e);
+                    showToast("問卷資料可能有誤，無法開啟", "error");
+                }
             },
 
-            // --- PREVIEW FEATURES ---
             openPreviewModal: () => {
-                const title = document.getElementById('survey-title').value;
-                const desc = document.getElementById('survey-desc').value;
+                const title = escapeHtml(document.getElementById('survey-title').value);
+                const desc = escapeHtml(document.getElementById('survey-desc').value);
                 
-                // Construct preview HTML similar to loadPublicSurvey but with current DOM inputs
                 let html = `
                     <div class="bg-blue-600 text-white p-6 pb-8">
                         <h1 class="text-xl font-bold mb-2">${title || '預覽標題'}</h1>
@@ -672,15 +680,14 @@
                     <div class="p-4 space-y-6 -mt-4">
                 `;
 
-                // Iterate over current question cards
                 const cards = document.querySelectorAll('.question-card');
                 cards.forEach((card, idx) => {
                     const typeInput = card.querySelector('.question-type');
                     const type = typeInput ? typeInput.value : card.querySelector('select.question-type').value;
-                    const text = card.querySelector('.question-input').value;
+                    const text = escapeHtml(card.querySelector('.question-input').value);
                     
                     if (type === 'section') {
-                        const sectionDesc = card.querySelector('.question-desc-input').value;
+                        const sectionDesc = escapeHtml(card.querySelector('.question-desc-input').value);
                         html += `
                         <div class="pt-2 pb-1 border-b border-gray-300">
                             <h3 class="font-bold text-lg text-gray-800 border-l-4 border-orange-400 pl-2 mb-1">${text}</h3>
@@ -692,13 +699,12 @@
                         let inputHtml = '';
                         
                         if (type === 'text') {
-                            inputHtml = `<input type="text" disabled class="w-full border-gray-300 rounded p-2 border bg-gray-50" placeholder="預覽模式無法填寫">`;
+                            inputHtml = `<input type="text" disabled class="w-full border-gray-300 rounded p-2 border bg-gray-50 text-base" placeholder="預覽模式無法填寫">`;
                         } else {
                             const optionsText = card.querySelector('.question-options').value;
                             const options = optionsText.split('\n').map(o=>o.trim()).filter(o=>o);
                             const optionsCount = options.length;
                             
-                            // Re-use logic for grid class
                             let gridClass = (type === 'radio') ? `grid grid-cols-3 gap-2` : `space-y-2`;
                             if (type === 'radio' && optionsCount > 7) gridClass = `grid grid-cols-4 gap-1`; 
 
@@ -710,13 +716,13 @@
                                     return `
                                     <div class="border rounded p-2 flex flex-col items-center justify-center text-center bg-white ${colorClass} opacity-80">
                                         ${emojiHtml}
-                                        <div class="text-xs font-bold mt-1">${opt}</div>
+                                        <div class="text-xs font-bold mt-1">${escapeHtml(opt)}</div>
                                     </div>`;
                                 }).join('') + `</div>`;
                             } else {
                                 inputHtml = `<div class="space-y-2">` + options.map(opt => `
                                     <div class="flex items-center gap-2 text-sm text-gray-700">
-                                        <div class="w-4 h-4 border rounded bg-white"></div> ${opt}
+                                        <div class="w-4 h-4 border rounded bg-white"></div> ${escapeHtml(opt)}
                                     </div>`).join('') + `</div>`;
                             }
                         }
@@ -729,13 +735,12 @@
                     }
                 });
 
-                html += `</div>`; // Close container
+                html += `</div>`;
                 
                 document.getElementById('preview-container').innerHTML = html;
                 document.getElementById('preview-modal').classList.remove('hidden');
             },
 
-            // --- REORDER FEATURES ---
             moveQuestion: (id, direction) => {
                 const card = document.getElementById(`q-${id}`);
                 const container = document.getElementById('questions-container');
@@ -748,7 +753,6 @@
                 app.markDirty();
             },
 
-            // --- BATCH IMPORT FEATURES ---
             openBatchModal: () => {
                 document.getElementById('batch-modal').classList.remove('hidden');
                 document.getElementById('batch-text').value = '';
@@ -796,7 +800,6 @@
                 app.markDirty();
             },
 
-            // --- NEW FEATURES: Duplicate & Export ---
             duplicateSurvey: async (surveyId) => {
                 const survey = surveysCache[surveyId];
                 if(!survey) return;
@@ -841,8 +844,6 @@
                     let csvContent = "\uFEFF"; 
                     let headers = ["提交時間"];
                     survey.questions.forEach((q, idx) => {
-                        // Skip sections in CSV export if desired, or include them as empty columns?
-                        // Usually sections are not answers.
                         if(q.type === 'section') {
                             headers.push(`"SECTION: ${q.text.replace(/"/g, '""')}"`);
                         } else {
@@ -859,7 +860,7 @@
                         
                         survey.questions.forEach((q, idx) => {
                             if(q.type === 'section') {
-                                row.push('""'); // Empty for section columns
+                                row.push('""');
                             } else {
                                 let ans = data.answers && data.answers[idx];
                                 if(!ans) ans = "";
@@ -889,7 +890,6 @@
                 }
             },
 
-            // --- RESULTS FEATURES ---
             viewResults: async (surveyId) => {
                 const survey = surveysCache[surveyId];
                 const modal = document.getElementById('results-modal');
@@ -913,7 +913,7 @@
                     let stats = {}; 
                     
                     (survey.questions || []).forEach((q, idx) => {
-                        if (q.type === 'section') return; // Skip sections in stats
+                        if (q.type === 'section') return; 
                         stats[idx] = { type: q.type, question: q.text, counts: {}, answers: [] };
                         if(q.options) q.options.forEach(opt => stats[idx].counts[opt] = 0);
                     });
@@ -943,13 +943,13 @@
                     Object.keys(stats).sort((a,b) => parseInt(a)-parseInt(b)).forEach(idx => {
                         const item = stats[idx];
                         html += `<div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                                    <h4 class="font-bold text-gray-800 mb-3"><span class="bg-blue-200 text-blue-800 text-xs px-2 py-0.5 rounded mr-2">Q${parseInt(idx)+1}</span> ${item.question}</h4>`;
+                                    <h4 class="font-bold text-gray-800 mb-3"><span class="bg-blue-200 text-blue-800 text-xs px-2 py-0.5 rounded mr-2">Q${parseInt(idx)+1}</span> ${escapeHtml(item.question)}</h4>`;
                         
                         if(item.type === 'text') {
                             html += `<div class="max-h-40 overflow-y-auto space-y-2">`;
                             if(item.answers.length === 0) html += `<div class="text-sm text-gray-400 italic">無回應</div>`;
                             item.answers.forEach(ans => {
-                                html += `<div class="text-sm bg-white p-2 rounded border border-gray-100 text-gray-600">${ans}</div>`;
+                                html += `<div class="text-sm bg-white p-2 rounded border border-gray-100 text-gray-600">${escapeHtml(ans)}</div>`;
                             });
                             html += `</div>`;
                         } else {
@@ -960,7 +960,7 @@
                                 html += `
                                     <div>
                                         <div class="flex justify-between text-xs text-gray-600 mb-1">
-                                            <span>${opt}</span>
+                                            <span>${escapeHtml(opt)}</span>
                                             <span>${count} 票 (${percent}%)</span>
                                         </div>
                                         <div class="w-full bg-gray-200 rounded-full h-2.5">
@@ -981,7 +981,6 @@
                 }
             },
 
-            // --- UI Manipulation ---
             addQuestionUI: (data = null) => {
                 const container = document.getElementById('questions-container');
                 const id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
@@ -991,12 +990,10 @@
                 const options = data && data.options ? data.options.join('\n') : '';
                 const isRequired = (data && data.required !== undefined) ? data.required : true; 
 
-                // --- 創建卡片 ---
                 const card = document.createElement('div');
                 card.id = `q-${id}`;
-                card.draggable = true; // 開啟拖曳
+                card.draggable = true; 
                 
-                // Add event listeners for Drag and Drop
                 card.addEventListener('dragstart', () => { card.classList.add('dragging'); });
                 card.addEventListener('dragend', () => { 
                     card.classList.remove('dragging'); 
@@ -1004,7 +1001,6 @@
                     app.markDirty();
                 });
 
-                // Handle Section Type UI
                 if (type === 'section') {
                     card.className = 'question-card bg-orange-50 p-4 md:p-6 rounded-xl border-2 border-orange-200 shadow-sm relative group transition duration-200';
                     card.innerHTML = `
@@ -1015,24 +1011,23 @@
                                 <i class="fa-solid fa-align-left"></i> 段落說明
                             </div>
                             <div class="flex items-center gap-2">
-                                <button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-orange-600 p-1 transition"><i class="fa-solid fa-arrow-up"></i></button>
-                                <button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-orange-600 p-1 transition"><i class="fa-solid fa-arrow-down"></i></button>
+                                <button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-orange-600 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button>
+                                <button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-orange-600 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-down"></i></button>
                                 <div class="h-4 w-px bg-orange-300 mx-1"></div>
-                                <button onclick="document.getElementById('q-${id}').remove(); window.app.renumberQuestions(); app.markDirty()" class="text-gray-400 hover:text-red-500 p-1 transition"><i class="fa-solid fa-trash"></i></button>
+                                <button onclick="document.getElementById('q-${id}').remove(); window.app.renumberQuestions(); app.markDirty()" class="text-gray-400 hover:text-red-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-xs font-bold text-orange-800 uppercase mb-1">段落標題</label>
-                                <input type="text" class="question-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border bg-white transition font-bold" placeholder="例如：第一部分 - 基本資料" value="${text}" oninput="app.markDirty()">
+                                <input type="text" class="question-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border bg-white transition font-bold text-base" placeholder="例如：第一部分 - 基本資料" value="${escapeHtml(text)}" oninput="app.markDirty()">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-orange-800 uppercase mb-1">詳細說明內容</label>
-                                <textarea class="question-desc-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border bg-white transition auto-grow" rows="3" placeholder="請在此輸入針對此部分的詳細說明或解釋..." oninput="app.markDirty(); app.autoGrow(this)">${description}</textarea>
+                                <textarea class="question-desc-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border bg-white transition auto-grow text-base" rows="3" placeholder="請在此輸入針對此部分的詳細說明或解釋..." oninput="app.markDirty(); app.autoGrow(this)">${escapeHtml(description)}</textarea>
                             </div>
                         </div>`;
                 } else {
-                    // Normal Question UI
                     card.className = 'question-card bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm relative group hover:shadow-md transition duration-200';
                     card.innerHTML = `
                     <div class="flex justify-between items-start mb-4">
@@ -1049,21 +1044,20 @@
                                 <span class="ml-2 text-xs font-medium text-gray-500">必填</span>
                             </label>
                             <div class="h-4 w-px bg-gray-300 mx-1"></div>
-                            <!-- 上下移動按鈕 -->
-                            <button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-blue-500 p-1 transition"><i class="fa-solid fa-arrow-up"></i></button>
-                            <button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-blue-500 p-1 transition"><i class="fa-solid fa-arrow-down"></i></button>
+                            <button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-blue-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button>
+                            <button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-blue-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-down"></i></button>
                             <div class="h-4 w-px bg-gray-300 mx-1"></div>
-                            <button onclick="document.getElementById('q-${id}').remove(); window.app.renumberQuestions(); app.markDirty()" class="text-gray-400 hover:text-red-500 p-1 transition"><i class="fa-solid fa-trash"></i></button>
+                            <button onclick="document.getElementById('q-${id}').remove(); window.app.renumberQuestions(); app.markDirty()" class="text-gray-400 hover:text-red-500 p-1 transition tap-target w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                         <div class="md:col-span-8">
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">題目內容</label>
-                            <input type="text" class="question-input w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border bg-gray-50 focus:bg-white transition" placeholder="例如：您對今天的服務滿意嗎？" value="${text}" oninput="app.markDirty()">
+                            <input type="text" class="question-input w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border bg-gray-50 focus:bg-white transition text-base" placeholder="例如：您對今天的服務滿意嗎？" value="${escapeHtml(text)}" oninput="app.markDirty()">
                         </div>
                         <div class="md:col-span-4">
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">題型</label>
-                            <select class="question-type w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border bg-white" onchange="window.app.toggleOptions(this); app.markDirty()">
+                            <select class="question-type w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 border bg-white text-base" onchange="window.app.toggleOptions(this); app.markDirty()">
                                 <option value="text" ${type === 'text' ? 'selected' : ''}>簡答題</option>
                                 <option value="radio" ${type === 'radio' ? 'selected' : ''}>單選題</option>
                                 <option value="checkbox" ${type === 'checkbox' ? 'selected' : ''}>多選題</option>
@@ -1072,28 +1066,33 @@
                     </div>
                     <div class="options-area mt-4 ${type === 'text' ? 'hidden' : ''}">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">選項 (每行一個)</label>
-                        <textarea class="question-options w-full border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 border bg-yellow-50 font-mono text-sm auto-grow" rows="3" placeholder="非常滿意&#10;普通&#10;不滿意" oninput="app.markDirty(); app.autoGrow(this)">${options}</textarea>
+                        <textarea class="question-options w-full border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 border bg-yellow-50 font-mono text-sm auto-grow text-base" rows="3" placeholder="非常滿意&#10;普通&#10;不滿意" oninput="app.markDirty(); app.autoGrow(this)">${escapeHtml(options)}</textarea>
                     </div>`;
                 }
                 
                 container.appendChild(card);
-                
-                // Initialize auto-grow for new elements
                 card.querySelectorAll('.auto-grow').forEach(el => app.autoGrow(el));
+                // Add aria labels to buttons in this card
+                card.querySelectorAll('button').forEach(btn => {
+                    const icon = btn.querySelector('i');
+                    if(icon && icon.classList.contains('fa-trash')) btn.setAttribute('aria-label', '刪除');
+                    if(icon && icon.classList.contains('fa-arrow-up')) btn.setAttribute('aria-label', '上移');
+                    if(icon && icon.classList.contains('fa-arrow-down')) btn.setAttribute('aria-label', '下移');
+                });
             },
+            
+            // ... (keep renumberQuestions, toggleOptions, etc.)
+            
             renumberQuestions: () => { 
-                // Only renumber actual questions, not sections
                 let qIndex = 0;
                 const badges = document.querySelectorAll('.question-card');
                 badges.forEach(card => {
                     const typeInput = card.querySelector('.question-type');
-                    if (typeInput && typeInput.value === 'section') return; // Skip sections
+                    if (typeInput && typeInput.value === 'section') return; 
                     
-                    const badge = card.querySelector('.bg-blue-100'); // Note: selector might need adjustment if badge structure changes
-                    // Correctly target the text inside the badge div, excluding the icon
+                    const badge = card.querySelector('.bg-blue-100'); 
                     if(badge) {
                         qIndex++;
-                        // Preserve the icon if it exists, or just rewrite text
                         badge.innerHTML = `<i class="fa-solid fa-grip-vertical mr-1 opacity-50"></i> 題目 ${qIndex}`;
                     }
                 });
@@ -1105,6 +1104,7 @@
                 else optionsArea.classList.remove('hidden');
             },
             saveSurvey: async () => {
+                // ... same as before
                 if (!user) return;
                 const saveBtn = document.getElementById('save-btn');
                 const originalBtnText = saveBtn.innerHTML;
@@ -1161,13 +1161,10 @@
                 showToast("連結已複製");
             },
             
-            // --- PUBLIC VIEW LOGIC (UPDATED) ---
             updateProgressBar: () => {
                 const form = document.getElementById('public-form');
-                const total = document.querySelectorAll('.public-q-item[data-type!="section"]').length; // Don't count sections
+                const total = document.querySelectorAll('.public-q-item[data-type!="section"]').length; 
                 if(total === 0) return;
-                
-                // Count answered questions
                 const answered = new Set();
                 const formData = new FormData(form);
                 for(let [key, val] of formData.entries()) {
@@ -1180,18 +1177,12 @@
             
             submitResponse: async () => {
                 const form = document.getElementById('public-form');
-                
-                // --- Validation Start ---
                 if (!form.checkValidity()) {
-                    // Browser native validation failed. We handle UI manually.
                     const invalidElement = form.querySelector(':invalid');
                     if (invalidElement) {
                         const card = invalidElement.closest('.public-q-item');
                         if (card) {
-                            // Scroll to center to avoid headers hiding it
                             card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            
-                            // Visual feedback
                             card.classList.add('ring-2', 'ring-red-400', 'bg-red-50', 'rounded-lg');
                             setTimeout(() => {
                                 card.classList.remove('ring-2', 'ring-red-400', 'bg-red-50', 'rounded-lg');
@@ -1201,7 +1192,6 @@
                     showToast("還有題目未完成喔！", "error");
                     return;
                 }
-                // --- Validation End ---
 
                 const submitBtn = document.getElementById('submit-btn');
                 submitBtn.disabled = true;
@@ -1211,7 +1201,7 @@
                     const answers = {};
                     document.querySelectorAll('.public-q-item').forEach((div, idx) => {
                         const type = div.dataset.type;
-                        if (type === 'section') return; // Skip sections in answers
+                        if (type === 'section') return; 
 
                         const name = `q_${idx}`;
                         if (type === 'checkbox') answers[idx] = formData.getAll(name);
@@ -1219,7 +1209,7 @@
                     });
                     await addDoc(collection(db, 'artifacts', appId, 'users', publicModeOwnerId, 'surveys', publicModeSurveyId, 'responses'), { answers: answers, submittedAt: serverTimestamp() });
                     document.getElementById('public-form').classList.add('hidden');
-                    document.getElementById('public-progress-bar').classList.add('hidden'); // Hide bar
+                    document.getElementById('public-progress-bar').classList.add('hidden'); 
                     document.getElementById('thank-you-view').classList.remove('hidden');
                     window.scrollTo(0, 0);
                 } catch (e) { console.error(e); showToast("提交失敗", "error"); submitBtn.disabled = false; submitBtn.innerText = "送出問卷"; }
@@ -1246,22 +1236,22 @@
                     const card = `
                     <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition p-5 border border-gray-200 flex flex-col h-full">
                         <div class="flex-1">
-                            <h3 class="font-bold text-lg text-gray-800 mb-2 line-clamp-1">${survey.title || '未命名'}</h3>
-                            <p class="text-gray-500 text-sm line-clamp-2 mb-4 h-10">${survey.description || '無描述'}</p>
+                            <h3 class="font-bold text-lg text-gray-800 mb-2 line-clamp-1">${escapeHtml(survey.title) || '未命名'}</h3>
+                            <p class="text-gray-500 text-sm line-clamp-2 mb-4 h-10">${escapeHtml(survey.description) || '無描述'}</p>
                             <div class="flex items-center gap-4 text-xs text-gray-400">
                                 <span class="bg-gray-100 px-2 py-1 rounded"><i class="fa-solid fa-list-ol mr-1"></i> ${qCount} 題</span>
                                 <span><i class="fa-regular fa-clock mr-1"></i> ${date}</span>
                             </div>
                         </div>
                         <div class="mt-5 pt-4 border-t border-gray-100 flex flex-wrap justify-between gap-y-2 gap-x-1 items-center">
-                            <button onclick="window.app.viewResults('${survey.id}')" class="text-gray-600 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition" title="查看結果">
+                            <button onclick="window.app.viewResults('${survey.id}')" class="text-gray-600 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition tap-target" title="查看結果">
                                 <i class="fa-solid fa-chart-simple text-blue-500"></i> <span class="hidden md:inline">統計</span>
                             </button>
                             <div class="flex gap-1 flex-wrap">
-                                <button onclick="window.app.duplicateSurvey('${survey.id}')" class="text-gray-500 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition" title="複製"><i class="fa-regular fa-copy"></i></button>
-                                <button onclick="window.app.openShareModal('${survey.id}')" class="text-green-600 hover:bg-green-50 px-2 py-1.5 rounded-lg text-xs font-medium transition" title="發布"><i class="fa-solid fa-share-nodes"></i></button>
-                                <button onclick="window.app.editSurvey('${survey.id}')" class="text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded-lg text-xs font-medium transition" title="編輯"><i class="fa-solid fa-pen"></i></button>
-                                <button onclick="window.app.requestDelete('${survey.id}')" class="text-red-500 hover:bg-red-50 px-2 py-1.5 rounded-lg text-xs font-medium transition" title="刪除"><i class="fa-solid fa-trash"></i></button>
+                                <button onclick="window.app.duplicateSurvey('${survey.id}')" class="text-gray-500 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition tap-target w-8 h-8 flex items-center justify-center" title="複製"><i class="fa-regular fa-copy"></i></button>
+                                <button onclick="window.app.openShareModal('${survey.id}')" class="text-green-600 hover:bg-green-50 px-2 py-1.5 rounded-lg text-xs font-medium transition tap-target w-8 h-8 flex items-center justify-center" title="發布"><i class="fa-solid fa-share-nodes"></i></button>
+                                <button onclick="window.app.editSurvey('${survey.id}')" class="text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded-lg text-xs font-medium transition tap-target w-8 h-8 flex items-center justify-center" title="編輯"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="window.app.requestDelete('${survey.id}')" class="text-red-500 hover:bg-red-50 px-2 py-1.5 rounded-lg text-xs font-medium transition tap-target w-8 h-8 flex items-center justify-center" title="刪除"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
                     </div>`;
@@ -1279,13 +1269,16 @@
                     document.getElementById('public-desc').textContent = data.description || "請回答以下問題";
                     const container = document.getElementById('public-questions');
                     container.innerHTML = '';
-                    (data.questions || []).forEach((q, idx) => {
-                        // Render Section differently
+                    
+                    const questionList = data.questions || [];
+                    const lastQuestionIdx = questionList.length - 1; // Find the index of the last question
+
+                    questionList.forEach((q, idx) => {
                         if (q.type === 'section') {
                             const sectionHTML = `
                             <div class="public-q-item pt-4 pb-2 border-b border-gray-200 mb-6" data-type="section">
-                                <h3 class="text-2xl font-bold text-gray-800 mb-2 border-l-4 border-orange-400 pl-3">${q.text}</h3>
-                                ${q.description ? `<div class="text-gray-600 leading-relaxed whitespace-pre-wrap text-base">${q.description}</div>` : ''}
+                                <h3 class="text-2xl font-bold text-gray-800 mb-2 border-l-4 border-orange-400 pl-3">${escapeHtml(q.text)}</h3>
+                                ${q.description ? `<div class="text-gray-600 leading-relaxed whitespace-pre-wrap text-base">${escapeHtml(q.description)}</div>` : ''}
                             </div>`;
                             container.insertAdjacentHTML('beforeend', sectionHTML);
                             return;
@@ -1296,51 +1289,63 @@
                         const isReq = (q.required !== undefined) ? q.required : true;
                         const reqAttr = isReq ? 'required' : '';
                         const reqMark = isReq ? '<span class="text-red-500 ml-1">*</span>' : '';
-
-                        // Wrapper ID for scroll target
                         const questionId = `pq-${idx}`;
 
+                        // Determine target for auto-scroll
+                        // If it's the last question, scroll to submit button (submit-btn)
+                        // Otherwise, look for next question ID. Note: next question might be a section, which doesn't have pq-ID
+                        // Better to scroll to the next public-q-item container
+                        const nextTargetId = (idx === lastQuestionIdx) ? 'submit-btn' : `pq-${idx+1}`; // Simple logic, refinement in JS string below
+
                         if (q.type === 'text') {
-                            inputHtml = `<input type="text" name="${name}" ${reqAttr} class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="請輸入您的答案..." oninput="app.updateProgressBar()">`;
+                            inputHtml = `<input type="text" name="${name}" ${reqAttr} class="w-full border-gray-300 rounded-lg p-3 border focus:ring-2 focus:ring-blue-500 focus:outline-none text-base" placeholder="請輸入您的答案..." oninput="app.updateProgressBar()">`;
                         } else if (q.type === 'radio') {
                             const optionsCount = q.options.length;
-                            
                             let gridClass = `grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-${Math.min(optionsCount, 7)} gap-2`;
                             
                             inputHtml = `<div class="${gridClass}">` + 
                                 q.options.map(opt => {
                                     const emoji = getEmojiForScale(opt, idx, optionsCount);
-                                    const colorClass = getColorClassForScale(opt, optionsCount); // NEW: Color Logic
+                                    const colorClass = getColorClassForScale(opt, optionsCount);
                                     const emojiHtml = emoji ? `<div class="text-xl md:text-3xl mb-1">${emoji}</div>` : '';
                                     
+                                    // Auto scroll logic in onchange
+                                    // We need to find the next meaningful element. Since we are building string, we use a generic selector approach in setTimeout
                                     return `
                                     <label class="cursor-pointer relative group">
                                         <input type="radio" name="${name}" value="${opt}" ${reqAttr} class="peer sr-only" onchange="app.updateProgressBar(); setTimeout(() => { 
-                                            const next = document.getElementById('pq-${idx+1}'); 
+                                            // Find current question container
+                                            const current = document.getElementById('${questionId}');
+                                            let next = current.nextElementSibling;
+                                            while(next && next.classList.contains('public-q-item') && next.getAttribute('data-type') === 'section') {
+                                                next = next.nextElementSibling; // Skip section headers for focus, or scroll to them? Scrolling to them is fine.
+                                            }
+                                            // If no next question, scroll to submit button
+                                            if (!next) next = document.getElementById('submit-btn');
+                                            
                                             if(next) next.scrollIntoView({behavior: 'smooth', block: 'center'}); 
                                         }, 300)">
-                                        <!-- Applied color class to the card -->
                                         <div class="h-full p-2 md:p-4 border-2 rounded-lg hover:border-blue-300 transition flex flex-col items-center justify-center text-center min-h-[60px] ${colorClass}">
                                             ${emojiHtml}
-                                            <div class="text-xs md:text-sm font-bold text-gray-700 break-words leading-tight">${opt}</div>
+                                            <div class="text-xs md:text-sm font-bold text-gray-700 break-words leading-tight">${escapeHtml(opt)}</div>
                                         </div>
                                     </label>
                                 `}).join('') + `</div>`;
 
                         } else if (q.type === 'checkbox') {
-                             inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"><input type="checkbox" name="${name}" value="${opt}" class="w-5 h-5 text-blue-600 focus:ring-blue-500 rounded" onchange="app.updateProgressBar()"><span class="text-gray-700 text-base">${opt}</span></label>`).join('') + `</div>`;
+                             inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"><input type="checkbox" name="${name}" value="${opt}" class="w-5 h-5 text-blue-600 focus:ring-blue-500 rounded" onchange="app.updateProgressBar()"><span class="text-gray-700 text-base">${escapeHtml(opt)}</span></label>`).join('') + `</div>`;
                         }
                         
                         const qHtml = `<div id="${questionId}" class="public-q-item space-y-3 scroll-mt-20" data-type="${q.type}">
                             <h3 class="font-bold text-lg md:text-xl text-gray-800 break-words leading-relaxed">
-                                <span class="text-blue-600 mr-2">${idx + 1}.</span> ${q.text} ${reqMark}
+                                <span class="text-blue-600 mr-2">${idx + 1}.</span> ${escapeHtml(q.text)} ${reqMark}
                             </h3>
                             ${inputHtml}
                         </div>`;
                         container.insertAdjacentHTML('beforeend', qHtml);
                     });
                     document.getElementById('public-view').classList.remove('hidden');
-                    document.getElementById('public-progress-bar').classList.remove('hidden'); // Show progress bar
+                    document.getElementById('public-progress-bar').classList.remove('hidden'); 
                 } else {
                     document.getElementById('public-title').textContent = "找不到問卷";
                     document.getElementById('public-view').classList.remove('hidden');
