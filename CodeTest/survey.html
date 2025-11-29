@@ -181,12 +181,19 @@
 
                 <div id="questions-container" class="p-4 md:p-6 space-y-6 bg-gray-50/50 min-h-[300px]"></div>
 
-                <div class="p-4 md:p-6 border-t border-gray-200 bg-white flex justify-center">
-                    <button onclick="app.addQuestionUI()" class="group flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition w-full max-w-md tap-target">
+                <div class="p-4 md:p-6 border-t border-gray-200 bg-white flex flex-col md:flex-row justify-center gap-3">
+                    <button onclick="app.addQuestionUI()" class="group flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition w-full max-w-[200px] tap-target">
                         <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition">
                             <i class="fa-solid fa-plus"></i>
                         </div>
-                        <span class="text-gray-500 font-medium group-hover:text-blue-600">新增單一題目</span>
+                        <span class="text-gray-500 font-medium group-hover:text-blue-600">新增題目</span>
+                    </button>
+                    <!-- 新增段落說明按鈕 -->
+                    <button onclick="app.addQuestionUI({type:'section'})" class="group flex flex-col items-center gap-2 p-4 border-2 border-dashed border-orange-200 rounded-xl hover:border-orange-400 hover:bg-orange-50 transition w-full max-w-[200px] tap-target">
+                        <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center group-hover:scale-110 transition">
+                            <i class="fa-solid fa-align-left"></i>
+                        </div>
+                        <span class="text-gray-500 font-medium group-hover:text-orange-600">新增段落說明</span>
                     </button>
                 </div>
             </div>
@@ -207,7 +214,7 @@
             <div class="bg-blue-600 text-white p-6 md:p-8 rounded-b-2xl md:rounded-t-2xl shadow-lg relative overflow-hidden">
                 <div class="absolute top-0 right-0 p-8 opacity-10 pointer-events-none"><i class="fa-solid fa-clipboard-question text-9xl"></i></div>
                 <h1 id="public-title" class="text-2xl md:text-3xl font-bold relative z-10 mb-2 break-words">載入中...</h1>
-                <p id="public-desc" class="text-blue-100 relative z-10 text-sm md:text-base break-words">請稍候</p>
+                <p id="public-desc" class="text-blue-100 relative z-10 text-sm md:text-base break-words whitespace-pre-wrap">請稍候</p>
             </div>
 
             <!-- Survey Form -->
@@ -429,8 +436,6 @@
                     document.getElementById('login-view').classList.remove('hidden');
                 } else {
                     // Public mode with NO user (auth failed/loading)
-                    // If we are here, it means we are public mode but not logged in.
-                    // This happens if auth fails. We should show error.
                     const main = document.getElementById('main-container');
                     main.innerHTML = `
                         <div class="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 fade-in">
@@ -625,8 +630,14 @@
                     let csvContent = "\uFEFF"; 
                     let headers = ["提交時間"];
                     survey.questions.forEach((q, idx) => {
-                        const safeText = q.text.replace(/"/g, '""');
-                        headers.push(`"Q${idx+1}: ${safeText}"`);
+                        // Skip sections in CSV export if desired, or include them as empty columns?
+                        // Usually sections are not answers.
+                        if(q.type === 'section') {
+                            headers.push(`"SECTION: ${q.text.replace(/"/g, '""')}"`);
+                        } else {
+                            const safeText = q.text.replace(/"/g, '""');
+                            headers.push(`"Q${idx+1}: ${safeText}"`);
+                        }
                     });
                     csvContent += headers.join(",") + "\n";
 
@@ -636,11 +647,15 @@
                         let row = [`"${time}"`];
                         
                         survey.questions.forEach((q, idx) => {
-                            let ans = data.answers && data.answers[idx];
-                            if(!ans) ans = "";
-                            if(Array.isArray(ans)) ans = ans.join("; "); 
-                            ans = String(ans).replace(/"/g, '""');
-                            row.push(`"${ans}"`);
+                            if(q.type === 'section') {
+                                row.push('""'); // Empty for section columns
+                            } else {
+                                let ans = data.answers && data.answers[idx];
+                                if(!ans) ans = "";
+                                if(Array.isArray(ans)) ans = ans.join("; "); 
+                                ans = String(ans).replace(/"/g, '""');
+                                row.push(`"${ans}"`);
+                            }
                         });
                         csvContent += row.join(",") + "\n";
                     });
@@ -687,6 +702,7 @@
                     let stats = {}; 
                     
                     (survey.questions || []).forEach((q, idx) => {
+                        if (q.type === 'section') return; // Skip sections in stats
                         stats[idx] = { type: q.type, question: q.text, counts: {}, answers: [] };
                         if(q.options) q.options.forEach(opt => stats[idx].counts[opt] = 0);
                     });
@@ -760,9 +776,42 @@
                 const id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
                 const type = data ? data.type : 'text';
                 const text = data ? data.text : '';
+                const description = data && data.description ? data.description : '';
                 const options = data && data.options ? data.options.join('\n') : '';
                 const isRequired = (data && data.required !== undefined) ? data.required : true; 
 
+                // Handle Section Type UI
+                if (type === 'section') {
+                    const sectionHTML = `
+                    <div class="question-card bg-orange-50 p-4 md:p-6 rounded-xl border-2 border-orange-200 shadow-sm relative group transition duration-200" id="q-${id}">
+                        <input type="hidden" class="question-type" value="section">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-orange-200 text-orange-800 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider flex items-center gap-1">
+                                <i class="fa-solid fa-align-left"></i> 段落說明
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-orange-600 p-1 transition"><i class="fa-solid fa-arrow-up"></i></button>
+                                <button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-orange-600 p-1 transition"><i class="fa-solid fa-arrow-down"></i></button>
+                                <div class="h-4 w-px bg-orange-300 mx-1"></div>
+                                <button onclick="document.getElementById('q-${id}').remove(); window.app.renumberQuestions();" class="text-gray-400 hover:text-red-500 p-1 transition"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-orange-800 uppercase mb-1">段落標題</label>
+                                <input type="text" class="question-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border bg-white transition font-bold" placeholder="例如：第一部分 - 基本資料" value="${text}">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-orange-800 uppercase mb-1">詳細說明內容</label>
+                                <textarea class="question-desc-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border bg-white transition" rows="3" placeholder="請在此輸入針對此部分的詳細說明或解釋...">${description}</textarea>
+                            </div>
+                        </div>
+                    </div>`;
+                    container.insertAdjacentHTML('beforeend', sectionHTML);
+                    return;
+                }
+
+                // Normal Question UI
                 const questionHTML = `
                 <div class="question-card bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm relative group hover:shadow-md transition duration-200" id="q-${id}">
                     <div class="flex justify-between items-start mb-4">
@@ -776,7 +825,6 @@
                                 <span class="ml-2 text-xs font-medium text-gray-500">必填</span>
                             </label>
                             <div class="h-4 w-px bg-gray-300 mx-1"></div>
-                            <!-- 上下移動按鈕 -->
                             <button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-blue-500 p-1 transition"><i class="fa-solid fa-arrow-up"></i></button>
                             <button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-blue-500 p-1 transition"><i class="fa-solid fa-arrow-down"></i></button>
                             <div class="h-4 w-px bg-gray-300 mx-1"></div>
@@ -804,7 +852,21 @@
                 </div>`;
                 container.insertAdjacentHTML('beforeend', questionHTML);
             },
-            renumberQuestions: () => { document.querySelectorAll('.question-card .bg-blue-100').forEach((badge, index) => badge.textContent = `題目 ${index + 1}`); },
+            renumberQuestions: () => { 
+                // Only renumber actual questions, not sections
+                let qIndex = 0;
+                const badges = document.querySelectorAll('.question-card');
+                badges.forEach(card => {
+                    const typeInput = card.querySelector('.question-type');
+                    if (typeInput && typeInput.value === 'section') return; // Skip sections
+                    
+                    const badge = card.querySelector('.bg-blue-100');
+                    if(badge) {
+                        qIndex++;
+                        badge.textContent = `題目 ${qIndex}`;
+                    }
+                });
+            },
             toggleOptions: (selectEl) => {
                 const card = selectEl.closest('.question-card');
                 const optionsArea = card.querySelector('.options-area');
@@ -823,13 +885,18 @@
                     if (!title) { showToast("請輸入問卷標題", "error"); throw new Error("Title required"); }
                     const cards = document.querySelectorAll('.question-card');
                     const questions = Array.from(cards).map(card => {
-                        const type = card.querySelector('.question-type').value;
+                        const type = card.querySelector('.question-type') ? card.querySelector('.question-type').value : card.querySelector('select.question-type').value;
                         const text = card.querySelector('.question-input').value.trim();
-                        const required = card.querySelector('.question-required').checked;
                         
-                        let options = [];
-                        if (type !== 'text') options = card.querySelector('.question-options').value.split('\n').map(o => o.trim()).filter(o => o);
-                        return { type, text, options, required };
+                        if (type === 'section') {
+                            const desc = card.querySelector('.question-desc-input').value.trim();
+                            return { type, text, description: desc };
+                        } else {
+                            const required = card.querySelector('.question-required').checked;
+                            let options = [];
+                            if (type !== 'text') options = card.querySelector('.question-options').value.split('\n').map(o => o.trim()).filter(o => o);
+                            return { type, text, options, required };
+                        }
                     });
                     const surveyData = { title, description, questions, updatedAt: serverTimestamp() };
                     const surveyRef = doc(db, 'artifacts', appId, 'users', user.uid, 'surveys', currentSurveyId);
@@ -865,7 +932,7 @@
             // --- PUBLIC VIEW LOGIC (UPDATED) ---
             updateProgressBar: () => {
                 const form = document.getElementById('public-form');
-                const total = document.querySelectorAll('.public-q-item').length;
+                const total = document.querySelectorAll('.public-q-item[data-type!="section"]').length; // Don't count sections
                 if(total === 0) return;
                 
                 // Count answered questions
@@ -889,6 +956,8 @@
                     const answers = {};
                     document.querySelectorAll('.public-q-item').forEach((div, idx) => {
                         const type = div.dataset.type;
+                        if (type === 'section') return; // Skip sections in answers
+
                         const name = `q_${idx}`;
                         if (type === 'checkbox') answers[idx] = formData.getAll(name);
                         else answers[idx] = formData.get(name);
@@ -917,7 +986,7 @@
                 snapshot.forEach(doc => { const data = { id: doc.id, ...doc.data() }; surveys.push(data); surveysCache[doc.id] = data; });
                 surveys.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
                 surveys.forEach(survey => {
-                    const qCount = survey.questions ? survey.questions.length : 0;
+                    const qCount = survey.questions ? survey.questions.filter(q => q.type !== 'section').length : 0;
                     const date = survey.updatedAt ? new Date(survey.updatedAt.seconds * 1000).toLocaleDateString('zh-TW') : '剛剛';
                     const card = `
                     <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition p-5 border border-gray-200 flex flex-col h-full">
@@ -956,6 +1025,17 @@
                     const container = document.getElementById('public-questions');
                     container.innerHTML = '';
                     (data.questions || []).forEach((q, idx) => {
+                        // Render Section differently
+                        if (q.type === 'section') {
+                            const sectionHTML = `
+                            <div class="public-q-item pt-4 pb-2 border-b border-gray-200 mb-6" data-type="section">
+                                <h3 class="text-2xl font-bold text-gray-800 mb-2 border-l-4 border-orange-400 pl-3">${q.text}</h3>
+                                ${q.description ? `<div class="text-gray-600 leading-relaxed whitespace-pre-wrap text-base">${q.description}</div>` : ''}
+                            </div>`;
+                            container.insertAdjacentHTML('beforeend', sectionHTML);
+                            return;
+                        }
+
                         let inputHtml = '';
                         const name = `q_${idx}`;
                         const isReq = (q.required !== undefined) ? q.required : true;
@@ -982,6 +1062,7 @@
                                     <label class="cursor-pointer relative group">
                                         <input type="radio" name="${name}" value="${opt}" ${reqAttr} class="peer sr-only" onchange="app.updateProgressBar(); setTimeout(() => { 
                                             const next = document.getElementById('pq-${idx+1}'); 
+                                            // Ensure we don't scroll to a section header by accident if it's the immediate next thing, actually scrolling to section is fine.
                                             if(next) next.scrollIntoView({behavior: 'smooth', block: 'center'}); 
                                         }, 300)">
                                         <div class="h-full p-4 border-2 border-gray-200 rounded-xl hover:border-blue-300 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition flex flex-col items-center justify-center text-center">
