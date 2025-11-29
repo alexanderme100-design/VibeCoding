@@ -3,117 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Firebase 問卷系統 (Final Stable)</title>
+    <title>Firebase 問卷系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
     <style>
-        /* 1. 核心基礎設定 */
         html, body { overflow-x: hidden; min-height: 100vh; background-color: #f3f4f6; font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
         body { display: flex; flex-direction: column; }
-        
-        /* 2. 動畫與互動 */
-        .fade-in { animation: fadeIn 0.4s ease-in-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        
-        input:checked + div { 
-            transform: scale(0.98); 
-            box-shadow: inset 0 0 0 2px currentColor; 
-            font-weight: bold; 
-            background-color: #eff6ff; 
-        }
-
-        /* 3. 錯誤提示 */
-        .error-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; background-color: #fef2f2 !important; }
-        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-
-        /* 4. 工具類 */
-        .tap-target { min-height: 48px; cursor: pointer; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        input:checked + div { transform: scale(0.98); box-shadow: inset 0 0 0 2px currentColor; font-weight: bold; background-color: #eff6ff; }
+        .tap-target { min-height: 48px; }
+        .progress-transition { transition: width 0.3s ease-out; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        .question-card.dragging { opacity: 0.5; border: 2px dashed #3b82f6; background-color: #eff6ff; }
         .drag-handle { cursor: grab; touch-action: none; }
         .drag-handle:active { cursor: grabbing; }
         .locked-input { background-color: #f9fafb; border-color: #e5e7eb; color: #6b7280; cursor: not-allowed; }
         
-        /* 5. 量表顏色系統 */
         .likert-opt-1 { color: #ef4444; border-color: #fca5a5; background-color: #fef2f2; } 
         .likert-opt-2 { color: #f97316; border-color: #fdba74; background-color: #fff7ed; } 
         .likert-opt-3 { color: #eab308; border-color: #fde047; background-color: #fefce8; } 
         .likert-opt-4 { color: #84cc16; border-color: #bef264; background-color: #f7fee7; } 
         .likert-opt-5 { color: #22c55e; border-color: #86efac; background-color: #f0fdf4; } 
         .opt-default { color: #374151; border-color: #e5e7eb; background-color: white; }
+        input:checked + div.opt-default { border-color: #2563eb; background-color: #eff6ff; color: #1d4ed8; }
     </style>
 
-    <!-- 預先載入核心工具，防止執行緒錯誤 -->
     <script>
-        // 初始化命名空間
-        window.app = window.app || {};
-
-        // 防呆 DOM 獲取器
-        window.safeGet = function(id) {
-            const el = document.getElementById(id);
-            if (!el) {
-                // 返回一個虛擬物件，防止報錯 "Cannot read property of null"
-                return { 
-                    value: '', innerHTML: '', disabled: false, style: {}, dataset: {}, classList: { add:()=>{}, remove:()=>{}, toggle:()=>{}, contains:()=>false }, 
-                    addEventListener: ()=>{}, querySelector: ()=>null, querySelectorAll: ()=>[] 
-                };
-            }
-            return el;
-        };
-
-        // Toast 通知
+        window.app = {}; 
+        
         window.showToast = function(msg, type = 'success') {
             const toast = document.getElementById('toast');
             const icon = document.getElementById('toast-icon');
             const msgSpan = document.getElementById('toast-msg');
             if(!toast) return;
-            
             msgSpan.textContent = msg;
-            const colorClass = type === 'error' ? 'text-red-400' : 'text-green-400';
-            const borderClass = type === 'error' ? 'border-red-500' : 'border-green-500';
-            
-            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation ' + colorClass : 'fa-solid fa-check-circle ' + colorClass;
-            toast.className = `fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 border-l-4 ${borderClass}`;
-            
-            toast.style.transform = 'translateX(0)';
-            setTimeout(() => { toast.style.transform = 'translateX(120%)'; }, 3000);
+            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation text-red-400' : 'fa-solid fa-check-circle text-green-400';
+            toast.className = `fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 border-l-4 ${type === 'error' ? 'border-red-500' : 'border-green-500'}`;
+            toast.classList.remove('translate-x-full');
+            setTimeout(() => toast.classList.add('translate-x-full'), 4000);
         };
 
-        // XSS 防護
+        window.safeGet = function(id) {
+            const el = document.getElementById(id);
+            return el || { classList: { remove:()=>{}, add:()=>{}, toggle:()=>{} }, style: {}, value: '', disabled: false, innerHTML: '', addEventListener: ()=>{} }; 
+        };
+
         window.escapeHtml = function(text) {
             if (text === null || text === undefined) return '';
             return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
-
-        // 全域錯誤攔截
-        window.onerror = function(msg, url, line) {
-            console.error("Global Error:", msg);
-            const errorDiv = document.getElementById('global-error');
-            if(errorDiv) {
-                errorDiv.classList.remove('hidden');
-                document.getElementById('global-error-msg').innerText = `${msg} (Line: ${line})`;
-            }
+        
+        window.onerror = function(msg, url, line, col, error) {
+            console.error("Global Error:", msg, error);
             const loading = document.getElementById('loading-view');
             if(loading) loading.classList.add('hidden');
+        };
+
+        // Scroll Helper
+        window.scrollToNext = function(currentElement) {
+            // Find the closest parent container (the question card)
+            const currentCard = currentElement.closest('.public-q-item');
+            if (!currentCard) return;
+
+            // Find the immediate next sibling
+            const nextCard = currentCard.nextElementSibling;
+
+            // If next sibling exists, scroll to it. Otherwise scroll to submit button.
+            if (nextCard) {
+                nextCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                const submitBtn = document.getElementById('public-submit-btn');
+                if (submitBtn) submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         };
     </script>
 </head>
 <body class="text-gray-800">
-
-    <!-- 全域錯誤畫面 -->
-    <div id="global-error" class="hidden fixed inset-0 bg-red-50 z-[200] flex flex-col items-center justify-center p-6 text-center">
-        <i class="fa-solid fa-bug text-5xl text-red-500 mb-4"></i>
-        <h2 class="text-xl font-bold text-gray-800">系統發生錯誤</h2>
-        <p id="global-error-msg" class="text-sm text-gray-600 mt-2 font-mono bg-white p-2 rounded border break-all">Unknown Error</p>
-        <button onclick="location.reload()" class="mt-6 bg-red-600 text-white px-6 py-2 rounded-lg shadow hover:bg-red-700">重新整理</button>
-    </div>
 
     <!-- 進度條 -->
     <div id="public-progress-bar" class="fixed top-0 left-0 w-full h-1.5 bg-gray-200 z-[60] hidden">
         <div id="progress-fill" class="h-full bg-green-500 transition-all duration-300" style="width: 0%"></div>
     </div>
 
-    <!-- 導覽列 -->
     <nav id="admin-nav" class="bg-blue-600 text-white shadow-lg sticky top-0 z-50 hidden">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -128,23 +101,13 @@
     </nav>
 
     <main class="flex-1 w-full max-w-5xl mx-auto p-4 pb-20 safe-pb">
-        
-        <!-- 載入中 -->
         <div id="loading-view" class="fixed inset-0 flex flex-col items-center justify-center bg-gray-100 z-[150]">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500"></i>
             <p class="mt-4 text-gray-500 font-medium">系統載入中...</p>
-            <div id="loading-timeout" class="hidden mt-4 text-center">
-                <p class="text-xs text-red-400 mb-2">連線回應較慢</p>
-                <button onclick="location.reload()" class="text-xs border border-gray-300 px-3 py-1 rounded bg-white">重新載入</button>
-            </div>
         </div>
+        <div id="toast" class="fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 translate-x-full border-l-4 border-green-500"><i id="toast-icon"></i><span id="toast-msg"></span></div>
 
-        <!-- Toast 容器 -->
-        <div id="toast" class="fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 translate-x-full border-l-4 border-green-500">
-            <i id="toast-icon"></i><span id="toast-msg"></span>
-        </div>
-
-        <!-- 1. 登入畫面 -->
+        <!-- Login -->
         <div id="view-login" class="hidden flex flex-col items-center justify-center min-h-[60vh] fade-in">
             <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm border border-gray-100 text-center">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">管理員登入</h2>
@@ -160,12 +123,8 @@
             </div>
         </div>
 
-        <!-- 2. 問卷列表 -->
+        <!-- Dashboard -->
         <div id="view-dashboard" class="hidden fade-in">
-            <div id="guest-warning" class="hidden bg-orange-50 border-l-4 border-orange-400 p-4 mb-6 rounded-r shadow-sm flex gap-3 items-start">
-                <i class="fa-solid fa-triangle-exclamation text-orange-500 mt-1"></i>
-                <div class="text-sm text-orange-800"><strong>訪客模式：</strong> 資料僅暫存。建議<button onclick="window.app.logout()" class="underline font-bold">登出並註冊</button>以永久保存。</div>
-            </div>
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-gray-800">我的問卷</h2>
                 <button onclick="window.app.createSurvey()" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition flex items-center gap-2 tap-target">
@@ -178,7 +137,7 @@
             </div>
         </div>
 
-        <!-- 3. 編輯器 -->
+        <!-- Editor -->
         <div id="view-editor" class="hidden fade-in">
             <div class="sticky top-0 z-30 bg-[#f3f4f6] py-2 flex justify-between items-center mb-2">
                 <button onclick="window.app.backToDashboard()" class="text-gray-600 bg-white border px-3 py-1.5 rounded-lg text-sm shadow-sm"><i class="fa-solid fa-arrow-left mr-1"></i> 返回</button>
@@ -205,7 +164,7 @@
             </div>
         </div>
 
-        <!-- 4. 公開填寫 -->
+        <!-- Public View -->
         <div id="view-public" class="hidden w-full max-w-2xl mx-auto fade-in pb-24">
             <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
                 <div class="bg-blue-600 h-2"></div>
@@ -220,7 +179,7 @@
             </div>
         </div>
 
-        <!-- 5. 感謝頁 -->
+        <!-- Thank You -->
         <div id="view-thankyou" class="hidden flex flex-col items-center justify-center min-h-[60vh] text-center fade-in px-4">
             <div class="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-6"><i class="fa-solid fa-check text-4xl"></i></div>
             <h2 class="text-2xl font-bold text-gray-800 mb-2">感謝您的填寫！</h2>
@@ -279,7 +238,6 @@
              return 'opt-default';
         };
 
-        // --- APP FUNCTIONS ---
         window.app.login = async () => { try { await signInWithEmailAndPassword(state.auth, safeGet('login-email').value, safeGet('login-password').value); } catch(e) { showToast(e.code, 'error'); } };
         window.app.register = async () => { try { await createUserWithEmailAndPassword(state.auth, safeGet('login-email').value, safeGet('login-password').value); showToast("註冊成功"); } catch(e) { showToast(e.code, 'error'); } };
         window.app.logout = async () => { await signOut(state.auth); location.reload(); };
@@ -414,7 +372,7 @@
 
         window.app.updateProgressBar = () => {
             const form = safeGet('public-form');
-            // FIX: Correct selector with :not
+            // FIX: Valid CSS selector
             const total = form.querySelectorAll('.public-q-item:not([data-type="section"])').length; 
             if(total === 0) return;
             const answered = new Set();
@@ -433,6 +391,7 @@
                      let valid = false;
                      if (type === 'text') { if(form.querySelector(`[name="${name}"]`).value.trim()) valid = true; }
                      else { if(form.querySelector(`[name="${name}"]:checked`)) valid = true; }
+                     
                      if (!valid) {
                          item.classList.add('error-shake', 'ring-2', 'ring-red-500', 'bg-red-50', 'rounded-lg');
                          if(!firstInvalid) firstInvalid = item;
@@ -508,12 +467,11 @@
                 
                 const form = safeGet('public-form');
                 form.innerHTML = (data.questions || []).map((q, idx) => {
-                    if (q.type === 'section') return `<div class="border-b pb-2 mb-6 mt-8"><h3 class="text-xl font-bold text-blue-800">${escapeHtml(q.text)}</h3><p class="text-gray-600">${escapeHtml(q.description)}</p></div>`;
+                    if (q.type === 'section') return `<div class="public-q-item border-b pb-2 mb-6 mt-8" data-type="section"><h3 class="text-xl font-bold text-blue-800">${escapeHtml(q.text)}</h3><p class="text-gray-600">${escapeHtml(q.description)}</p></div>`;
                     
                     const name = `q_${idx}`;
                     const reqAttr = q.required ? 'data-req="true"' : '';
                     const reqMark = q.required ? '<span class="text-red-500">*</span>' : '';
-                    const qId = `pq-${idx}`; // ID for scrolling
                     
                     let inputHtml = '';
                     if (q.type === 'text') {
@@ -524,15 +482,13 @@
                         inputHtml = `<div class="flex flex-wrap justify-center gap-2">` + q.options.map((opt, i) => {
                              const emoji = getEmoji(i, count);
                              const col = getColor(i, count);
-                             // Auto scroll logic fix: check for next pq ID or submit button
-                             return `<label class="${grid} flex-grow-0 flex-shrink-0 cursor-pointer group"><input type="radio" name="${name}" value="${escapeHtml(opt)}" class="peer sr-only" onchange="window.app.updateProgressBar(); setTimeout(()=>{ document.getElementById('pq-${idx+1}')?.scrollIntoView({behavior:'smooth',block:'center'}) || document.getElementById('public-submit-btn').scrollIntoView({behavior:'smooth',block:'center'}); }, 300)"><div class="h-full p-2 border rounded text-center text-sm font-bold bg-white flex flex-col items-center justify-center min-h-[60px] group-hover:border-blue-300 transition ${col} opacity-90"><div class="text-2xl mb-1">${emoji}</div><div class="leading-tight">${escapeHtml(opt)}</div></div></label>`;
+                             return `<label class="${grid} flex-grow-0 flex-shrink-0 cursor-pointer group"><input type="radio" name="${name}" value="${escapeHtml(opt)}" class="peer sr-only" onchange="window.app.updateProgressBar(); window.scrollToNext(this)"><div class="h-full p-2 border rounded text-center text-sm font-bold bg-white flex flex-col items-center justify-center min-h-[60px] group-hover:border-blue-300 transition ${col} opacity-90"><div class="text-2xl mb-1">${emoji}</div><div class="leading-tight">${escapeHtml(opt)}</div></div></label>`;
                         }).join('') + `</div>`;
                     } else {
                         inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-2 p-2 border rounded bg-white"><input type="checkbox" name="${name}" value="${escapeHtml(opt)}" class="w-5 h-5 text-blue-600" onchange="window.app.updateProgressBar()"><span>${escapeHtml(opt)}</span></label>`).join('') + `</div>`;
                     }
 
-                    // Add ID for scrolling
-                    return `<div id="${qId}" class="public-q-item public-q-wrapper space-y-3 mb-8 p-4 rounded-xl transition duration-300 bg-white shadow-sm" ${reqAttr} data-type="${q.type}" data-name="${name}"><h4 class="font-bold text-lg text-gray-800">${idx+1}. ${escapeHtml(q.text)} ${reqMark}</h4>${inputHtml}</div>`;
+                    return `<div class="public-q-item space-y-3 mb-8 p-4 rounded-xl transition duration-300 bg-white shadow-sm" ${reqAttr} data-type="${q.type}" data-name="${name}"><h4 class="font-bold text-lg text-gray-800">${idx+1}. ${escapeHtml(q.text)} ${reqMark}</h4>${inputHtml}</div>`;
                 }).join('');
                 switchView('view-public');
             } catch(e) { safeGet('loading-view').innerHTML = `<div class="text-red-500 p-10 text-center">${e.message}</div>`; }
@@ -542,12 +498,18 @@
             safeGet('loading-view').classList.add('hidden');
             state.user = user;
             if (state.mode === 'public') {
-                if (!user) signInAnonymously(state.auth).catch(console.error); else loadPublic();
+                if (!user) signInAnonymously(state.auth); else loadPublic();
             } else {
                 if (user) {
                     safeGet('admin-nav').classList.remove('hidden');
-                    safeGet('user-info').textContent = user.isAnonymous ? '訪客' : user.email;
-                    safeGet('guest-warning').classList.toggle('hidden', !user.isAnonymous);
+                    
+                    if (user.isAnonymous) {
+                        // 強制登出訪客，確保管理者看到登入畫面
+                         signOut(state.auth);
+                         return;
+                    }
+                    
+                    safeGet('user-info').textContent = user.email;
                     switchView('view-dashboard');
                     loadSurveys();
                 } else switchView('view-login');
