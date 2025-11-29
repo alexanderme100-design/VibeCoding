@@ -8,35 +8,17 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
     <style>
-        /* 1. 基礎設定 */
         html, body { overflow-x: hidden; min-height: 100vh; background-color: #f3f4f6; font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
         body { display: flex; flex-direction: column; }
-        
-        /* 2. 動畫 */
         .fade-in { animation: fadeIn 0.3s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* 3. 選項互動樣式 */
-        input:checked + div { 
-            transform: scale(0.98); 
-            box-shadow: inset 0 0 0 2px currentColor; 
-            font-weight: bold; 
-            background-color: #eff6ff; 
-        }
-
-        /* 4. 錯誤震動 */
+        input:checked + div { transform: scale(0.98); box-shadow: inset 0 0 0 2px currentColor; font-weight: bold; background-color: #eff6ff; }
         .error-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; background-color: #fef2f2 !important; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-
-        /* 5. 工具類 */
         .tap-target { min-height: 48px; cursor: pointer; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom, 20px); }
         .question-card.dragging { opacity: 0.5; border: 2px dashed #3b82f6; background-color: #eff6ff; }
         .drag-handle { cursor: grab; touch-action: none; }
-        .drag-handle:active { cursor: grabbing; }
-        .locked-input { background-color: #f9fafb; border-color: #e5e7eb; color: #6b7280; cursor: not-allowed; }
-        
-        /* 6. 量表顏色 */
         .likert-opt-1 { color: #ef4444; border-color: #fca5a5; background-color: #fef2f2; } 
         .likert-opt-2 { color: #f97316; border-color: #fdba74; background-color: #fff7ed; } 
         .likert-opt-3 { color: #eab308; border-color: #fde047; background-color: #fefce8; } 
@@ -45,8 +27,8 @@
         .opt-default { color: #374151; border-color: #e5e7eb; background-color: white; }
     </style>
 
-    <!-- 全域工具 -->
     <script>
+        // 1. 初始化
         window.app = {}; 
         
         window.showToast = function(msg, type = 'success') {
@@ -54,21 +36,16 @@
             const icon = document.getElementById('toast-icon');
             const msgSpan = document.getElementById('toast-msg');
             if(!toast) return;
-            
             msgSpan.textContent = msg;
-            const colorClass = type === 'error' ? 'text-red-400' : 'text-green-400';
-            const borderClass = type === 'error' ? 'border-red-500' : 'border-green-500';
-            
-            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation ' + colorClass : 'fa-solid fa-check-circle ' + colorClass;
-            toast.className = `fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 border-l-4 ${borderClass}`;
-            
-            toast.style.transform = 'translateX(0)';
-            setTimeout(() => { toast.style.transform = 'translateX(120%)'; }, 3000);
+            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation text-red-400' : 'fa-solid fa-check-circle text-green-400';
+            toast.classList.remove('translate-x-full');
+            setTimeout(() => toast.classList.add('translate-x-full'), 3000);
         };
 
         window.safeGet = function(id) {
             const el = document.getElementById(id);
-            return el || { classList: { remove:()=>{}, add:()=>{}, toggle:()=>{}, contains:()=>false }, style: {}, value: '', disabled: false, innerHTML: '', addEventListener: ()=>{} }; 
+            if (!el) return { classList: { remove:()=>{}, add:()=>{}, toggle:()=>{}, contains:()=>false }, style: {}, value: '', disabled: false, innerHTML: '', addEventListener: ()=>{} }; 
+            return el;
         };
 
         window.escapeHtml = function(text) {
@@ -76,18 +53,12 @@
             return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
 
-        window.onerror = function(msg, url, line, col, error) {
-            const errorDiv = document.getElementById('global-error');
-            const errorMsg = document.getElementById('global-error-msg');
-            if(errorDiv && errorMsg) {
-                errorDiv.classList.remove('hidden');
-                errorMsg.innerText = `${msg} (Line: ${line})`;
-            }
-            console.error("Global Error:", msg, error);
-            const loading = document.getElementById('loading-view');
-            if(loading) loading.classList.add('hidden');
+        window.onerror = function(msg, url, line) {
+            console.error("Global Error:", msg);
+            document.getElementById('loading-view')?.classList.add('hidden');
         };
 
+        // 自動捲動
         window.scrollToNext = function(currentElement) {
             const currentCard = currentElement.closest('.public-q-item');
             if (!currentCard) return;
@@ -104,13 +75,6 @@
     </script>
 </head>
 <body class="text-gray-800">
-
-    <div id="global-error" class="hidden fixed inset-0 bg-red-50 z-[200] flex flex-col items-center justify-center p-6 text-center">
-        <i class="fa-solid fa-bug text-5xl text-red-500 mb-4"></i>
-        <h2 class="text-xl font-bold text-gray-800">系統發生錯誤</h2>
-        <p id="global-error-msg" class="text-sm text-gray-600 mt-2 font-mono bg-white p-2 rounded border break-all">Unknown Error</p>
-        <button onclick="location.reload()" class="mt-6 bg-red-600 text-white px-6 py-2 rounded-lg shadow hover:bg-red-700">重新整理</button>
-    </div>
 
     <div id="public-progress-bar" class="fixed top-0 left-0 w-full h-1.5 bg-gray-200 z-[60] hidden">
         <div id="progress-fill" class="h-full bg-green-500 transition-all duration-300" style="width: 0%"></div>
@@ -133,7 +97,6 @@
         <div id="loading-view" class="fixed inset-0 flex flex-col items-center justify-center bg-gray-100 z-[150]">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500"></i>
             <p class="mt-4 text-gray-500 font-medium">系統載入中...</p>
-            <div id="loading-timeout" class="hidden mt-4 text-center"><p class="text-xs text-red-400 mb-2">連線回應較慢</p><button onclick="location.reload()" class="text-xs border border-gray-300 px-3 py-1 rounded bg-white">重新載入</button></div>
         </div>
         <div id="toast" class="fixed top-20 right-5 z-[100] bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 translate-x-full border-l-4 border-green-500"><i id="toast-icon"></i><span id="toast-msg"></span></div>
 
@@ -180,7 +143,7 @@
                     <button id="btn-import" onclick="window.app.openBatchModal()" class="bg-white text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg text-sm shadow-sm"><i class="fa-solid fa-bolt mr-1"></i> 匯入</button>
                 </div>
             </div>
-            <!-- 移除鎖定 Banner -->
+            
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
                 <input type="text" id="edit-title" class="w-full text-xl font-bold border-b p-2 outline-none" placeholder="問卷標題" oninput="window.app.markDirty()">
                 <textarea id="edit-desc" class="w-full text-gray-600 mt-2 border-b p-2 outline-none resize-none" rows="1" placeholder="問卷說明..." oninput="window.app.markDirty(); window.app.autoGrow(this)"></textarea>
@@ -191,7 +154,7 @@
                     <button onclick="window.app.addQuestion('text')" class="flex flex-col items-center justify-center w-12 h-12 bg-gray-50 text-gray-600 rounded-lg"><i class="fa-solid fa-plus"></i><span class="text-[10px]">題目</span></button>
                     <button onclick="window.app.addQuestion('section')" class="flex flex-col items-center justify-center w-12 h-12 bg-orange-50 text-orange-600 rounded-lg"><i class="fa-solid fa-align-left"></i><span class="text-[10px]">段落</span></button>
                  </div>
-                 <button onclick="window.app.saveSurvey()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg">儲存</button>
+                 <button id="btn-save" onclick="window.app.saveSurvey()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg">儲存</button>
             </div>
         </div>
 
@@ -237,20 +200,31 @@
           appId: "1:547257703502:web:85e147bed62333b11c771f"
         };
         
+        // Module Scoped Variables
         const APP_ID = 'survey-app';
-        const state = { db: null, auth: null, user: null, currentSurveyId: null, surveysCache: {}, isDirty: false, mode: 'admin' };
-        const urlParams = new URLSearchParams(window.location.search);
-        const sId = urlParams.get('s');
-        const uId = urlParams.get('u');
-        if (sId && uId) state.mode = 'public';
+        let auth, db;
+        let currentUser = null;
+        let currentSurveyId = null;
+        let isDirty = false;
+        let surveysCache = {};
 
         try {
             const app = initializeApp(firebaseConfig);
-            state.auth = getAuth(app);
-            state.db = getFirestore(app);
-            if (state.mode === 'public') signInAnonymously(state.auth).catch(console.error);
+            auth = getAuth(app);
+            db = getFirestore(app);
         } catch (e) { console.error(e); alert("Firebase Init Error"); }
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const sId = urlParams.get('s');
+        const uId = urlParams.get('u');
+        const isPublicMode = sId && uId;
+
+        if (isPublicMode) {
+            signInAnonymously(auth).catch(console.error);
+        }
+        if (window.location.protocol === 'file:') safeGet('file-protocol-warning').classList.remove('hidden');
+
+        // --- Helpers ---
         const getEmoji = (idx, total) => {
             const emojis = ['😡', '🙁', '😐', '😊', '🤩'];
             if (total <= 5) return idx < 5 ? emojis[idx] : '';
@@ -269,69 +243,10 @@
              return 'opt-default';
         };
 
-        window.app.login = async () => { try { await signInWithEmailAndPassword(state.auth, safeGet('login-email').value, safeGet('login-password').value); } catch(e) { showToast(e.code, 'error'); } };
-        window.app.register = async () => { try { await createUserWithEmailAndPassword(state.auth, safeGet('login-email').value, safeGet('login-password').value); showToast("註冊成功"); } catch(e) { showToast(e.code, 'error'); } };
-        window.app.logout = async () => { await signOut(state.auth); location.reload(); };
+        // --- DEFINITIONS START HERE (BEFORE EXECUTION) ---
 
-        window.app.backToDashboard = () => { if(state.isDirty && !confirm("未儲存變更將遺失")) return; switchView('view-dashboard'); renderList(); };
-
-        window.app.createSurvey = () => {
-            state.currentSurveyId = crypto.randomUUID();
-            safeGet('edit-title').value = ''; safeGet('edit-desc').value = ''; safeGet('editor-questions').innerHTML = '';
-            updateLock(false);
-            window.app.addQuestion(); 
-            state.isDirty = false; updateDirtyUI();
-            switchView('view-editor');
-        };
-
-        window.app.editSurvey = async (surveyId) => {
-            let survey = state.surveysCache[surveyId];
-            if (!survey) {
-                try {
-                    const snap = await getDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', surveyId));
-                    if(snap.exists()) {
-                        survey = { id: snap.id, ...snap.data() };
-                        state.surveysCache[surveyId] = survey;
-                    } else {
-                        return showToast("問卷不存在", "error");
-                    }
-                } catch(e) { return showToast("讀取失敗", "error"); }
-            }
-            state.currentSurveyId = surveyId;
-            safeGet('edit-title').value = survey.title || '';
-            safeGet('edit-desc').value = survey.description || '';
-            window.app.autoGrow(safeGet('edit-desc'));
-            updateLock(false); // Always Unlocked
-            const container = safeGet('editor-questions');
-            container.innerHTML = '';
-            (survey.questions || []).forEach(q => window.app.addQuestion(q.type, q));
-            switchView('view-editor');
-        };
-        
-        window.app.loadEditor = window.app.editSurvey;
-
-        window.app.addQuestion = (type = 'text', data = null) => {
-            const container = safeGet('editor-questions');
-            const id = `q-${Date.now()}-${Math.random().toString(36).substr(2,4)}`;
-            const div = document.createElement('div');
-            div.className = `question-item p-4 rounded-xl border mb-4 relative group ${type === 'section' ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`;
-            
-            const qText = data ? data.text : '';
-            const qDesc = data ? data.description : '';
-            const qOpts = data ? (data.options || []).join('\n') : '';
-            const qType = data ? data.type : type;
-            const qReq = data ? data.required : true;
-
-            div.dataset.qtype = qType;
-
-            if (qType === 'section') {
-                div.innerHTML = `<div class="flex justify-between mb-2"><span class="text-xs font-bold text-orange-600">段落說明</span><button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400"><i class="fa-solid fa-trash"></i></button></div><input type="text" class="q-input w-full bg-white border border-orange-300 rounded p-2 mb-2 font-bold" placeholder="段落標題" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><textarea class="q-desc w-full bg-white border border-orange-300 rounded p-2" rows="2" placeholder="說明內容..." oninput="window.app.markDirty()">${escapeHtml(data ? data.description : '')}</textarea>`;
-            } else {
-                div.innerHTML = `<div class="flex justify-between mb-3"><span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">問題</span><div class="flex items-center gap-2"><label class="text-xs"><input type="checkbox" class="q-req mr-1" ${qReq ? 'checked' : ''} onchange="window.app.markDirty()">必填</label><button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400"><i class="fa-solid fa-trash"></i></button></div></div><input type="text" class="q-input w-full border rounded p-2 mb-2" placeholder="題目內容" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><select class="q-type w-full border rounded p-2 mb-2 bg-gray-50" onchange="window.app.toggleOpts(this)"><option value="text" ${qType==='text'?'selected':''}>簡答題</option><option value="radio" ${qType==='radio'?'selected':''}>單選題</option><option value="checkbox" ${qType==='checkbox'?'selected':''}>多選題</option></select><textarea class="q-opts w-full border rounded p-2 h-24 font-mono ${qType==='text'?'hidden':''}" placeholder="選項1&#10;選項2&#10;選項3" oninput="window.app.markDirty()">${escapeHtml(qOpts)}</textarea>`;
-            }
-            container.appendChild(div);
-            window.app.markDirty();
-        };
+        window.app.markDirty = () => { isDirty = true; updateDirtyUI(); };
+        window.app.autoGrow = (el) => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
 
         window.app.toggleOpts = (el) => {
             const item = el.closest('.question-item');
@@ -344,10 +259,48 @@
             window.app.markDirty();
         };
 
+        window.app.addQuestion = (type = 'text', data = null) => {
+            const container = safeGet('editor-questions');
+            const id = `q-${Date.now()}-${Math.random().toString(36).substr(2,4)}`;
+            const div = document.createElement('div');
+            
+            const qText = data ? data.text : '';
+            const qDesc = data ? data.description : '';
+            const qOpts = data ? (data.options || []).join('\n') : '';
+            const qType = data ? data.type : type;
+            const qReq = (data && data.required !== undefined) ? data.required : true;
+
+            div.className = `question-item p-4 rounded-xl border mb-4 relative group ${qType === 'section' ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`;
+            div.dataset.qtype = qType;
+
+            if (qType === 'section') {
+                div.innerHTML = `<div class="flex justify-between mb-2"><span class="text-xs font-bold text-orange-600">段落說明</span><button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400"><i class="fa-solid fa-trash"></i></button></div><input type="text" class="q-input w-full bg-white border border-orange-300 rounded p-2 mb-2 font-bold" placeholder="段落標題" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><textarea class="q-desc w-full bg-white border border-orange-300 rounded p-2" rows="2" placeholder="說明內容..." oninput="window.app.markDirty()">${escapeHtml(qDesc)}</textarea>`;
+            } else {
+                div.innerHTML = `<div class="flex justify-between mb-3"><span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">問題</span><div class="flex items-center gap-2"><label class="text-xs"><input type="checkbox" class="q-req mr-1" ${qReq ? 'checked' : ''} onchange="window.app.markDirty()">必填</label><button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-400"><i class="fa-solid fa-trash"></i></button></div></div><input type="text" class="q-input w-full border rounded p-2 mb-2" placeholder="題目內容" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><select class="q-type w-full border rounded p-2 mb-2 bg-gray-50" onchange="window.app.toggleOpts(this)"><option value="text" ${qType==='text'?'selected':''}>簡答題</option><option value="radio" ${qType==='radio'?'selected':''}>單選題</option><option value="checkbox" ${qType==='checkbox'?'selected':''}>多選題</option></select><textarea class="q-opts w-full border rounded p-2 h-24 font-mono ${qType==='text'?'hidden':''}" placeholder="選項1&#10;選項2&#10;選項3" oninput="window.app.markDirty()">${escapeHtml(qOpts)}</textarea>`;
+            }
+            container.appendChild(div);
+        };
+
+        window.app.createSurvey = () => {
+            currentSurveyId = crypto.randomUUID();
+            safeGet('edit-title').value = ''; safeGet('edit-desc').value = ''; safeGet('editor-questions').innerHTML = '';
+            window.app.addQuestion(); 
+            isDirty = false; updateDirtyUI();
+            switchView('view-editor');
+        };
+
         window.app.saveSurvey = async () => {
-            if (!state.user) return;
-            const btn = document.querySelector('#editor-toolbar button:last-child');
-            btn.disabled = true; btn.innerText = '儲存中...';
+            if (!currentUser) return;
+            const btn = safeGet('btn-save'); // Fixed Selector
+            if (!btn) {
+                 // Fallback if btn-save id missing (it is in HTML now?) 
+                 // Actually the button in toolbar has onclick.
+                 // We need to disable it. 
+                 // Using querySelector as backup
+                 const toolbarBtn = document.querySelector('#editor-toolbar button:last-child');
+                 if(toolbarBtn) { toolbarBtn.disabled = true; toolbarBtn.innerText = '儲存中...'; }
+            }
+
             try {
                 const title = safeGet('edit-title').value.trim();
                 const desc = safeGet('edit-desc').value.trim();
@@ -358,6 +311,7 @@
                     const type = item.dataset.qtype || 'text';
                     const text = item.querySelector('.q-input').value.trim();
                     if (!text) return;
+                    
                     if (type === 'section') {
                         questions.push({ type, text, description: item.querySelector('.q-desc').value.trim() });
                     } else {
@@ -368,26 +322,49 @@
                         questions.push({ type: type, text, required: req, options: opts });
                     }
                 });
-                const data = { title, description: desc, questions, updatedAt: serverTimestamp(), status: state.surveysCache[state.currentSurveyId]?.status || 'draft' };
-                await setDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', state.currentSurveyId), data, {merge: true});
-                state.isDirty = false; updateDirtyUI(); showToast('儲存成功');
-                state.surveysCache[state.currentSurveyId] = { ...data, id: state.currentSurveyId };
-            } catch (e) { console.error(e); showToast(e.message, 'error'); } finally { btn.disabled = false; btn.innerText = '儲存'; }
+                const data = { title, description: desc, questions, updatedAt: serverTimestamp(), status: surveysCache[currentSurveyId]?.status || 'draft' };
+                await setDoc(doc(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'surveys', currentSurveyId), data, {merge: true});
+                isDirty = false; updateDirtyUI(); showToast('儲存成功');
+                surveysCache[currentSurveyId] = { ...data, id: currentSurveyId };
+            } catch (e) { console.error(e); showToast(e.message, 'error'); } 
+            
+            const toolbarBtn = document.querySelector('#editor-toolbar button:last-child');
+            if(toolbarBtn) { toolbarBtn.disabled = false; toolbarBtn.innerText = '儲存'; }
+        };
+
+        // --- Other Functions ---
+        window.app.login = async () => { try { await signInWithEmailAndPassword(auth, safeGet('login-email').value, safeGet('login-password').value); } catch(e) { showToast(e.code, 'error'); } };
+        window.app.register = async () => { try { await createUserWithEmailAndPassword(auth, safeGet('login-email').value, safeGet('login-password').value); showToast("註冊成功"); } catch(e) { showToast(e.code, 'error'); } };
+        window.app.logout = async () => { await signOut(auth); location.reload(); };
+        window.app.backToDashboard = () => { if(isDirty && !confirm("未儲存變更將遺失")) return; switchView('view-dashboard'); renderList(); };
+        window.app.editSurvey = async (id) => {
+            let s = surveysCache[id];
+            if (!s) {
+                 try { const snap = await getDoc(doc(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'surveys', id)); 
+                 if(snap.exists()) { s = { id: snap.id, ...snap.data() }; surveysCache[id] = s; } } catch(e){}
+            }
+            if (!s) return showToast("讀取失敗", "error");
+            currentSurveyId = id;
+            safeGet('edit-title').value = s.title || '';
+            safeGet('edit-desc').value = s.description || '';
+            window.app.autoGrow(safeGet('edit-desc'));
+            const container = safeGet('editor-questions');
+            container.innerHTML = '';
+            (s.questions || []).forEach(q => window.app.addQuestion(q.type, q));
+            switchView('view-editor');
         };
 
         window.app.openBatchModal = () => { safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-6"><h3 class="text-lg font-bold mb-4">批量匯入</h3><textarea id="batch-text" class="w-full border rounded p-2 h-40" placeholder="題目1\n題目2"></textarea><div class="mt-4 flex justify-end gap-2"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-4 py-2 bg-gray-200 rounded">取消</button><button onclick="window.app.doImport()" class="px-4 py-2 bg-blue-600 text-white rounded">匯入</button></div></div>`; };
-        window.app.doImport = () => { const lines = safeGet('batch-text').value.split('\n').filter(l=>l.trim()); lines.forEach(l => window.app.addQuestion('radio', {text: l, type: 'radio', required: true, options: ['非常滿意','滿意','普通','不滿意','非常不滿意']})); safeGet('modal-overlay').classList.add('hidden'); };
-        window.app.openShare = (id) => { const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${state.user.uid}`; safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-6 text-center"><h3 class="font-bold mb-4">連結</h3><input class="w-full border p-2 rounded mb-4" value="${link}" readonly><button onclick="navigator.clipboard.writeText('${link}');showToast('已複製')" class="bg-blue-600 text-white px-4 py-2 rounded">複製連結</button><div class="mt-4"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}" class="mx-auto"></div><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="mt-4 text-gray-500 underline">關閉</button></div>`; const s = state.surveysCache[id]; if(s && s.status!=='published') updateDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id), {status:'published'}); };
-        window.app.viewStats = async (id) => { 
-            safeGet('modal-overlay').classList.remove('hidden'); 
-            safeGet('modal-content').innerHTML = '<div class="p-10 text-center">載入中...</div>';
-            const snap = await getDocs(collection(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id, 'responses'));
-            safeGet('modal-content').innerHTML = `<div class="p-6"><h3 class="font-bold mb-4">共 ${snap.size} 筆回覆</h3><p class="text-gray-500">請使用匯出功能分析。</p><button class="mt-4 bg-green-600 text-white px-4 py-2 rounded" onclick="window.app.exportToCSV('${id}')">匯出 Excel</button><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="block mt-4 w-full text-gray-500">關閉</button></div>`;
-        };
+        window.app.doImport = () => { const lines = safeGet('batch-text').value.split('\n').filter(l=>l.trim()); lines.forEach(l => window.app.addQuestion('radio', {text: l, type: 'radio', required: true, options: ['非常滿意','滿意','普通','不滿意','非常不滿意']})); safeGet('modal-overlay').classList.add('hidden'); window.app.markDirty(); };
+        window.app.openShare = (id) => { const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${currentUser.uid}`; safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-6 text-center"><h3 class="font-bold mb-4">連結</h3><input class="w-full border p-2 rounded mb-4" value="${link}" readonly><button onclick="navigator.clipboard.writeText('${link}');showToast('已複製')" class="bg-blue-600 text-white px-4 py-2 rounded">複製連結</button><div class="mt-4"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}" class="mx-auto"></div><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="mt-4 text-gray-500 underline">關閉</button></div>`; };
+        
+        // FIX: exportToCSV Syntax Error (btn undefined)
         window.app.exportToCSV = async (id) => {
+             const btn = document.getElementById('export-btn');
+             if(btn) { btn.innerText = "處理中..."; btn.disabled = true; }
              try {
-                const survey = state.surveysCache[id];
-                const snap = await getDocs(collection(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id, 'responses'));
+                const survey = surveysCache[id];
+                const snap = await getDocs(collection(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'surveys', id, 'responses'));
                 let csv = "\uFEFF時間,";
                 survey.questions.forEach((q, i) => csv += `"${q.text.replace(/"/g,'""')}",`);
                 csv += "\n";
@@ -406,11 +383,18 @@
                 });
                 const url = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
                 const a = document.createElement('a'); a.href = url; a.download = `${survey.title}.csv`; a.click();
-            } catch(e) { console.error(e); alert("匯出失敗"); }
+            } catch(e) { console.error(e); alert("匯出失敗"); } 
+            if(btn) { btn.innerHTML = '匯出'; btn.disabled = false; }
         };
-        window.app.deleteSurvey = async (id) => { if(confirm("確定刪除？")) { await deleteDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id)); loadSurveys(); } };
-        window.app.duplicateCurrent = async () => { if(!confirm("複製問卷？")) return; const s = state.surveysCache[state.currentSurveyId]; const newId = crypto.randomUUID(); await setDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', newId), { ...s, title: s.title+"(副本)", status: 'draft', updatedAt: serverTimestamp() }); showToast("複製成功"); loadSurveys(); switchView('view-dashboard'); };
-
+        
+        window.app.viewStats = async (id) => { 
+            safeGet('modal-overlay').classList.remove('hidden'); 
+            safeGet('modal-content').innerHTML = '<div class="p-10 text-center">載入中...</div>';
+            const snap = await getDocs(collection(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'surveys', id, 'responses'));
+            safeGet('modal-content').innerHTML = `<div class="p-6"><h3 class="font-bold mb-4">共 ${snap.size} 筆回覆</h3><p class="text-gray-500">請使用匯出功能分析。</p><button id="export-btn" class="mt-4 bg-green-600 text-white px-4 py-2 rounded" onclick="window.app.exportToCSV('${id}')">匯出 Excel</button><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="block mt-4 w-full text-gray-500">關閉</button></div>`;
+        };
+        window.app.deleteSurvey = async (id) => { if(confirm("確定刪除？")) { await deleteDoc(doc(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'surveys', id)); loadSurveys(); } };
+        
         window.app.updateProgressBar = () => {
             const form = safeGet('public-form');
             const total = form.querySelectorAll('.public-q-item:not([data-type="section"])').length; 
@@ -456,7 +440,7 @@
                      if (type === 'checkbox') answers[name] = formData.getAll(name);
                      else answers[name] = formData.get(name);
                  });
-                 await addDoc(collection(state.db, 'artifacts', APP_ID, 'users', uId, 'surveys', sId, 'responses'), { answers, submittedAt: serverTimestamp() });
+                 await addDoc(collection(db, 'artifacts', APP_ID, 'users', uId, 'surveys', sId, 'responses'), { answers, submittedAt: serverTimestamp() });
                  switchView('view-thankyou');
              } catch(e) { console.error(e); showToast("提交失敗", 'error'); btn.disabled = false; }
         };
@@ -466,16 +450,12 @@
             safeGet(id).classList.remove('hidden');
             window.scrollTo(0,0);
         }
-        function updateLock(isLocked) {
-            // Removed input disabling logic
-            // Removed hidden toggles for toolbar/banners
-        }
-        function updateDirtyUI() { safeGet('unsaved-badge').classList.toggle('hidden', !state.isDirty); }
+        function updateDirtyUI() { safeGet('unsaved-badge').classList.toggle('hidden', !isDirty); }
         
         function renderList() {
             const container = safeGet('survey-list-container');
             container.innerHTML = '';
-            const surveys = Object.values(state.surveysCache).sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
+            const surveys = Object.values(surveysCache).sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
             if (surveys.length === 0) return safeGet('empty-state').classList.remove('hidden');
             safeGet('empty-state').classList.add('hidden');
             surveys.forEach(s => {
@@ -485,16 +465,16 @@
 
         async function loadSurveys() {
             try {
-                const snap = await getDocs(collection(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys'));
-                state.surveysCache = {};
-                snap.forEach(doc => { state.surveysCache[doc.id] = { id: doc.id, ...doc.data() }; });
+                const snap = await getDocs(collection(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'surveys'));
+                surveysCache = {};
+                snap.forEach(doc => { surveysCache[doc.id] = { id: doc.id, ...doc.data() }; });
                 renderList();
             } catch(e) { console.error(e); showToast('讀取失敗', 'error'); }
         }
 
         async function loadPublic() {
             try {
-                const snap = await getDoc(doc(state.db, 'artifacts', APP_ID, 'users', uId, 'surveys', sId));
+                const snap = await getDoc(doc(db, 'artifacts', APP_ID, 'users', uId, 'surveys', sId));
                 if(!snap.exists()) throw new Error("問卷不存在");
                 const data = snap.data();
                 safeGet('public-title').textContent = data.title;
@@ -514,11 +494,15 @@
                         inputHtml = `<input type="text" name="${name}" class="w-full border rounded p-3 bg-gray-50 focus:bg-white transition" oninput="window.app.updateProgressBar()">`;
                     } else if (q.type === 'radio') {
                         const count = q.options.length;
-                        let grid = 'w-[48%]'; if(count >= 7) grid = 'w-[23%]'; else if(count===5) grid = 'w-[31%]'; else if(count===3) grid = 'w-[31%]';
+                        // Flexbox Balance Logic
+                        let widthClass = 'w-[calc(33.33%-0.5rem)]'; 
+                        if(count >= 7) widthClass = 'w-[calc(25%-0.5rem)]'; 
+                        else if(count <= 4) widthClass = 'w-[calc(50%-0.5rem)]';
+
                         inputHtml = `<div class="flex flex-wrap justify-center gap-2">` + q.options.map((opt, i) => {
                              const emoji = getEmoji(i, count);
                              const col = getColor(i, count);
-                             return `<label class="${grid} flex-grow-0 flex-shrink-0 cursor-pointer group"><input type="radio" name="${name}" value="${escapeHtml(opt)}" class="peer sr-only" onchange="window.app.updateProgressBar(); window.scrollToNext(this)"><div class="h-full p-2 border rounded text-center text-sm font-bold bg-white flex flex-col items-center justify-center min-h-[60px] group-hover:border-blue-300 transition ${col} opacity-90"><div class="text-2xl mb-1">${emoji}</div><div class="leading-tight">${escapeHtml(opt)}</div></div></label>`;
+                             return `<label class="${widthClass} flex-grow-0 flex-shrink-0 cursor-pointer group" style="min-width: 80px;"><input type="radio" name="${name}" value="${escapeHtml(opt)}" class="peer sr-only" onchange="window.app.updateProgressBar(); window.scrollToNext(this)"><div class="h-full p-2 border rounded text-center text-sm font-bold bg-white flex flex-col items-center justify-center min-h-[60px] group-hover:border-blue-300 transition ${col} opacity-90"><div class="text-2xl mb-1">${emoji}</div><div class="leading-tight">${escapeHtml(opt)}</div></div></label>`;
                         }).join('') + `</div>`;
                     } else {
                         inputHtml = `<div class="space-y-2">` + q.options.map(opt => `<label class="flex items-center gap-2 p-2 border rounded bg-white"><input type="checkbox" name="${name}" value="${escapeHtml(opt)}" class="w-5 h-5 text-blue-600" onchange="window.app.updateProgressBar()"><span>${escapeHtml(opt)}</span></label>`).join('') + `</div>`;
@@ -530,17 +514,16 @@
             } catch(e) { safeGet('loading-view').innerHTML = `<div class="text-red-500 p-10 text-center">${e.message}</div>`; }
         }
 
-        onAuthStateChanged(state.auth, (user) => {
+        onAuthStateChanged(auth, (user) => {
             safeGet('loading-view').classList.add('hidden');
-            state.user = user;
-            if (state.mode === 'public') {
-                if (!user) signInAnonymously(state.auth).catch(console.error); else loadPublic();
+            currentUser = user;
+            if (isPublicMode) {
+                if (!user) signInAnonymously(auth).catch(console.error); else loadPublic();
             } else {
                 if (user) {
                     safeGet('admin-nav').classList.remove('hidden');
-                    if (user.isAnonymous) { signOut(state.auth); return; } // Kick out guest from admin
+                    if (user.isAnonymous) { signOut(auth); return; }
                     safeGet('user-info').textContent = user.email;
-                    safeGet('guest-warning').classList.toggle('hidden', !user.isAnonymous);
                     switchView('view-dashboard');
                     loadSurveys();
                 } else switchView('view-login');
