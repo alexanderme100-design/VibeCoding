@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>問卷の森</title>
+    <title>Firebase 問卷系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- 引入圓潤字體 -->
@@ -15,11 +15,11 @@
             --ghibli-cream: #FAF7F0;
             --ghibli-sky: #D8E9F0;
             --ghibli-green: #568A66;
-            --ghibli-green-dark: #2F4F3A; /* 更深的綠色 */
+            --ghibli-green-dark: #2F4F3A; 
             --ghibli-brown: #8B5E3C;
             --ghibli-red: #E67F65;
             --ghibli-text: #4A4A4A;
-            --ghibli-select-bg: #B8D8C5; /* 強烈的選中背景色 */
+            --ghibli-select-bg: #B8D8C5; 
         }
 
         html, body { 
@@ -35,11 +35,9 @@
         
         body { display: flex; flex-direction: column; }
         
-        /* 柔和的浮現動畫 */
         .fade-in { animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
         
-        /* 吉卜力風格卡片 */
         .ghibli-card {
             background: white;
             border-radius: 20px;
@@ -50,20 +48,18 @@
             transition: all 0.3s ease;
         }
         
-        /* 選項互動 - 強烈反差版 */
         input:checked + div { 
-            transform: scale(0.95) translateY(2px); /* 按壓感更強 */
+            transform: scale(0.95) translateY(2px); 
             box-shadow: 
-                inset 0 0 0 3px var(--ghibli-green-dark), /* 內粗框 */
+                inset 0 0 0 3px var(--ghibli-green-dark), 
                 0 2px 4px rgba(0,0,0,0.2);
-            font-weight: 900; /* 字體加粗 */
-            background-color: var(--ghibli-select-bg) !important; /* 強制深色背景 */
-            border-color: transparent !important; /* 讓內陰影取代邊框 */
-            color: var(--ghibli-green-dark) !important; /* 深色文字 */
-            z-index: 10; /* 確保浮在最上層 */
+            font-weight: 900; 
+            background-color: var(--ghibli-select-bg) !important; 
+            border-color: transparent !important; 
+            color: var(--ghibli-green-dark) !important; 
+            z-index: 10; 
         }
 
-        /* 按鈕風格 */
         .btn-ghibli-primary {
             background-color: var(--ghibli-green);
             color: white;
@@ -82,11 +78,9 @@
             transform: none;
         }
 
-        /* 錯誤震動 */
         .error-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border: 2px solid var(--ghibli-red) !important; background-color: #FFF5F5 !important; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
 
-        /* 雲朵裝飾 */
         .cloud {
             position: absolute;
             background: white;
@@ -94,9 +88,7 @@
             box-shadow: 0 8px 5px rgba(0,0,0,0.05);
             z-index: -1;
         }
-        .cloud::after, .cloud::before {
-            content: ''; position: absolute; background: white; z-index: -1;
-        }
+        .cloud::after, .cloud::before { content: ''; position: absolute; background: white; z-index: -1; }
         .cloud-1 { width: 100px; height: 40px; top: 20px; left: -10px; opacity: 0.8; animation: float 20s infinite linear; }
         .cloud-2 { width: 160px; height: 60px; top: 50px; right: -30px; opacity: 0.6; animation: float 35s infinite linear reverse; }
         @keyframes float { 0% { transform: translateX(0); } 50% { transform: translateX(20px); } 100% { transform: translateX(0); } }
@@ -108,7 +100,6 @@
         .drag-handle:active { cursor: grabbing; }
         .locked-input { background-color: #f3f3f3; border-color: #ddd; color: #999; cursor: not-allowed; }
         
-        /* 量表顏色 (未選中時) */
         .likert-opt-1 { color: #C05555; border-color: #EECBCB; background-color: #FFF5F5; } 
         .likert-opt-2 { color: #D98C5F; border-color: #F5DDC9; background-color: #FFFBF7; } 
         .likert-opt-3 { color: #C4A83C; border-color: #F2EBC3; background-color: #FFFFF0; } 
@@ -117,7 +108,6 @@
         .opt-default { color: var(--ghibli-text); border-color: #E0E0E0; background-color: white; }
     </style>
 
-    <!-- 預先載入核心工具 -->
     <script>
         window.app = {}; 
         
@@ -229,25 +219,24 @@
                 <div class="w-20 h-20 bg-[#E8D5B5] text-[#8B5E3C] rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
                     <i class="fa-solid fa-tree text-3xl"></i>
                 </div>
-                <h2 class="text-2xl font-bold text-[#5B6C78] mb-6">管理員登入</h2>
+                <h2 class="text-2xl font-bold text-[#5B6C78] mb-2">管理員登入</h2>
+                <p class="text-xs text-gray-400 mb-6">僅限授權管理員進入</p>
+                
                 <div id="file-protocol-warning" class="hidden mb-4 p-3 bg-yellow-50 text-yellow-800 text-xs rounded-lg text-left"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 警告：請使用網頁伺服器開啟。</div>
                 <div class="space-y-4 text-left">
                     <div><label class="text-xs font-bold text-gray-500 ml-1">電子郵件</label><input type="email" id="login-email" class="w-full bg-[#f9f9f9] border-2 border-[#eee] rounded-xl p-3 focus:border-[#568A66] focus:outline-none transition text-sm" placeholder="email@example.com"></div>
                     <div><label class="text-xs font-bold text-gray-500 ml-1">密碼</label><input type="password" id="login-password" class="w-full bg-[#f9f9f9] border-2 border-[#eee] rounded-xl p-3 focus:border-[#568A66] focus:outline-none transition text-sm" placeholder="******"></div>
                 </div>
-                <div class="grid grid-cols-2 gap-3 mt-8">
-                    <button onclick="window.app.login()" class="btn-ghibli-primary py-3 font-bold">登入</button>
-                    <button onclick="window.app.register()" class="bg-white text-[#568A66] border-2 border-[#568A66] py-3 rounded-2xl font-bold hover:bg-[#F0F9F4] transition">註冊</button>
+                <div class="mt-8 space-y-3">
+                    <button onclick="window.app.login()" class="btn-ghibli-primary w-full py-3 font-bold">登入系統</button>
+                    <button onclick="window.app.resetPassword()" class="text-xs text-[#568A66] hover:underline block w-full text-center">忘記密碼？</button>
                 </div>
             </div>
         </div>
 
         <!-- 2. 儀表板 -->
         <div id="view-dashboard" class="hidden fade-in">
-            <div id="guest-warning" class="hidden bg-[#FFF8E1] border-l-4 border-[#FFB74D] p-4 mb-8 rounded-r-xl shadow-sm flex gap-3 items-start">
-                <i class="fa-solid fa-triangle-exclamation text-[#FF9800] mt-1"></i>
-                <div class="text-sm text-[#5D4037]"><strong>訪客模式：</strong> 資料僅暫存。建議<button onclick="window.app.logout()" class="underline font-bold">登出並註冊</button>以永久保存。</div>
-            </div>
+            <!-- 訪客警告移除，因為只允許管理員登入 -->
             <div class="flex justify-between items-center mb-8">
                 <h2 class="text-3xl font-bold text-[#5B6C78] tracking-tight">我的問卷</h2>
                 <button onclick="window.app.createSurvey()" class="btn-ghibli-primary px-6 py-3 flex items-center gap-2 font-bold">
@@ -270,10 +259,7 @@
                     <button id="btn-import" onclick="window.app.openBatchModal()" class="bg-white text-[#568A66] border border-[#568A66] px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#F0F9F4] transition"><i class="fa-solid fa-bolt mr-1"></i> 匯入</button>
                 </div>
             </div>
-            <div id="locked-banner" class="hidden bg-[#FFF8E1] border-l-4 border-[#FFB74D] p-3 mb-6 rounded-r-xl shadow-sm text-sm text-[#5D4037] flex justify-between items-center">
-                <span><i class="fa-solid fa-lock mr-1"></i> 此問卷已發布鎖定</span>
-                <button onclick="window.app.duplicateCurrent()" class="underline font-bold">複製以編輯</button>
-            </div>
+            <!-- 移除鎖定 banner -->
             
             <div class="ghibli-card p-6 md:p-8 mb-8 relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-2 h-full bg-[#568A66]"></div>
@@ -294,7 +280,7 @@
             </div>
         </div>
 
-        <!-- 4. 公開填寫 -->
+        <!-- 4. 公開填寫 (Public View) -->
         <div id="view-public" class="hidden w-full max-w-2xl mx-auto fade-in pb-24 pt-4">
             <div class="ghibli-card overflow-hidden mb-8">
                 <div class="bg-[#D8E9F0] h-32 relative">
@@ -328,7 +314,7 @@
                     <i class="fa-solid fa-check text-5xl"></i>
                 </div>
                 <h2 class="text-3xl font-bold text-[#5B6C78] mb-3">感謝您的填寫！</h2>
-                <p class="text-gray-500 mb-8">您的心聲我們已經收到了。</p>
+                <p class="text-gray-500 mb-8">您的回覆已成功送出。</p>
                 
                 <div class="border-t border-gray-100 pt-6">
                     <div class="bg-[#F9FAFB] p-4 rounded-xl border border-[#EDF2F7]">
@@ -358,7 +344,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -371,6 +357,8 @@
         };
         
         const APP_ID = 'survey-app';
+        const ADMIN_EMAIL = 'alexanderme100@gmail.com'; // 指定管理員 Email
+
         const state = { db: null, auth: null, user: null, currentSurveyId: null, surveysCache: {}, isDirty: false, mode: 'admin' };
         let surveyIdToDelete = null;
 
@@ -404,8 +392,35 @@
              return 'opt-default';
         };
 
-        window.app.login = async () => { try { await signInWithEmailAndPassword(state.auth, safeGet('login-email').value, safeGet('login-password').value); } catch(e) { showToast(e.code, 'error'); } };
-        window.app.register = async () => { try { await createUserWithEmailAndPassword(state.auth, safeGet('login-email').value, safeGet('login-password').value); showToast("註冊成功"); } catch(e) { showToast(e.code, 'error'); } };
+        window.app.login = async () => { 
+            const email = safeGet('login-email').value.trim();
+            const pass = safeGet('login-password').value;
+            
+            // ADMIN ONLY CHECK
+            if (email !== ADMIN_EMAIL) {
+                return showToast('非管理員帳號，無法登入', 'error');
+            }
+
+            try { 
+                await signInWithEmailAndPassword(state.auth, email, pass); 
+            } catch(e) { 
+                showToast('登入失敗：帳號或密碼錯誤', 'error'); 
+            } 
+        };
+        
+        // Forgot Password Logic
+        window.app.resetPassword = async () => {
+            const email = safeGet('login-email').value.trim();
+            if (!email) return showToast('請先輸入電子郵件', 'error');
+            try {
+                await sendPasswordResetEmail(state.auth, email);
+                showToast('密碼重設信已寄出，請檢查信箱');
+            } catch(e) {
+                console.error(e);
+                showToast('發送失敗，請確認 Email 是否正確', 'error');
+            }
+        };
+
         window.app.logout = async () => { await signOut(state.auth); location.reload(); };
 
         window.app.backToDashboard = () => { if(state.isDirty && !confirm("未儲存變更將遺失")) return; switchView('view-dashboard'); renderList(); };
@@ -583,6 +598,8 @@
              catch(e) { showToast("刪除失敗", "error"); }
         };
         
+        window.app.duplicateCurrent = async () => { if(!confirm("複製問卷？")) return; const s = state.surveysCache[state.currentSurveyId]; const newId = crypto.randomUUID(); await setDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', newId), { ...s, title: s.title+"(副本)", status: 'draft', updatedAt: serverTimestamp() }); showToast("複製成功"); loadSurveys(); switchView('view-dashboard'); };
+
         window.app.markDirty = () => { state.isDirty = true; updateDirtyUI(); };
         window.app.autoGrow = (el) => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
 
@@ -737,7 +754,7 @@
                     safeGet('admin-nav').classList.remove('hidden');
                     if (user.isAnonymous) { signOut(state.auth); return; }
                     safeGet('user-info').textContent = user.email;
-                    safeGet('guest-warning').classList.toggle('hidden', !user.isAnonymous);
+                    // safeGet('guest-warning').classList.toggle('hidden', !user.isAnonymous);
                     switchView('view-dashboard');
                     loadSurveys();
                 } else switchView('view-login');
