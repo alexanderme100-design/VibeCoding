@@ -6,17 +6,16 @@
     <title>Firebase 問卷系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- 引入多種字體以配合不同風格 -->
-    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&family=Noto+Serif+TC:wght@400;700&family=DotGothic16&display=swap" rel="stylesheet">
+    <!-- 引入多元字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&family=Noto+Serif+TC:wght@400;700&family=DotGothic16&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
 
     <style>
         /* --- 核心變數系統 (Theming System) --- */
         :root {
-            /* 預設值 (吉卜力風) */
             --bg-color: #FAF7F0;
-            --bg-pattern: radial-gradient(#E5E0D0 1px, transparent 1px);
-            --bg-size: 20px 20px;
+            --bg-image: none;
             --text-color: #4A4A4A;
+            
             --card-bg: #ffffff;
             --card-border: 1px solid rgba(0,0,0,0.05);
             --card-radius: 20px;
@@ -27,55 +26,67 @@
             --secondary-color: #E67F65;
             
             --input-bg: #ffffff;
-            --input-border: #eeeeee;
+            --input-border: 2px solid #eeeeee;
             
             --select-bg: #eff6ff;
             --select-border: #2563eb;
             --select-text: #1e3a8a;
             
             --font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif;
+            
+            /* 進階裝飾 */
+            --btn-shadow: 0 4px 0 var(--ghibli-green-dark);
+            --btn-transform: translateY(0);
+            --btn-hover-filter: brightness(110%);
+            --blob-opacity: 0.3;
         }
 
-        /* 應用變數 */
+        /* 全域樣式應用 */
         html, body { 
             overflow-x: hidden; 
             min-height: 100dvh; 
             background-color: var(--bg-color); 
-            background-image: var(--bg-pattern);
-            background-size: var(--bg-size);
+            background-image: var(--bg-image);
+            background-attachment: fixed; /* 讓背景紋理固定 */
             font-family: var(--font-family);
             color: var(--text-color);
             -webkit-tap-highlight-color: transparent; 
-            transition: background 0.5s ease, color 0.5s ease;
+            transition: background-color 0.5s ease, color 0.3s ease;
         }
         
         body { display: flex; flex-direction: column; }
         
-        /* 通用卡片樣式 */
+        /* 卡片模組 */
         .theme-card {
             background-color: var(--card-bg);
             border-radius: var(--card-radius);
             border: var(--card-border);
             box-shadow: var(--card-shadow);
             transition: all 0.3s ease;
+            backdrop-filter: blur(0px); /* 預設無 */
         }
 
-        /* 按鈕樣式 */
+        /* 按鈕模組 */
         .theme-btn {
             background-color: var(--primary-color);
             color: var(--primary-text);
             border-radius: var(--card-radius);
-            transition: all 0.2s;
-            filter: brightness(100%);
+            box-shadow: var(--btn-shadow);
+            border: none;
+            transition: all 0.1s;
+            filter: var(--btn-hover-filter);
+            position: relative;
+            overflow: hidden;
         }
-        .theme-btn:hover { filter: brightness(110%); }
-        .theme-btn:active { transform: scale(0.98); }
-        .theme-btn:disabled { filter: grayscale(100%); opacity: 0.5; cursor: not-allowed; }
-
-        /* 輸入框樣式 */
+        .theme-btn:active { 
+            transform: translateY(2px); 
+            box-shadow: none !important;
+        }
+        
+        /* 輸入框模組 */
         .theme-input {
             background-color: var(--input-bg);
-            border: 2px solid var(--input-border);
+            border: var(--input-border);
             color: var(--text-color);
             border-radius: calc(var(--card-radius) / 2);
             transition: all 0.2s;
@@ -83,9 +94,10 @@
         .theme-input:focus {
             border-color: var(--primary-color);
             outline: none;
+            box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.1);
         }
 
-        /* 選項互動 */
+        /* 選項互動 (Checked) */
         input:checked + div { 
             transform: scale(0.98); 
             background-color: var(--select-bg) !important;
@@ -95,8 +107,16 @@
             font-weight: bold;
         }
 
+        /* 特殊效果：背景噪點 (Paper Style) */
+        .noise-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: -1; opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            display: none; /* 預設隱藏 */
+        }
+
         /* 裝飾性元素 */
-        .cloud { position: absolute; background: white; border-radius: 100px; z-index: -1; opacity: 0.6; }
+        .cloud { position: absolute; background: white; border-radius: 100px; z-index: -1; opacity: 0.6; display: none; } /* 預設隱藏，吉卜力風開啟 */
         .cloud-1 { width: 100px; height: 40px; top: 20px; left: -10px; animation: float 20s infinite linear; }
         .cloud-2 { width: 160px; height: 60px; top: 50px; right: -30px; animation: float 35s infinite linear reverse; }
         @keyframes float { 0% { transform: translateX(0); } 50% { transform: translateX(20px); } 100% { transform: translateX(0); } }
@@ -110,65 +130,147 @@
         .safe-pb { padding-bottom: env(safe-area-inset-bottom, 20px); }
         .drag-handle { cursor: grab; touch-action: none; }
         
-        /* 量表通用色 (可被 Theme 覆蓋) */
-        .likert-opt-1 { color: #ef4444; } 
-        .likert-opt-2 { color: #f97316; } 
-        .likert-opt-3 { color: #eab308; } 
-        .likert-opt-4 { color: #84cc16; } 
-        .likert-opt-5 { color: #22c55e; } 
+        /* 量表顏色 (可被 Theme 覆蓋) */
+        .likert-opt-1 { color: #ef4444; } .likert-opt-2 { color: #f97316; } .likert-opt-3 { color: #eab308; } .likert-opt-4 { color: #84cc16; } .likert-opt-5 { color: #22c55e; } 
         .opt-default { border: 1px solid #e5e7eb; background-color: white; }
     </style>
 
     <script>
         window.app = {}; 
 
-        // --- 20 種風格定義 ---
+        // --- 20 種極致風格定義 ---
+        // 這裡定義每種風格的 "DNA"，包含背景圖、字體、陰影邏輯
         const THEMES = {
-            'ghibli': { name: '吉卜力風', bg: '#FAF7F0', text: '#4A4A4A', card: '#ffffff', primary: '#568A66', radius: '20px', font: "'Zen Maru Gothic', sans-serif", pattern: 'radial-gradient(#E5E0D0 1px, transparent 1px)' },
-            'muji': { name: '韓系文青 (MUJI)', bg: '#F2F0EB', text: '#595046', card: '#FCFAF7', primary: '#8C8376', radius: '4px', font: "'Noto Serif TC', serif", pattern: 'none' },
-            'taiwan': { name: '台灣插畫風', bg: '#FFF8D4', text: '#5A3A3A', card: '#FFFFFF', primary: '#E87A5D', radius: '12px', font: "'Zen Maru Gothic', sans-serif", pattern: 'repeating-linear-gradient(45deg, #FFEFBA 0, #FFEFBA 10px, #FFF8D4 10px, #FFF8D4 20px)' },
-            'disney': { name: '迪士尼/皮克斯', bg: '#00B4D8', text: '#03045E', card: '#CAF0F8', primary: '#FF006E', radius: '30px', font: "sans-serif", pattern: 'radial-gradient(circle, #90E0EF 10%, transparent 10%)' },
-            'watercolor': { name: '手繪水彩', bg: '#F0F8FF', text: '#4A5568', card: 'rgba(255,255,255,0.8)', primary: '#7F9CF5', radius: '25px', font: "serif", pattern: 'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnPjxmaWx0ZXIgaWQ9J24nPjxmZVR1cmJ1bGVuY2UgdHlwZT0nZnJhY3RhbE5vaXNlJyBiYXNlRnJlcXVlbmN5PScwLjUnIHN0aXRjaFRpbGVzPSdzdGl0Y2gnLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyBmaWx0ZXI9J3VybCgjbiknIG9wYWNpdHk9JzAuMScvPjwvc3ZnPg==")' },
-            'blackboard': { name: '文青黑板', bg: '#2D3748', text: '#E2E8F0', card: '#1A202C', primary: '#F6E05E', radius: '4px', font: "'DotGothic16', monospace", pattern: 'none', border: '2px dashed #718096' },
-            'flat': { name: '扁平化 (Flat)', bg: '#ECF0F1', text: '#2C3E50', card: '#FFFFFF', primary: '#3498DB', radius: '6px', font: "sans-serif", pattern: 'none' },
-            'cute': { name: '可愛 Q 版', bg: '#FFF0F5', text: '#8B4513', card: '#FFF', primary: '#FF69B4', radius: '40px', font: "'Zen Maru Gothic', sans-serif", pattern: 'radial-gradient(#FFB6C1 2px, transparent 2px)' },
-            'cyberpunk': { name: '未來感霓虹', bg: '#0B0B19', text: '#00FFD1', card: '#16162D', primary: '#FF00FF', radius: '0px', font: "monospace", pattern: 'linear-gradient(0deg, transparent 24%, rgba(0, 255, 209, .3) 25%, rgba(0, 255, 209, .3) 26%, transparent 27%, transparent 74%, rgba(0, 255, 209, .3) 75%, rgba(0, 255, 209, .3) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(0, 255, 209, .3) 25%, rgba(0, 255, 209, .3) 26%, transparent 27%, transparent 74%, rgba(0, 255, 209, .3) 75%, rgba(0, 255, 209, .3) 76%, transparent 77%, transparent)' },
-            'fresh': { name: '小紅書清新', bg: '#F7F7F7', text: '#333', card: '#FFF', primary: '#FF5252', radius: '16px', font: "sans-serif", pattern: 'none' },
-            'map': { name: '旅遊地圖', bg: '#E8E0D0', text: '#5D4037', card: '#FDFBF7', primary: '#D84315', radius: '8px', font: "serif", pattern: 'repeating-linear-gradient(90deg, #D7CCC8 0, #D7CCC8 1px, transparent 1px, transparent 40px)' },
-            'japanese': { name: '日系極簡', bg: '#FFFFFF', text: '#111', card: '#FFFFFF', primary: '#000', radius: '0px', font: "'Noto Serif TC', serif", pattern: 'none', border: '1px solid #eee' },
-            'comic': { name: '漫畫風', bg: '#FFFFFF', text: '#000', card: '#FFF', primary: '#000', radius: '0px', font: "sans-serif", pattern: 'radial-gradient(black 1px, transparent 1px)', border: '3px solid black', shadow: '5px 5px 0px black' },
-            'animal': { name: '動物森友會', bg: '#85D2C2', text: '#5C4033', card: '#FDF5E6', primary: '#71B038', radius: '25px', font: "'Zen Maru Gothic', sans-serif", pattern: 'repeating-linear-gradient(45deg, #A1E4D6 0, #A1E4D6 20px, #85D2C2 20px, #85D2C2 40px)' },
-            'forest': { name: '自然森林', bg: '#1B4332', text: '#D8F3DC', card: '#2D6A4F', primary: '#95D5B2', radius: '12px', font: "sans-serif", pattern: 'none' },
-            'geometric': { name: '極簡幾何', bg: '#F3F4F6', text: '#111827', card: '#FFFFFF', primary: '#4F46E5', radius: '0px', font: "sans-serif", pattern: 'linear-gradient(30deg, #E5E7EB 12%, transparent 12.5%, transparent 87%, #E5E7EB 87.5%, #E5E7EB), linear-gradient(150deg, #E5E7EB 12%, transparent 12.5%, transparent 87%, #E5E7EB 87.5%, #E5E7EB), linear-gradient(30deg, #E5E7EB 12%, transparent 12.5%, transparent 87%, #E5E7EB 87.5%, #E5E7EB), linear-gradient(150deg, #E5E7EB 12%, transparent 12.5%, transparent 87%, #E5E7EB 87.5%, #E5E7EB), linear-gradient(60deg, #E5E7EB77 25%, transparent 25.5%, transparent 75%, #E5E7EB77 75%, #E5E7EB77), linear-gradient(60deg, #E5E7EB77 25%, transparent 25.5%, transparent 75%, #E5E7EB77 75%, #E5E7EB77)' },
-            'vogue': { name: '高級雜誌', bg: '#EAEAEA', text: '#000', card: '#FFF', primary: '#000', radius: '0px', font: "'Noto Serif TC', serif", pattern: 'none' },
-            'corporate': { name: '企業簡報', bg: '#F0F2F5', text: '#1C1E21', card: '#FFFFFF', primary: '#1877F2', radius: '8px', font: "sans-serif", pattern: 'none' },
-            'edtech': { name: '教育科技', bg: '#F5F7FA', text: '#2D3748', card: '#FFFFFF', primary: '#319795', radius: '12px', font: "sans-serif", pattern: 'none' },
-            'paper': { name: '紙張質感', bg: '#Fdfbf7', text: '#2c2c2c', card: '#fffcf5', primary: '#a39078', radius: '2px', font: "serif", pattern: 'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmRmYmY3Ii8+CjxwYXRoIGQ9Ik0xIDNmMCAyaDF6IiBmaWxsPSIjZTZlMmQ4Ii8+Cjwvc3ZnPg==")' }
+            'ghibli': { 
+                name: '吉卜力風', 
+                bg: '#FAF7F0', 
+                image: 'radial-gradient(#E5E0D0 1px, transparent 1px)', // 點點背景
+                text: '#4A4A4A', card: '#ffffff', primary: '#568A66', radius: '20px', 
+                shadow: '0 10px 15px -3px rgba(86, 138, 102, 0.15)', // 綠色柔光
+                font: "'Zen Maru Gothic', sans-serif",
+                btnShadow: '0 4px 0 #3E664B'
+            },
+            'muji': { 
+                name: '韓系文青 (MUJI)', 
+                bg: '#F3F2ED', 
+                text: '#595750', card: '#FCFAF7', primary: '#8C8376', radius: '2px', 
+                shadow: 'none', border: '1px solid #E6E4E0',
+                font: "'Noto Serif TC', serif",
+                btnShadow: 'none',
+                selectBg: '#EAE8E4', selectBorder: '#8C8376', selectText: '#595750'
+            },
+            'taiwan': { 
+                name: '台灣插畫風', 
+                bg: '#FFF8E1', 
+                image: 'linear-gradient(45deg, #FFECB3 25%, transparent 25%, transparent 75%, #FFECB3 75%, #FFECB3), linear-gradient(45deg, #FFECB3 25%, transparent 25%, transparent 75%, #FFECB3 75%, #FFECB3)', // 菱格紋
+                bgSize: '20px 20px',
+                bgPos: '0 0, 10px 10px',
+                text: '#5D4037', card: '#FFFFFF', primary: '#FF7043', radius: '16px', 
+                shadow: '4px 4px 0px #FFCCBC', // 硬陰影
+                font: "'Zen Maru Gothic', sans-serif",
+                border: '2px solid #5D4037'
+            },
+            'blackboard': { 
+                name: '文青黑板', 
+                bg: '#2F3E46', 
+                text: '#F0F0F0', card: '#354F52', primary: '#F4D35E', radius: '4px', 
+                border: '2px dashed #84A98C', 
+                shadow: 'none',
+                font: "'DotGothic16', monospace",
+                selectBg: '#52796F', selectBorder: '#F4D35E', selectText: '#F4D35E',
+                inputBg: '#2F3E46', inputBorder: '1px solid #84A98C'
+            },
+            'cyberpunk': { 
+                name: '未來感霓虹', 
+                bg: '#050505', 
+                image: 'linear-gradient(0deg, rgba(0,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,0.1) 1px, transparent 1px)',
+                bgSize: '40px 40px',
+                text: '#00FFFF', card: '#0A0A0A', primary: '#FF00FF', radius: '0px', 
+                border: '1px solid #00FFFF', 
+                shadow: '0 0 10px #00FFFF, inset 0 0 20px rgba(0,255,255,0.1)',
+                font: "'Space Mono', monospace",
+                selectBg: '#1A1A1A', selectBorder: '#FF00FF', selectText: '#FF00FF',
+                inputBg: '#000', inputBorder: '1px solid #00FFFF'
+            },
+            'comic': { 
+                name: '漫畫風', 
+                bg: '#FFFFFF', 
+                image: 'radial-gradient(#000 15%, transparent 16%)', 
+                bgSize: '8px 8px',
+                text: '#000000', card: '#FFFFFF', primary: '#FFE600', radius: '0px', 
+                border: '3px solid #000000', 
+                shadow: '6px 6px 0px #000000', // 漫畫硬陰影
+                font: "sans-serif",
+                btnShadow: '4px 4px 0 #000',
+                selectBg: '#000', selectBorder: '#000', selectText: '#FFF'
+            },
+            'paper': { 
+                name: '高級紙張', 
+                bg: '#F5F1E6', 
+                text: '#2C2825', card: '#FDFBF7', primary: '#8C7B70', radius: '2px', 
+                shadow: '0 2px 10px rgba(0,0,0,0.05)', 
+                font: "'Noto Serif TC', serif",
+                noise: true // 開啟噪點
+            },
+            'geometric': { 
+                name: '極簡幾何', 
+                bg: '#EEF2FF', 
+                image: 'linear-gradient(30deg, #E0E7FF 12%, transparent 12.5%, transparent 87%, #E0E7FF 87.5%, #E0E7FF), linear-gradient(150deg, #E0E7FF 12%, transparent 12.5%, transparent 87%, #E0E7FF 87.5%, #E0E7FF)', 
+                bgSize: '80px 140px',
+                text: '#1E1B4B', card: '#FFFFFF', primary: '#4F46E5', radius: '0px', 
+                shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+                font: "sans-serif",
+                selectBg: '#EEF2FF', selectBorder: '#4F46E5', selectText: '#4338CA'
+            },
+            'watercolor': { name: '手繪水彩', bg: '#F0F8FF', image: 'radial-gradient(circle at 50% 50%, #E3F2FD, #F3E5F5)', text: '#5D6D7E', card: 'rgba(255,255,255,0.85)', primary: '#7FB3D5', radius: '30px', shadow: '0 8px 32px rgba(31, 38, 135, 0.1)', font: "serif" },
+            'disney': { name: '迪士尼/皮克斯', bg: '#CAF0F8', text: '#023E8A', card: '#FFFFFF', primary: '#0077B6', radius: '24px', shadow: '0 10px 20px rgba(0,119,182,0.2)', font: "sans-serif", btnShadow: '0 5px 0 #023E8A' },
+            'flat': { name: '扁平化 (Flat)', bg: '#ECF0F1', text: '#2C3E50', card: '#FFFFFF', primary: '#2980B9', radius: '4px', shadow: 'none', border: '1px solid #BDC3C7', font: "sans-serif" },
+            'cute': { name: '可愛 Q 版', bg: '#FFF0F5', text: '#5D4037', card: '#FFFFFF', primary: '#FF80AB', radius: '30px', shadow: '0 8px 20px rgba(255, 128, 171, 0.2)', font: "'Zen Maru Gothic', sans-serif", border: '3px solid #FF80AB', btnShadow: '0 4px 0 #C51162' },
+            'fresh': { name: '小紅書清新', bg: '#FAFAFA', text: '#333333', card: '#FFFFFF', primary: '#FF5252', radius: '12px', shadow: '0 4px 12px rgba(0,0,0,0.05)', font: "sans-serif" },
+            'map': { name: '旅遊地圖', bg: '#EFEBE9', image: 'repeating-linear-gradient(90deg, #D7CCC8 0, #D7CCC8 1px, transparent 1px, transparent 40px), repeating-linear-gradient(0deg, #D7CCC8 0, #D7CCC8 1px, transparent 1px, transparent 40px)', text: '#4E342E', card: '#FFF8E1', primary: '#D84315', radius: '8px', shadow: '4px 4px 0 rgba(0,0,0,0.1)', font: "serif", border: '1px dashed #8D6E63' },
+            'japanese': { name: '日系極簡', bg: '#FFFFFF', text: '#333', card: '#FFFFFF', primary: '#222', radius: '0', border: '1px solid #ddd', shadow: 'none', font: "'Noto Serif TC', serif", selectBg: '#F5F5F5', selectBorder: '#333', selectText: '#000' },
+            'animal': { name: '動物森友會', bg: '#B8E994', image: 'repeating-linear-gradient(45deg, #78E08F 0, #78E08F 20px, #B8E994 20px, #B8E994 40px)', text: '#3C6382', card: '#F8F3D4', primary: '#FA983A', radius: '20px', border: '4px solid #FFF', shadow: '0 10px 0 rgba(0,0,0,0.1)', font: "'Zen Maru Gothic', sans-serif" },
+            'forest': { name: '自然森林', bg: '#1B4332', text: '#D8F3DC', card: '#2D6A4F', primary: '#52B788', radius: '12px', border: 'none', shadow: '0 4px 20px rgba(0,0,0,0.3)', font: "sans-serif", selectBg: '#40916C', selectBorder: '#74C69D', selectText: '#fff', inputBg: '#1B4332', inputBorder: '1px solid #52B788' },
+            'vogue': { name: '高級雜誌', bg: '#F5F5F5', text: '#000', card: '#FFFFFF', primary: '#000', radius: '0', border: '1px solid #000', shadow: 'none', font: "'Noto Serif TC', serif", btnShadow: 'none' },
+            'corporate': { name: '企業簡報', bg: '#F3F4F6', text: '#1F2937', card: '#FFFFFF', primary: '#2563EB', radius: '6px', border: '1px solid #E5E7EB', shadow: '0 1px 3px rgba(0,0,0,0.1)', font: "sans-serif" },
+            'edtech': { name: '教育科技', bg: '#F0FDF4', text: '#064E3B', card: '#FFFFFF', primary: '#10B981', radius: '10px', border: '1px solid #D1FAE5', shadow: '0 4px 6px -1px rgba(16, 185, 129, 0.1)', font: "sans-serif" }
         };
 
         window.applyTheme = function(themeKey) {
             const theme = THEMES[themeKey] || THEMES['ghibli'];
             const r = document.documentElement;
+            
             r.style.setProperty('--bg-color', theme.bg);
-            r.style.setProperty('--bg-pattern', theme.pattern);
-            r.style.setProperty('--bg-size', themeKey === 'ghibli' ? '20px 20px' : (themeKey === 'geometric' ? '80px 140px' : 'auto'));
+            r.style.setProperty('--bg-image', theme.image || 'none');
+            r.style.setProperty('background-size', theme.bgSize || 'auto');
+            r.style.setProperty('background-position', theme.bgPos || '0 0');
+            
             r.style.setProperty('--text-color', theme.text);
             r.style.setProperty('--card-bg', theme.card);
             r.style.setProperty('--primary-color', theme.primary);
             r.style.setProperty('--card-radius', theme.radius);
             r.style.setProperty('--font-family', theme.font);
             
-            // Special Borders/Shadows
+            // 進階變數 (有預設值)
             r.style.setProperty('--card-border', theme.border || '1px solid rgba(0,0,0,0.05)');
-            r.style.setProperty('--card-shadow', theme.shadow || '0 4px 6px -1px rgba(0,0,0,0.05), 0 10px 15px -3px rgba(0,0,0,0.1)');
+            r.style.setProperty('--card-shadow', theme.shadow || '0 4px 6px -1px rgba(0,0,0,0.05)');
+            r.style.setProperty('--btn-shadow', theme.btnShadow || '0 2px 4px rgba(0,0,0,0.1)');
             
-            // Derived colors
-            r.style.setProperty('--primary-text', ['blackboard', 'cyberpunk', 'forest', 'corporate', 'edtech'].includes(themeKey) ? '#fff' : '#fff');
+            // 選項顏色
+            r.style.setProperty('--select-bg', theme.selectBg || '#eff6ff');
+            r.style.setProperty('--select-border', theme.selectBorder || theme.primary);
+            r.style.setProperty('--select-text', theme.selectText || theme.primary);
             
-            // Adjust Select Colors
-            r.style.setProperty('--select-bg', themeKey === 'cyberpunk' ? '#330033' : (themeKey === 'blackboard' ? '#4A5568' : '#eff6ff'));
-            r.style.setProperty('--select-border', theme.primary);
-            r.style.setProperty('--select-text', theme.primary);
+            // 輸入框顏色
+            r.style.setProperty('--input-bg', theme.inputBg || '#ffffff');
+            r.style.setProperty('--input-border', theme.inputBorder || '2px solid #eeeeee');
+
+            // 特殊效果開關
+            const noise = document.querySelector('.noise-overlay');
+            if(noise) noise.style.display = theme.noise ? 'block' : 'none';
+            
+            const clouds = document.querySelectorAll('.cloud');
+            clouds.forEach(c => c.style.display = themeKey === 'ghibli' || themeKey === 'disney' ? 'block' : 'none');
         };
 
         window.showToast = function(msg, type = 'success') {
@@ -178,11 +280,11 @@
             if(!toast) return;
             
             msgSpan.textContent = msg;
-            const colorClass = type === 'error' ? 'text-red-500' : 'text-green-600';
-            const bgClass = type === 'error' ? 'border-red-500 bg-red-50' : 'border-green-500 bg-green-50';
+            const colorClass = type === 'error' ? 'text-red-500' : 'text-green-700';
+            const bgClass = type === 'error' ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200';
             
-            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation ' + colorClass : 'fa-solid fa-check ' + colorClass;
-            toast.className = `fixed top-20 right-5 z-[100] px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 transition-transform duration-300 border-l-4 ${bgClass}`;
+            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation ' + colorClass : 'fa-solid fa-leaf ' + colorClass;
+            toast.className = `fixed top-20 right-5 z-[100] px-6 py-3 rounded-2xl shadow-lg flex items-center gap-3 transition-transform duration-300 border-2 ${bgClass}`;
             
             toast.style.transform = 'translateX(0)';
             setTimeout(() => { toast.style.transform = 'translateX(150%)'; }, 3000);
@@ -228,6 +330,10 @@
 </head>
 <body class="text-gray-800">
 
+    <div class="noise-overlay"></div>
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+
     <div id="global-error" class="hidden fixed inset-0 bg-red-50 z-[200] flex flex-col items-center justify-center p-6 text-center">
         <h2 class="text-xl font-bold text-red-600 mb-2">系統發生錯誤</h2>
         <p id="global-error-msg" class="text-sm text-gray-600 mb-4 break-all">Unknown</p>
@@ -235,14 +341,14 @@
     </div>
 
     <div id="public-progress-bar" class="fixed top-0 left-0 w-full h-2 bg-gray-200 z-[60] hidden">
-        <div id="progress-fill" class="h-full bg-[var(--primary-color)] transition-all duration-500 ease-out" style="width: 0%"></div>
+        <div id="progress-fill" class="h-full bg-[var(--primary-color)] transition-all duration-500 ease-out rounded-r-full" style="width: 0%"></div>
     </div>
 
     <nav id="admin-nav" class="bg-[var(--primary-color)] text-white shadow-lg sticky top-0 z-50 hidden transition-colors duration-500">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <i class="fa-solid fa-leaf text-xl"></i>
-                <h1 class="text-lg font-bold tracking-wide">問卷大師</h1>
+                <h1 class="text-lg font-bold tracking-wide">問卷大師 <span class="text-xs bg-white/20 px-2 py-0.5 rounded ml-1">Pro</span></h1>
             </div>
             <div class="flex items-center gap-3">
                 <div id="user-info" class="text-xs bg-black/20 px-3 py-1.5 rounded-full opacity-90 hidden md:block">訪客</div>
@@ -252,11 +358,9 @@
     </nav>
 
     <main class="flex-1 w-full max-w-5xl mx-auto p-4 pb-20 safe-pb relative z-10">
-        
         <div id="loading-view" class="fixed inset-0 flex flex-col items-center justify-center bg-[var(--bg-color)] z-[150]">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-[var(--primary-color)]"></i>
         </div>
-
         <div id="toast" class="fixed top-20 right-5 z-[100] bg-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-transform duration-300 translate-x-full border-l-4">
             <i id="toast-icon"></i><span id="toast-msg"></span>
         </div>
@@ -312,7 +416,6 @@
                     <label class="text-xs font-bold opacity-60 uppercase">問卷說明</label>
                     <textarea id="edit-desc" class="w-full mt-1 bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-[var(--primary-color)] outline-none py-2 transition resize-none leading-relaxed" rows="1" placeholder="請輸入說明..." oninput="window.app.markDirty(); window.app.autoGrow(this)"></textarea>
                 </div>
-                <!-- 風格選擇器 -->
                 <div>
                     <label class="text-xs font-bold opacity-60 uppercase"><i class="fa-solid fa-palette mr-1"></i> 視覺風格</label>
                     <select id="edit-theme" class="w-full mt-1 p-2 rounded-lg border-2 border-gray-200 focus:border-[var(--primary-color)] outline-none bg-white/50" onchange="window.app.changeTheme(this.value); window.app.markDirty()">
@@ -320,17 +423,13 @@
                     </select>
                 </div>
             </div>
-
             <div id="editor-questions" class="space-y-6 mb-32"></div>
-            
             <div id="editor-toolbar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-40 safe-pb hover:-translate-y-1 transition duration-300">
                  <div class="flex gap-2 pr-4 border-r border-gray-200">
                     <button onclick="window.app.addQuestion('text')" class="flex flex-col items-center justify-center w-10 h-10 text-gray-500 hover:text-[var(--primary-color)] transition" title="新增題目"><i class="fa-solid fa-plus text-xl"></i></button>
                     <button onclick="window.app.addQuestion('section')" class="flex flex-col items-center justify-center w-10 h-10 text-gray-500 hover:text-orange-500 transition" title="新增段落"><i class="fa-solid fa-align-left text-xl"></i></button>
                  </div>
-                 <button onclick="window.app.saveSurvey()" class="theme-btn px-6 py-2 font-bold shadow-md flex items-center gap-2">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> 儲存
-                 </button>
+                 <button onclick="window.app.saveSurvey()" class="theme-btn px-6 py-2 font-bold shadow-md flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up"></i> 儲存</button>
             </div>
         </div>
 
@@ -343,22 +442,16 @@
                     <div id="public-desc" class="whitespace-pre-wrap text-base leading-relaxed text-justify opacity-80"></div>
                 </div>
             </div>
-
             <form id="public-form" class="space-y-6"></form>
-            
             <div class="mt-12 text-center">
-                <button id="public-submit-btn" type="button" onclick="window.app.submitResponse()" class="w-full max-w-xs theme-btn py-4 text-xl font-bold shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition">
-                    送出問卷 <i class="fa-solid fa-paper-plane ml-2"></i>
-                </button>
+                <button id="public-submit-btn" type="button" onclick="window.app.submitResponse()" class="w-full max-w-xs theme-btn py-4 text-xl font-bold shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition">送出問卷 <i class="fa-solid fa-paper-plane ml-2"></i></button>
             </div>
         </div>
 
         <!-- 5. Thank You -->
         <div id="view-thankyou" class="hidden flex flex-col items-center justify-center min-h-[80vh] text-center fade-in px-4 relative">
             <div class="theme-card p-12 w-full max-w-md relative overflow-hidden">
-                <div class="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white shadow-inner">
-                    <i class="fa-solid fa-check text-5xl"></i>
-                </div>
+                <div class="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white shadow-inner"><i class="fa-solid fa-check text-5xl"></i></div>
                 <h2 class="text-3xl font-bold mb-3">感謝您的填寫！</h2>
                 <p class="opacity-60 mb-8">您的回覆已成功送出。</p>
                 <div class="border-t border-gray-100 pt-6">
@@ -457,7 +550,7 @@
             state.currentSurveyId = crypto.randomUUID();
             safeGet('edit-title').value = ''; safeGet('edit-desc').value = ''; safeGet('editor-questions').innerHTML = '';
             window.app.addQuestion(); 
-            window.app.changeTheme('ghibli'); // default
+            window.app.changeTheme('ghibli'); 
             state.isDirty = false; updateDirtyUI();
             switchView('view-editor');
         };
@@ -483,7 +576,7 @@
             themeSelect.value = survey.theme || 'ghibli';
             window.app.changeTheme(survey.theme || 'ghibli');
 
-            updateLock(survey.status === 'published');
+            // Removed lock logic
             const container = safeGet('editor-questions');
             container.innerHTML = '';
             (survey.questions || []).forEach(q => window.app.addQuestion(q.type, q));
@@ -511,7 +604,7 @@
             if (qType === 'section') {
                 div.innerHTML = `<div class="flex justify-between mb-4 cursor-grab active:cursor-grabbing drag-handle border-b pb-2"><span class="text-xs font-bold opacity-60 flex items-center gap-1"><i class="fa-solid fa-grip-vertical"></i> 段落說明</span><button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-300 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button></div><input type="text" class="q-input w-full bg-transparent border-b-2 border-transparent focus:border-[var(--primary-color)] p-2 mb-3 font-bold text-lg transition outline-none" placeholder="段落標題" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><textarea class="q-desc w-full theme-input border-0 rounded-lg p-3 text-sm opacity-80 resize-none" rows="2" placeholder="說明..." oninput="window.app.markDirty()">${escapeHtml(qDesc)}</textarea>`;
             } else {
-                div.innerHTML = `<div class="flex justify-between mb-4 cursor-grab active:cursor-grabbing drag-handle"><span class="text-xs font-bold px-3 py-1 rounded-full bg-gray-100 flex items-center gap-1"><i class="fa-solid fa-grip-vertical"></i> 問題</span><div class="flex items-center gap-3"><label class="text-xs cursor-pointer flex items-center opacity-70 hover:opacity-100"><input type="checkbox" class="q-req mr-1" ${qReq ? 'checked' : ''} onchange="window.app.markDirty()">必填</label><button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-300 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button></div></div><input type="text" class="q-input w-full theme-input p-3 mb-3" placeholder="題目內容" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><div class="flex gap-3 mb-3"><select class="q-type w-1/3 theme-input p-2 text-sm" onchange="window.app.toggleOpts(this)"><option value="text" ${qType==='text'?'selected':''}>簡答題</option><option value="radio" ${qType==='radio'?'selected':''}>單選題</option><option value="checkbox" ${qType==='checkbox'?'selected':''}>多選題</option></select></div><textarea class="q-opts w-full theme-input p-3 h-24 font-mono text-sm ${qType==='text'?'hidden':''}" placeholder="選項1&#10;選項2" oninput="window.app.markDirty()">${escapeHtml(qOpts)}</textarea>`;
+                div.innerHTML = `<div class="flex justify-between mb-4 cursor-grab active:cursor-grabbing drag-handle"><span class="text-xs font-bold px-3 py-1 rounded-full bg-gray-100 flex items-center gap-1"><i class="fa-solid fa-grip-vertical"></i> 問題</span><div class="flex items-center gap-3"><label class="text-xs cursor-pointer flex items-center opacity-70 hover:opacity-100"><input type="checkbox" class="q-req mr-1" ${qReq ? 'checked' : ''} onchange="window.app.markDirty()">必填</label><button onclick="this.closest('.question-item').remove(); window.app.markDirty()" class="text-gray-300 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button></div></div><input type="text" class="q-input w-full theme-input p-3 mb-3" placeholder="題目內容" value="${escapeHtml(qText)}" oninput="window.app.markDirty()"><div class="flex gap-3 mb-3"><select class="q-type w-1/3 theme-input p-2 text-sm" onchange="window.app.toggleOpts(this)"><option value="text" ${qType==='text'?'selected':''}>簡答題</option><option value="radio" ${qType==='radio'?'selected':''}>單選題</option><option value="checkbox" ${qType==='checkbox'?'selected':''}>多選題</option></select></div><textarea class="q-opts w-full theme-input p-3 h-24 font-mono text-sm ${qType==='text'?'hidden':''}" placeholder="選項1&#10;選項2&#10;選項3" oninput="window.app.markDirty()">${escapeHtml(qOpts)}</textarea>`;
             }
             container.appendChild(div);
             window.app.markDirty();
@@ -522,7 +615,7 @@
         window.app.saveSurvey = async () => {
             if (!state.user) return;
             const btn = document.querySelector('#editor-toolbar button:last-child');
-            btn.disabled = true; btn.innerText = '儲存中...';
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 儲存中';
             try {
                 const title = safeGet('edit-title').value.trim();
                 const desc = safeGet('edit-desc').value.trim();
@@ -547,18 +640,17 @@
                 await setDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', state.currentSurveyId), data, {merge: true});
                 state.isDirty = false; updateDirtyUI(); showToast('儲存成功');
                 state.surveysCache[state.currentSurveyId] = { ...data, id: state.currentSurveyId };
-            } catch (e) { console.error(e); showToast(e.message, 'error'); } finally { btn.disabled = false; btn.innerText = '儲存'; }
+            } catch (e) { console.error(e); showToast(e.message, 'error'); } finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 儲存'; }
         };
 
-        // ... Import/Export/Share (Same) ...
-        window.app.openBatchModal = () => { safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8"><h3 class="text-xl font-bold mb-4">批量匯入</h3><textarea id="batch-text" class="w-full theme-input p-4 h-60 text-sm resize-none" placeholder="題目1\n題目2..."></textarea><div class="mt-6 flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-6 py-2 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition">取消</button><button onclick="window.app.doImport()" class="theme-btn px-6 py-2 font-bold">開始匯入</button></div></div>`; };
+        window.app.openBatchModal = () => { safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8"><h3 class="text-xl font-bold mb-4 text-[#5B6C78]">批量匯入題目</h3><p class="text-sm text-gray-500 mb-2">請將題目貼在下方，一行一題。</p><textarea id="batch-text" class="w-full border-2 border-[#eee] rounded-xl p-4 h-60 text-sm focus:border-[#568A66] outline-none resize-none" placeholder="題目1\n題目2..."></textarea><div class="mt-6 flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-6 py-2 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition">取消</button><button onclick="window.app.doImport()" class="btn-ghibli-primary px-6 py-2 font-bold">開始匯入</button></div></div>`; };
         window.app.doImport = () => { const lines = safeGet('batch-text').value.split('\n').filter(l=>l.trim()); lines.forEach(l => window.app.addQuestion('radio', {text: l, type: 'radio', required: true, options: ['非常滿意','滿意','普通','不滿意','非常不滿意']})); safeGet('modal-overlay').classList.add('hidden'); window.app.markDirty(); };
-        window.app.openShare = (id) => { const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${state.user.uid}`; safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8 text-center"><h3 class="text-xl font-bold mb-6">發布問卷</h3><div class="bg-gray-50 p-4 rounded-2xl mb-6 border"><p class="text-xs opacity-60 mb-2 font-bold uppercase tracking-widest">連結</p><input class="w-full bg-white border p-3 rounded-xl text-sm mb-3 font-mono" value="${link}" readonly><button onclick="navigator.clipboard.writeText('${link}');showToast('已複製')" class="theme-btn w-full py-2 font-bold text-sm">複製</button></div><div class="text-center"><p class="text-xs opacity-50 mb-2">QR Code</p><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}" class="mx-auto rounded-xl border-4 border-white shadow-lg"></div><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="mt-8 opacity-50 hover:opacity-100 underline text-sm">關閉視窗</button></div>`; const s = state.surveysCache[id]; if(s && s.status!=='published') updateDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id), {status:'published'}); };
+        window.app.openShare = (id) => { const link = `${window.location.origin}${window.location.pathname}?s=${id}&u=${state.user.uid}`; safeGet('modal-overlay').classList.remove('hidden'); safeGet('modal-content').innerHTML = `<div class="p-8 text-center"><h3 class="text-xl font-bold mb-6 text-[#5B6C78]">發布問卷</h3><div class="bg-[#F0F9F4] p-4 rounded-2xl mb-6 border border-[#C3DEC9]"><p class="text-xs text-[#3E664B] mb-2 font-bold uppercase tracking-widest">問卷連結</p><input class="w-full bg-white border border-[#C3DEC9] p-3 rounded-xl text-sm text-[#3E664B] mb-3 font-mono" value="${link}" readonly><button onclick="navigator.clipboard.writeText('${link}');showToast('已複製')" class="btn-ghibli-primary w-full py-2 font-bold text-sm">複製連結</button></div><div class="text-center"><p class="text-xs text-gray-400 mb-2">手機掃描 QR Code</p><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(link)}" class="mx-auto rounded-xl border-4 border-white shadow-lg"></div><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="mt-8 text-gray-400 hover:text-gray-600 underline text-sm">關閉視窗</button></div>`; const s = state.surveysCache[id]; if(s && s.status!=='published') updateDoc(doc(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id), {status:'published'}); };
         window.app.viewStats = async (id) => { 
             safeGet('modal-overlay').classList.remove('hidden'); 
-            safeGet('modal-content').innerHTML = '<div class="p-10 text-center"><i class="fa-solid fa-circle-notch fa-spin text-3xl"></i></div>';
+            safeGet('modal-content').innerHTML = '<div class="p-10 text-center"><i class="fa-solid fa-circle-notch fa-spin text-3xl text-[#568A66]"></i></div>';
             const snap = await getDocs(collection(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id, 'responses'));
-            safeGet('modal-content').innerHTML = `<div class="p-8"><div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold">統計概覽</h3><span class="bg-gray-100 px-3 py-1 rounded-full text-sm font-bold">共 ${snap.size} 份回覆</span></div><div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r"><p class="text-sm text-yellow-800">請匯出 Excel 進行分析。</p></div><div class="flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-xl font-bold">關閉</button><button class="theme-btn px-6 py-2 font-bold" id="export-btn" onclick="window.app.exportToCSV('${id}')">匯出 Excel</button></div></div>`;
+            safeGet('modal-content').innerHTML = `<div class="p-8"><div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-[#5B6C78]">統計概覽</h3><span class="bg-[#F0F9F4] text-[#3E664B] px-3 py-1 rounded-full text-sm font-bold">共 ${snap.size} 份回覆</span></div><div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r"><p class="text-sm text-yellow-800">詳細數據請匯出 Excel 進行分析。</p></div><div class="flex justify-end gap-3"><button onclick="safeGet('modal-overlay').classList.add('hidden')" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-xl font-bold">關閉</button><button class="btn-ghibli-primary px-6 py-2 font-bold" id="export-btn" onclick="window.app.exportToCSV('${id}')"><i class="fa-solid fa-file-csv mr-2"></i>匯出 Excel</button></div></div>`;
         };
         window.app.exportToCSV = async (id) => { const btn = document.getElementById('export-btn'); btn.innerText = "處理中..."; btn.disabled = true; try { const survey = state.surveysCache[id]; const snap = await getDocs(collection(state.db, 'artifacts', APP_ID, 'users', state.user.uid, 'surveys', id, 'responses')); let csv = "\uFEFF時間,"; survey.questions.forEach((q, i) => csv += `"${q.text.replace(/"/g,'""')}",`); csv += "\n"; snap.forEach(doc => { const d = doc.data(); csv += `"${new Date(d.submittedAt.seconds*1000).toLocaleString()}",`; survey.questions.forEach((q, i) => { if(q.type==='section') csv += ","; else { let a = d.answers[`q_${i}`]; if(Array.isArray(a)) a = a.join(';'); csv += `"${(a||'').toString().replace(/"/g,'""')}",`; } }); csv += "\n"; }); const url = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); const a = document.createElement('a'); a.href = url; a.download = `${survey.title}.csv`; a.click(); } catch(e) { alert("匯出失敗"); } finally { btn.innerText = "匯出 Excel"; btn.disabled = false; } };
         window.app.requestDelete = (id) => { surveyIdToDelete = id; safeGet('delete-modal').classList.remove('hidden'); };
@@ -579,6 +671,7 @@
                      let valid = false;
                      if (type === 'text') { if(form.querySelector(`[name="${name}"]`).value.trim()) valid = true; }
                      else { if(form.querySelector(`[name="${name}"]:checked`)) valid = true; }
+                     
                      if (!valid) { item.classList.add('error-shake', 'ring-2', 'ring-red-500', 'rounded-xl'); if(!firstInvalid) firstInvalid = item; }
                  }
              });
@@ -596,7 +689,7 @@
                  });
                  await addDoc(collection(state.db, 'artifacts', APP_ID, 'users', uId, 'surveys', sId, 'responses'), { answers, submittedAt: serverTimestamp() });
                  switchView('view-thankyou');
-             } catch(e) { showToast("提交失敗", 'error'); btn.disabled = false; }
+             } catch(e) { showToast("提交失敗", 'error'); btn.disabled = false; btn.innerText = "送出問卷"; }
         };
 
         function switchView(id) { ['view-login','view-dashboard','view-editor','view-public','view-thankyou'].forEach(v => safeGet(v).classList.add('hidden')); safeGet(id).classList.remove('hidden'); window.scrollTo(0,0); }
@@ -608,7 +701,7 @@
             if (surveys.length === 0) return safeGet('empty-state').classList.remove('hidden');
             safeGet('empty-state').classList.add('hidden');
             surveys.forEach(s => {
-                container.innerHTML += `<div class="theme-card p-6 cursor-pointer hover:-translate-y-1" onclick="window.app.editSurvey('${s.id}')"><div class="flex justify-between mb-2"><h3 class="font-bold text-xl truncate">${escapeHtml(s.title) || '未命名'}</h3>${s.status==='published'?'<span class="text-xs bg-green-50 text-green-600 px-2 py-1 rounded-full border border-green-200">已發布</span>':'<span class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">草稿</span>'}</div><p class="text-sm opacity-60 mb-6 line-clamp-2 h-10">${escapeHtml(s.description)}</p><div class="flex justify-end gap-2 pt-4 border-t border-gray-100" onclick="event.stopPropagation()"><button onclick="window.app.viewStats('${s.id}')" class="text-gray-500 text-xs bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg font-bold">統計</button><button onclick="window.app.openShare('${s.id}')" class="text-green-600 text-xs bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg font-bold">分享</button><button onclick="window.app.requestDelete('${s.id}')" class="text-red-400 text-xs bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg font-bold">刪除</button></div></div>`;
+                container.innerHTML += `<div class="theme-card p-6 cursor-pointer hover:-translate-y-1" onclick="window.app.editSurvey('${s.id}')"><div class="flex justify-between mb-2"><h3 class="font-bold text-xl truncate">${escapeHtml(s.title) || '未命名'}</h3>${s.status==='published'?'<span class="text-xs bg-[#F0F9F4] text-[#3E664B] px-2 py-1 rounded-full border border-[#C3DEC9]">已發布</span>':'<span class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">草稿</span>'}</div><p class="text-sm opacity-60 mb-6 line-clamp-2 h-10">${escapeHtml(s.description)}</p><div class="flex justify-end gap-2 pt-4 border-t border-gray-100" onclick="event.stopPropagation()"><button onclick="window.app.viewStats('${s.id}')" class="text-gray-500 text-xs bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg font-bold">統計</button><button onclick="window.app.openShare('${s.id}')" class="text-[#568A66] text-xs bg-[#F0F9F4] hover:bg-[#C3DEC9] px-3 py-1.5 rounded-lg font-bold">分享</button><button onclick="window.app.requestDelete('${s.id}')" class="text-red-400 text-xs bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg font-bold">刪除</button></div></div>`;
             });
         }
 
