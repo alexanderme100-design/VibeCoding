@@ -13,7 +13,7 @@
     <style>
         /* 基礎設定 */
         html, body {
-            overflow-x: hidden; /* 防止左右滑動 */
+            overflow-x: hidden;
             min-height: 100vh;
             background-color: #f3f4f6;
             font-family: 'Noto Sans TC', sans-serif;
@@ -29,15 +29,15 @@
 
         /* 選項卡片被選中時的動畫 */
         input:checked + div { 
-            transform: scale(1.02); 
-            border-color: #2563eb; /* blue-600 */
-            background-color: #eff6ff; /* blue-50 */
-            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1), 0 2px 4px -1px rgba(37, 99, 235, 0.06);
+            transform: scale(0.98); 
+            border-color: #2563eb; 
+            background-color: #eff6ff; 
+            box-shadow: inset 0 0 0 1px #2563eb;
         }
 
         /* 手機優化：點擊區域 */
         .tap-target {
-            min-height: 48px; /* 加大點擊區域 */
+            min-height: 48px;
         }
 
         /* 進度條動畫 */
@@ -45,9 +45,22 @@
             transition: width 0.3s ease-out;
         }
 
-        /* 針對 iPhone 底部安全區域的修正 */
         .safe-pb {
             padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        /* 拖曳相關樣式 */
+        .question-card.dragging {
+            opacity: 0.5;
+            border: 2px dashed #3b82f6;
+            background-color: #eff6ff;
+        }
+        
+        .drag-handle {
+            cursor: grab;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
         }
     </style>
 </head>
@@ -80,7 +93,7 @@
     <!-- Main Content Area -->
     <main class="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 relative min-h-[80vh]" id="main-container">
         
-        <!-- Loading State (Enhanced) -->
+        <!-- Loading State -->
         <div id="loading-view" class="fixed inset-0 flex flex-col items-center justify-center bg-gray-100 z-50 p-4">
             <div class="text-center">
                 <i class="fa-solid fa-circle-notch fa-spin text-5xl text-blue-500 mb-6"></i>
@@ -411,6 +424,41 @@
                 document.getElementById('debug-info').textContent = "Timeout: 連線回應逾時";
             }
         }, 8000); // 8 seconds timeout
+
+        // Drag and Drop Logic
+        const initSortable = () => {
+            const container = document.getElementById('questions-container');
+            
+            container.addEventListener('dragover', e => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(container, e.clientY);
+                const draggable = document.querySelector('.dragging');
+                if (afterElement == null) {
+                    container.appendChild(draggable);
+                } else {
+                    container.insertBefore(draggable, afterElement);
+                }
+            });
+        };
+
+        const getDragAfterElement = (container, y) => {
+            const draggableElements = [...container.querySelectorAll('.question-card:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        };
+
+        // Initialize drag events on load
+        window.addEventListener('DOMContentLoaded', () => {
+            initSortable();
+        });
 
         onAuthStateChanged(auth, (currentUser) => {
             document.getElementById('loading-view').classList.add('hidden');
@@ -780,13 +828,23 @@
                 const options = data && data.options ? data.options.join('\n') : '';
                 const isRequired = (data && data.required !== undefined) ? data.required : true; 
 
+                // --- 創建卡片 ---
+                const card = document.createElement('div');
+                card.id = `q-${id}`;
+                card.draggable = true; // 開啟拖曳
+                
+                // Add event listeners for Drag and Drop
+                card.addEventListener('dragstart', () => { card.classList.add('dragging'); });
+                card.addEventListener('dragend', () => { card.classList.remove('dragging'); window.app.renumberQuestions(); });
+
                 // Handle Section Type UI
                 if (type === 'section') {
-                    const sectionHTML = `
-                    <div class="question-card bg-orange-50 p-4 md:p-6 rounded-xl border-2 border-orange-200 shadow-sm relative group transition duration-200" id="q-${id}">
+                    card.className = 'question-card bg-orange-50 p-4 md:p-6 rounded-xl border-2 border-orange-200 shadow-sm relative group transition duration-200';
+                    card.innerHTML = `
                         <input type="hidden" class="question-type" value="section">
                         <div class="flex justify-between items-start mb-4">
-                            <div class="bg-orange-200 text-orange-800 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider flex items-center gap-1">
+                            <div class="bg-orange-200 text-orange-800 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider flex items-center gap-1 cursor-grab active:cursor-grabbing drag-handle">
+                                <i class="fa-solid fa-grip-vertical mr-1 opacity-50"></i>
                                 <i class="fa-solid fa-align-left"></i> 段落說明
                             </div>
                             <div class="flex items-center gap-2">
@@ -805,17 +863,16 @@
                                 <label class="block text-xs font-bold text-orange-800 uppercase mb-1">詳細說明內容</label>
                                 <textarea class="question-desc-input w-full border-orange-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 border bg-white transition" rows="3" placeholder="請在此輸入針對此部分的詳細說明或解釋...">${description}</textarea>
                             </div>
-                        </div>
-                    </div>`;
-                    container.insertAdjacentHTML('beforeend', sectionHTML);
-                    return;
-                }
-
-                // Normal Question UI
-                const questionHTML = `
-                <div class="question-card bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm relative group hover:shadow-md transition duration-200" id="q-${id}">
+                        </div>`;
+                } else {
+                    // Normal Question UI
+                    card.className = 'question-card bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm relative group hover:shadow-md transition duration-200';
+                    card.innerHTML = `
                     <div class="flex justify-between items-start mb-4">
-                        <div class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">題目 ${container.children.length + 1}</div>
+                        <div class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider cursor-grab active:cursor-grabbing drag-handle">
+                            <i class="fa-solid fa-grip-vertical mr-1 opacity-50"></i>
+                            題目 ${container.children.length + 1}
+                        </div>
                         <div class="flex items-center gap-2">
                              <label class="flex items-center cursor-pointer select-none">
                                 <div class="relative">
@@ -825,6 +882,7 @@
                                 <span class="ml-2 text-xs font-medium text-gray-500">必填</span>
                             </label>
                             <div class="h-4 w-px bg-gray-300 mx-1"></div>
+                            <!-- 上下移動按鈕 -->
                             <button onclick="window.app.moveQuestion('${id}', -1)" class="text-gray-400 hover:text-blue-500 p-1 transition"><i class="fa-solid fa-arrow-up"></i></button>
                             <button onclick="window.app.moveQuestion('${id}', 1)" class="text-gray-400 hover:text-blue-500 p-1 transition"><i class="fa-solid fa-arrow-down"></i></button>
                             <div class="h-4 w-px bg-gray-300 mx-1"></div>
@@ -848,9 +906,10 @@
                     <div class="options-area mt-4 ${type === 'text' ? 'hidden' : ''}">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">選項 (每行一個)</label>
                         <textarea class="question-options w-full border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 border bg-yellow-50 font-mono text-sm" rows="3" placeholder="非常滿意&#10;普通&#10;不滿意">${options}</textarea>
-                    </div>
-                </div>`;
-                container.insertAdjacentHTML('beforeend', questionHTML);
+                    </div>`;
+                }
+                
+                container.appendChild(card);
             },
             renumberQuestions: () => { 
                 // Only renumber actual questions, not sections
@@ -860,10 +919,12 @@
                     const typeInput = card.querySelector('.question-type');
                     if (typeInput && typeInput.value === 'section') return; // Skip sections
                     
-                    const badge = card.querySelector('.bg-blue-100');
+                    const badge = card.querySelector('.bg-blue-100'); // Note: selector might need adjustment if badge structure changes
+                    // Correctly target the text inside the badge div, excluding the icon
                     if(badge) {
                         qIndex++;
-                        badge.textContent = `題目 ${qIndex}`;
+                        // Preserve the icon if it exists, or just rewrite text
+                        badge.innerHTML = `<i class="fa-solid fa-grip-vertical mr-1 opacity-50"></i> 題目 ${qIndex}`;
                     }
                 });
             },
@@ -1065,9 +1126,9 @@
                                             // Ensure we don't scroll to a section header by accident if it's the immediate next thing, actually scrolling to section is fine.
                                             if(next) next.scrollIntoView({behavior: 'smooth', block: 'center'}); 
                                         }, 300)">
-                                        <div class="h-full p-4 border-2 border-gray-200 rounded-xl hover:border-blue-300 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition flex flex-col items-center justify-center text-center">
+                                        <div class="h-full p-2 md:p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition flex flex-col items-center justify-center text-center min-h-[60px]">
                                             ${emojiHtml}
-                                            <div class="text-sm font-bold text-gray-700 peer-checked:text-blue-700">${opt}</div>
+                                            <div class="text-xs md:text-sm font-bold text-gray-700 peer-checked:text-blue-700 break-words leading-tight">${opt}</div>
                                         </div>
                                     </label>
                                 `}).join('') + `</div>`;
