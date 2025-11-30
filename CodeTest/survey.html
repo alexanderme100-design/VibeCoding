@@ -6,8 +6,8 @@
     <title>Firebase 問卷系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- 引入更多元字體 -->
-    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&family=DotGothic16&family=Space+Mono:wght@700&family=Noto+Sans+TC:wght@300;400;500;700&family=Comic+Neue:wght@700&family=Kosugi+Maru&display=swap" rel="stylesheet">
+    <!-- 字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&family=Noto+Serif+TC:wght@400;700&family=DotGothic16&family=Space+Mono:wght@700&family=Noto+Sans+TC:wght@300;400;500;700&family=Comic+Neue:wght@700&family=Kosugi+Maru&family=Press+Start+2P&display=swap" rel="stylesheet">
 
     <style>
         /* --- 核心變數系統 --- */
@@ -15,30 +15,25 @@
             --bg-color: #FAF7F0;
             --bg-image: none;
             --text-color: #4A4A4A;
-            
             --card-bg: #ffffff;
             --card-border: 1px solid rgba(0,0,0,0.05);
             --card-radius: 20px;
             --card-shadow: 0 10px 15px -3px rgba(86, 138, 102, 0.1);
-            
             --primary-color: #568A66;
             --primary-text: #ffffff;
             --secondary-color: #E67F65;
-            
             --input-bg: #ffffff;
             --input-border: 2px solid #eeeeee;
-            --input-style: solid; /* solid, dashed, none */
-            
             --select-bg: #eff6ff;
             --select-border: #2563eb;
             --select-text: #1e3a8a;
-            
             --font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif;
-            --letter-spacing: 0px; /* 字距 */
-            
+            --letter-spacing: 0px;
             --btn-shadow: 0 4px 0 var(--ghibli-green-dark);
             --btn-hover-filter: brightness(110%);
-            --text-glow: none; /* 文字發光 */
+            --text-glow: none;
+            --progress-radius: 9999px; /* 進度條圓角 */
+            --pixel-scale: 1; /* 像素風格縮放 */
         }
 
         html, body { 
@@ -57,8 +52,6 @@
         }
         
         body { display: flex; flex-direction: column; }
-        
-        /* 標題發光特效 (Cyberpunk) */
         h1, h2, h3, h4 { text-shadow: var(--text-glow); }
 
         .theme-card {
@@ -75,7 +68,7 @@
             color: var(--primary-text);
             border-radius: var(--card-radius);
             box-shadow: var(--btn-shadow);
-            border: none; /* Reset default border */
+            border: none;
             transition: all 0.1s;
             filter: var(--btn-hover-filter);
             position: relative;
@@ -86,7 +79,6 @@
         .theme-input {
             background-color: var(--input-bg);
             border: var(--input-border);
-            border-style: var(--input-style);
             color: var(--text-color);
             border-radius: calc(var(--card-radius) / 2);
             transition: all 0.2s;
@@ -107,34 +99,29 @@
         }
 
         /* 特殊風格覆蓋 */
-        /* 黑板風：選項變為粉筆框 */
-        [data-theme="blackboard"] input:checked + div {
-            box-shadow: inset 0 0 0 2px var(--primary-color), 0 0 5px var(--primary-color);
-            background-color: rgba(255,255,255,0.1) !important;
-        }
-        /* 漫畫風：粗黑框 */
-        [data-theme="comic"] .theme-card, [data-theme="comic"] .theme-input, [data-theme="comic"] .theme-btn {
-            border: 2px solid black;
-        }
-        [data-theme="comic"] input:checked + div {
-            border: 3px solid black !important;
-            box-shadow: 4px 4px 0 black;
-            transform: translate(-2px, -2px);
-        }
+        [data-theme="blackboard"] input:checked + div { box-shadow: inset 0 0 0 2px var(--primary-color), 0 0 5px var(--primary-color); background-color: rgba(255,255,255,0.1) !important; }
+        [data-theme="comic"] .theme-card, [data-theme="comic"] .theme-input, [data-theme="comic"] .theme-btn { border: 2px solid black; }
+        [data-theme="comic"] input:checked + div { border: 3px solid black !important; box-shadow: 4px 4px 0 black; transform: translate(-2px, -2px); }
+        [data-theme="pixel"] * { image-rendering: pixelated; } /* 像素清晰化 */
 
-        /* 紙張紋理 */
-        .noise-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: -1; opacity: 0.05;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-            display: none; 
-        }
-
-        /* 雲朵 */
-        .cloud { position: absolute; background: white; border-radius: 100px; z-index: -1; opacity: 0.6; display: none; } 
-        .cloud-1 { width: 100px; height: 40px; top: 20px; left: -10px; animation: float 20s infinite linear; }
-        .cloud-2 { width: 160px; height: 60px; top: 50px; right: -30px; animation: float 35s infinite linear reverse; }
+        /* 裝飾層 */
+        .noise-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; opacity: 0.05; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E"); display: none; }
+        
+        /* 雲朵與其他裝飾 (預設隱藏) */
+        .decor-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; display: none; overflow: hidden; }
+        .cloud { position: absolute; background: white; border-radius: 100px; opacity: 0.8; } 
+        .cloud-1 { width: 120px; height: 40px; top: 10%; left: -10%; animation: float 25s infinite linear; }
+        .cloud-2 { width: 180px; height: 60px; top: 20%; right: -20%; animation: float 35s infinite linear reverse; }
         @keyframes float { 0% { transform: translateX(0); } 50% { transform: translateX(20px); } 100% { transform: translateX(0); } }
+
+        /* 龍貓進度條動畫 */
+        .totoro-progress {
+            position: absolute; right: -20px; top: -25px; width: 40px; height: 40px;
+            background-image: url('https://cdn-icons-png.flaticon.com/512/3063/3063176.png'); /* 龍貓 icon */
+            background-size: contain; background-repeat: no-repeat;
+            transition: left 0.5s ease-out;
+            display: none;
+        }
 
         .fade-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -152,153 +139,77 @@
     <script>
         window.app = {}; 
 
+        // --- 22 種極致風格定義 ---
         const THEMES = {
             'ghibli': { 
                 name: '1. 吉卜力風 (Ghibli)', 
-                bg: '#FAF7F0', image: 'radial-gradient(#E5E0D0 1px, transparent 1px)', bgSize: '20px 20px',
+                bg: '#FAF7F0', 
+                image: 'radial-gradient(#E5E0D0 1px, transparent 1px)', 
+                bgSize: '20px 20px',
                 text: '#4A4A4A', card: '#ffffff', primary: '#568A66', radius: '20px', 
                 shadow: '0 10px 15px -3px rgba(86, 138, 102, 0.15)', 
-                font: "'Zen Maru Gothic', sans-serif", btnShadow: '0 4px 0 #3E664B', clouds: true
+                font: "'Zen Maru Gothic', sans-serif",
+                btnShadow: '0 4px 0 #3E664B',
+                decor: 'ghibli' // Enable clouds
             },
-            'muji': { 
-                name: '2. 韓系文青 (MUJI)', 
-                bg: '#F3F2ED', text: '#595750', card: '#FCFAF7', primary: '#8C8376', radius: '2px', 
-                shadow: 'none', border: '1px solid #E6E4E0', font: "'Noto Serif TC', serif", 
-                btnShadow: 'none', selectBg: '#EAE8E4', selectBorder: '#8C8376', selectText: '#595750', spacing: '1px'
+            'miyazaki': {
+                name: '21. 宮崎駿天空 (Miyazaki Sky)',
+                bg: '#87CEEB', // Sky Blue
+                image: 'linear-gradient(180deg, #87CEEB 0%, #B0E0E6 60%, #66BB6A 60%)', // Sky to Grass
+                text: '#2F4F4F',
+                card: 'rgba(255, 255, 255, 0.9)',
+                primary: '#FF7F50', // Coral
+                radius: '25px',
+                shadow: '0 8px 20px rgba(0,0,0,0.1)',
+                font: "'Zen Maru Gothic', sans-serif",
+                btnShadow: '0 4px 0 #CD5C5C',
+                btnText: '乘著風出發', // Custom button text
+                decor: 'ghibli' // Enable clouds & Totoro
             },
-            'taiwan': { 
-                name: '3. 台灣插畫風', 
-                bg: '#FFF8E1', image: 'repeating-linear-gradient(45deg, #FFECB3 0, #FFECB3 1px, transparent 1px, transparent 10px)',
-                text: '#5D4037', card: '#FFFFFF', primary: '#FF7043', radius: '16px', 
-                shadow: '4px 4px 0px #FFCCBC', border: '2px solid #5D4037', font: "'Zen Maru Gothic', sans-serif"
+            'pixel': {
+                name: '22. 復古像素風 (8-bit)',
+                bg: '#222034', // Dark purple/black
+                image: 'linear-gradient(transparent 95%, #33ff00 95%), linear-gradient(90deg, transparent 95%, #33ff00 95%)', // Green grid
+                bgSize: '20px 20px',
+                text: '#33ff00', // Retro Green
+                card: '#000000',
+                primary: '#33ff00',
+                radius: '0px',
+                border: '4px solid #33ff00',
+                shadow: '8px 8px 0 #004400',
+                font: "'Press Start 2P', cursive", // Pixel font
+                btnShadow: '4px 4px 0 #004400',
+                selectBg: '#004400', selectBorder: '#33ff00', selectText: '#33ff00',
+                inputBg: '#000', inputBorder: '2px solid #33ff00',
+                btnText: 'START GAME', // Custom button text
+                progressBar: 'hp-bar' // Special HP bar style
             },
-            'pixar': { 
-                name: '4. 迪士尼/皮克斯', 
-                bg: '#CAF0F8', image: 'radial-gradient(circle at 50% 0%, #ffffff 0%, #CAF0F8 80%)',
-                text: '#023E8A', card: '#FFFFFF', primary: '#0077B6', radius: '24px', 
-                shadow: '0 10px 25px rgba(0,119,182,0.25)', font: "sans-serif", btnShadow: '0 6px 0 #023E8A' 
-            },
-            'watercolor': { 
-                name: '5. 手繪水彩風', 
-                bg: '#F0F8FF', image: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\' opacity=\'0.15\'/%3E%3C/svg%3E")',
-                text: '#5D6D7E', card: 'rgba(255,255,255,0.85)', primary: '#7FB3D5', radius: '30px', 
-                shadow: '0 8px 32px rgba(31, 38, 135, 0.1)', font: "serif", border: '1px solid rgba(255,255,255,0.6)'
-            },
-            'blackboard': { 
-                name: '6. 文青黑板風', 
-                bg: '#2F3E46', text: '#F0F0F0', card: '#354F52', primary: '#F4D35E', radius: '6px', 
-                border: '2px dashed rgba(255,255,255,0.2)', shadow: 'inset 0 0 30px rgba(0,0,0,0.5)',
-                font: "'DotGothic16', monospace", selectBg: '#52796F', selectBorder: '#F4D35E', selectText: '#F4D35E',
-                inputBg: '#2F3E46', inputBorder: '1px dashed #84A98C', inputStyle: 'dashed'
-            },
-            'flat': { 
-                name: '7. 扁平化插畫', 
-                bg: '#ECF0F1', text: '#2C3E50', card: '#FFFFFF', primary: '#3498DB', radius: '4px', 
-                shadow: '0 2px 5px rgba(0,0,0,0.05)', border: '1px solid #BDC3C7', font: "'Roboto', sans-serif", btnShadow: 'none'
-            },
-            'cute': { 
-                name: '8. 可愛 Q 版', 
-                bg: '#FFF0F5', image: 'radial-gradient(#FFB6C1 3px, transparent 3px)', bgSize: '30px 30px',
-                text: '#8B4513', card: '#FFFFFF', primary: '#FF80AB', radius: '30px', 
-                shadow: '0 8px 0 #FFC1E3', border: '3px solid #FF80AB', font: "'Kosugi Maru', sans-serif", btnShadow: '0 6px 0 #C51162'
-            },
-            'cyberpunk': { 
-                name: '9. 未來感霓虹', 
-                bg: '#050505', image: 'linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px)', bgSize: '30px 30px',
-                text: '#00FFFF', card: '#0A0A0A', primary: '#FF00FF', radius: '0px', 
-                border: '1px solid #00FFFF', shadow: '0 0 15px rgba(0, 255, 255, 0.3)',
-                font: "'Space Mono', monospace", selectBg: '#111', selectBorder: '#FF00FF', selectText: '#FF00FF',
-                inputBg: '#000', inputBorder: '1px solid #00FFFF', textGlow: '0 0 5px #00FFFF'
-            },
-            'fresh': { 
-                name: '10. 小紅書風', 
-                bg: '#FAFAFA', text: '#333333', card: '#FFFFFF', primary: '#FF5252', radius: '16px', 
-                shadow: '0 10px 40px -10px rgba(0,0,0,0.08)', font: "sans-serif", border: '1px solid #f0f0f0'
-            },
-            'map': { 
-                name: '11. 旅遊地圖風', 
-                bg: '#F4EBD0', image: 'repeating-linear-gradient(90deg, #E6D5B8 0, #E6D5B8 1px, transparent 1px, transparent 40px)',
-                text: '#5D4037', card: '#FFF8E1', primary: '#D84315', radius: '10px', 
-                shadow: '5px 5px 0 rgba(93, 64, 55, 0.2)', font: "serif", border: '2px dashed #8D6E63' 
-            },
-            'japanese': { 
-                name: '12. 日系極簡風', 
-                bg: '#FFFFFF', text: '#222222', card: '#FFFFFF', primary: '#000000', radius: '0px', 
-                border: '1px solid #E5E5E5', shadow: 'none', font: "'Noto Serif TC', serif", 
-                selectBg: '#F5F5F5', selectBorder: '#333', selectText: '#000', spacing: '1px'
-            },
-            'comic': { 
-                name: '13. 漫畫風', 
-                bg: '#FFFFFF', image: 'radial-gradient(#000 10%, transparent 11%)', bgSize: '5px 5px',
-                text: '#000000', card: '#FFFFFF', primary: '#FFE600', radius: '0px', 
-                border: '3px solid #000000', shadow: '6px 6px 0px #000000', font: "sans-serif",
-                btnShadow: '4px 4px 0 #000', selectBg: '#000', selectBorder: '#000', selectText: '#FFF'
-            },
-            'animal': { 
-                name: '14. 動物森友會', 
-                bg: '#B8E994', image: 'repeating-linear-gradient(45deg, #78E08F 0, #78E08F 20px, #B8E994 20px, #B8E994 40px)', 
-                text: '#3C6382', card: '#F8F3D4', primary: '#FA983A', radius: '24px', border: '4px solid #FFFFFF', 
-                shadow: '0 8px 0 rgba(0,0,0,0.1)', font: "'Zen Maru Gothic', sans-serif" 
-            },
-            'forest': { 
-                name: '15. 自然森林風', 
-                bg: '#2D6A4F', text: '#D8F3DC', card: '#1B4332', primary: '#52B788', radius: '16px', 
-                border: 'none', shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)', font: "sans-serif", 
-                selectBg: '#40916C', selectBorder: '#74C69D', selectText: '#fff', inputBg: '#081C15', inputBorder: '1px solid #52B788' 
-            },
-            'geometric': { 
-                name: '16. 極簡幾何風', 
-                bg: '#F3F4F6', image: 'linear-gradient(135deg, #E5E7EB 25%, transparent 25%) -50px 0', bgSize: '100px 100px',
-                text: '#111827', card: '#FFFFFF', primary: '#4F46E5', radius: '0px', 
-                shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', font: "sans-serif",
-                selectBg: '#EEF2FF', selectBorder: '#4F46E5', selectText: '#4338CA'
-            },
-            'vogue': { 
-                name: '17. 歐系高級雜誌', 
-                bg: '#F0F0F0', text: '#000000', card: '#FFFFFF', primary: '#000000', radius: '0px', 
-                border: '1px solid #000000', shadow: 'none', font: "'Noto Serif TC', serif", btnShadow: 'none' 
-            },
-            'corporate': { 
-                name: '18. 企業簡報風', 
-                bg: '#F0F2F5', text: '#1C1E21', card: '#FFFFFF', primary: '#1877F2', radius: '8px', 
-                border: '1px solid #E5E7EB', shadow: '0 1px 2px rgba(0, 0, 0, 0.05)', font: "sans-serif" 
-            },
-            'edtech': { 
-                name: '19. 現代教育科技', 
-                bg: '#F0FDF4', image: 'linear-gradient(#E5E7EB 1px, transparent 1px), linear-gradient(90deg, #E5E7EB 1px, transparent 1px)', bgSize: '20px 20px',
-                text: '#064E3B', card: '#FFFFFF', primary: '#10B981', radius: '12px', 
-                border: '1px solid #D1FAE5', shadow: '0 4px 6px -1px rgba(16, 185, 129, 0.1)', font: "sans-serif" 
-            },
-            'paper': { 
-                name: '20. 高級紙張質感', 
-                bg: '#FDFBF7', text: '#2C2825', card: '#FFFCF5', primary: '#A67C00', radius: '2px', 
-                shadow: '0 2px 10px rgba(0,0,0,0.03)', font: "'Noto Serif TC', serif", 
-                noise: true, border: '1px solid #E6E2D8'
-            },
-            'harrypotter': {
-                name: '21. 哈利波特魔法手繪',
-                bg: '#F8F4E3', // Warm Parchment base
-                image: 'radial-gradient(circle at 50% 30%, #FFFBE6 0%, #F8F4E3 60%, #EFE6D5 100%)', // Warm magical glow center
-                text: '#5D4037', // Dark brown
-                card: '#FFFEF7', // Creamy card
-                primary: '#A0522D', // Sienna (like brick/leather)
-                radius: '20px',
-                border: '3px solid #A0522D', // Prominent hand-drawn border
-                shadow: '5px 5px 0px #D4AF37', // Magical gold coin shadow
-                font: "'Zen Maru Gothic', sans-serif", // Cute rounded font
-                btnShadow: '3px 3px 0px #5D4037',
-                noise: true, // Enable paper texture overlay
-                selectBg: '#FFF3E0', // Light orange selection
-                selectBorder: '#A0522D',
-                selectText: '#A0522D'
-            }
+            'muji': { name: '2. 韓系文青 (MUJI)', bg: '#F3F2ED', text: '#595750', card: '#FCFAF7', primary: '#8C8376', radius: '2px', shadow: 'none', border: '1px solid #E6E4E0', font: "'Noto Serif TC', serif", btnShadow: 'none', selectBg: '#EAE8E4', selectBorder: '#8C8376', selectText: '#595750', spacing: '1px' },
+            'taiwan': { name: '3. 台灣插畫風', bg: '#FFF8E1', image: 'repeating-linear-gradient(45deg, #FFECB3 0, #FFECB3 1px, transparent 1px, transparent 10px)', bgSize: '20px 20px', text: '#5D4037', card: '#FFFFFF', primary: '#FF7043', radius: '16px', shadow: '4px 4px 0px #FFCCBC', border: '2px solid #5D4037', font: "'Zen Maru Gothic', sans-serif'"},
+            'pixar': { name: '4. 迪士尼/皮克斯', bg: '#CAF0F8', image: 'radial-gradient(circle at 50% 0%, #ffffff 0%, #CAF0F8 80%)', text: '#023E8A', card: '#FFFFFF', primary: '#0077B6', radius: '24px', shadow: '0 10px 25px rgba(0,119,182,0.25)', font: "sans-serif", btnShadow: '0 6px 0 #023E8A' },
+            'watercolor': { name: '5. 手繪水彩風', bg: '#F0F8FF', image: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\' opacity=\'0.15\'/%3E%3C/svg%3E")', text: '#5D6D7E', card: 'rgba(255,255,255,0.85)', primary: '#7FB3D5', radius: '30px', shadow: '0 8px 32px rgba(31, 38, 135, 0.1)', font: "serif", border: '1px solid rgba(255,255,255,0.6)' },
+            'blackboard': { name: '6. 文青黑板風', bg: '#2F3E46', text: '#F0F0F0', card: '#354F52', primary: '#F4D35E', radius: '6px', border: '2px dashed rgba(255,255,255,0.2)', shadow: 'inset 0 0 30px rgba(0,0,0,0.5)', font: "'DotGothic16', monospace", selectBg: '#52796F', selectBorder: '#F4D35E', selectText: '#F4D35E', inputBg: '#2F3E46', inputBorder: '1px dashed #84A98C', inputStyle: 'dashed' },
+            'flat': { name: '7. 扁平化插畫', bg: '#ECF0F1', text: '#2C3E50', card: '#FFFFFF', primary: '#3498DB', radius: '4px', shadow: '0 2px 5px rgba(0,0,0,0.05)', border: '1px solid #BDC3C7', font: "'Roboto', sans-serif", btnShadow: 'none' },
+            'cute': { name: '8. 可愛 Q 版', bg: '#FFF0F5', image: 'radial-gradient(#FFB6C1 3px, transparent 3px)', bgSize: '30px 30px', text: '#8B4513', card: '#FFFFFF', primary: '#FF80AB', radius: '30px', shadow: '0 8px 0 #FFC1E3', border: '3px solid #FF80AB', font: "'Kosugi Maru', sans-serif", btnShadow: '0 6px 0 #C51162' },
+            'cyberpunk': { name: '9. 未來感霓虹', bg: '#050505', image: 'linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px)', bgSize: '30px 30px', text: '#00FFFF', card: '#0A0A0A', primary: '#FF00FF', radius: '0px', border: '1px solid #00FFFF', shadow: '0 0 15px rgba(0, 255, 255, 0.3)', font: "'Space Mono', monospace", selectBg: '#111', selectBorder: '#FF00FF', selectText: '#FF00FF', inputBg: '#000', inputBorder: '1px solid #00FFFF', textGlow: '0 0 5px #00FFFF' },
+            'fresh': { name: '10. 小紅書風', bg: '#FAFAFA', text: '#333333', card: '#FFFFFF', primary: '#FF5252', radius: '16px', shadow: '0 10px 40px -10px rgba(0,0,0,0.08)', font: "sans-serif", border: '1px solid #f0f0f0' },
+            'map': { name: '11. 旅遊地圖風', bg: '#F4EBD0', image: 'repeating-linear-gradient(90deg, #E6D5B8 0, #E6D5B8 1px, transparent 1px, transparent 40px)', text: '#5D4037', card: '#FFF8E1', primary: '#D84315', radius: '10px', shadow: '5px 5px 0 rgba(93, 64, 55, 0.2)', font: "serif", border: '2px dashed #8D6E63' },
+            'japanese': { name: '12. 日系極簡風', bg: '#FFFFFF', text: '#222222', card: '#FFFFFF', primary: '#000000', radius: '0px', border: '1px solid #E5E5E5', shadow: 'none', font: "'Noto Serif TC', serif", selectBg: '#F5F5F5', selectBorder: '#333', selectText: '#000', spacing: '1px' },
+            'comic': { name: '13. 漫畫風', bg: '#FFFFFF', image: 'radial-gradient(#000 10%, transparent 11%)', bgSize: '5px 5px', text: '#000000', card: '#FFFFFF', primary: '#FFE600', radius: '0px', border: '3px solid #000000', shadow: '6px 6px 0px #000000', font: "sans-serif", btnShadow: '4px 4px 0 #000', selectBg: '#000', selectBorder: '#000', selectText: '#FFF' },
+            'animal': { name: '14. 動物森友會', bg: '#B8E994', image: 'repeating-linear-gradient(45deg, #78E08F 0, #78E08F 20px, #B8E994 20px, #B8E994 40px)', text: '#3C6382', card: '#F8F3D4', primary: '#FA983A', radius: '24px', border: '4px solid #FFFFFF', shadow: '0 8px 0 rgba(0,0,0,0.1)', font: "'Zen Maru Gothic', sans-serif" },
+            'forest': { name: '15. 自然森林風', bg: '#2D6A4F', text: '#D8F3DC', card: '#1B4332', primary: '#52B788', radius: '16px', border: 'none', shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)', font: "sans-serif", selectBg: '#40916C', selectBorder: '#74C69D', selectText: '#fff', inputBg: '#081C15', inputBorder: '1px solid #52B788' },
+            'geometric': { name: '16. 極簡幾何風', bg: '#F3F4F6', image: 'linear-gradient(135deg, #E5E7EB 25%, transparent 25%) -50px 0', bgSize: '100px 100px', text: '#111827', card: '#FFFFFF', primary: '#4F46E5', radius: '0px', shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', font: "sans-serif", selectBg: '#EEF2FF', selectBorder: '#4F46E5', selectText: '#4338CA' },
+            'vogue': { name: '17. 歐系高級雜誌', bg: '#F0F0F0', text: '#000000', card: '#FFFFFF', primary: '#000000', radius: '0px', border: '1px solid #000000', shadow: 'none', font: "'Noto Serif TC', serif", btnShadow: 'none' },
+            'corporate': { name: '18. 企業簡報風', bg: '#F0F2F5', text: '#1C1E21', card: '#FFFFFF', primary: '#1877F2', radius: '8px', border: '1px solid #E5E7EB', shadow: '0 1px 2px rgba(0, 0, 0, 0.05)', font: "sans-serif" },
+            'edtech': { name: '19. 現代教育科技', bg: '#F0FDF4', image: 'linear-gradient(#E5E7EB 1px, transparent 1px), linear-gradient(90deg, #E5E7EB 1px, transparent 1px)', bgSize: '20px 20px', text: '#064E3B', card: '#FFFFFF', primary: '#10B981', radius: '12px', border: '1px solid #D1FAE5', shadow: '0 4px 6px -1px rgba(16, 185, 129, 0.1)', font: "sans-serif" },
+            'paper': { name: '20. 高級紙張質感', bg: '#FDFBF7', text: '#2C2825', card: '#FFFCF5', primary: '#A67C00', radius: '2px', shadow: '0 2px 10px rgba(0,0,0,0.03)', font: "'Noto Serif TC', serif", noise: true, border: '1px solid #E6E2D8' },
+            'harrypotter': { name: '23. 哈利波特魔法手繪', bg: '#F8F4E3', image: 'radial-gradient(circle at 50% 30%, #FFFBE6 0%, #F8F4E3 60%, #EFE6D5 100%)', text: '#5D4037', card: '#FFFEF7', primary: '#A0522D', radius: '20px', border: '3px solid #A0522D', shadow: '5px 5px 0px #D4AF37', font: "'Zen Maru Gothic', sans-serif", btnShadow: '3px 3px 0px #5D4037', noise: true, selectBg: '#FFF3E0', selectBorder: '#A0522D', selectText: '#A0522D' }
         };
 
         window.applyTheme = function(themeKey) {
             const theme = THEMES[themeKey] || THEMES['ghibli'];
             const r = document.documentElement;
             
-            // Set Data Attribute for CSS overrides
             document.body.setAttribute('data-theme', themeKey);
 
             r.style.setProperty('--bg-color', theme.bg);
@@ -324,12 +235,21 @@
             r.style.setProperty('--input-bg', theme.inputBg || '#ffffff');
             r.style.setProperty('--input-border', theme.inputBorder || '2px solid #eeeeee');
             r.style.setProperty('--input-style', theme.inputStyle || 'solid');
+            
+            // 進度條圓角
+            r.style.setProperty('--progress-radius', themeKey === 'pixel' ? '0px' : '9999px');
 
             const noise = document.querySelector('.noise-overlay');
             if(noise) noise.style.display = theme.noise ? 'block' : 'none';
             
-            const clouds = document.querySelectorAll('.cloud');
-            clouds.forEach(c => c.style.display = theme.clouds ? 'block' : 'none');
+            const decor = document.querySelector('.decor-layer');
+            if(decor) {
+                decor.style.display = (themeKey === 'ghibli' || themeKey === 'miyazaki') ? 'block' : 'none';
+            }
+
+            // 更新按鈕文字
+            const submitBtn = document.getElementById('public-submit-btn');
+            if(submitBtn) submitBtn.innerHTML = (theme.btnText || '送出問卷') + (themeKey === 'pixel' ? '' : ' <i class="fa-solid fa-paper-plane ml-2"></i>');
         };
 
         window.showToast = function(msg, type = 'success') {
@@ -390,17 +310,23 @@
 <body class="text-gray-800">
 
     <div class="noise-overlay"></div>
-    <div class="cloud cloud-1"></div>
-    <div class="cloud cloud-2"></div>
+    
+    <!-- 裝飾層：雲朵 -->
+    <div class="decor-layer">
+        <div class="cloud cloud-1"></div>
+        <div class="cloud cloud-2"></div>
+        <!-- 可在此加入龍貓等元素 -->
+        <!-- <div class="totoro-progress"></div> -->
+    </div>
 
-    <div id="global-error" class="hidden fixed inset-0 bg-red-50 z-[200] flex flex-col items-center justify-center p-6 text-center backdrop-blur-sm">
+    <div id="global-error" class="hidden fixed inset-0 bg-red-50/90 z-[200] flex flex-col items-center justify-center p-6 text-center backdrop-blur-sm">
         <h2 class="text-xl font-bold text-red-600 mb-2">系統發生錯誤</h2>
         <p id="global-error-msg" class="text-sm text-gray-600 mb-4 break-all">Unknown</p>
         <button onclick="location.reload()" class="bg-red-600 text-white px-4 py-2 rounded">重新整理</button>
     </div>
 
     <div id="public-progress-bar" class="fixed top-0 left-0 w-full h-2 bg-gray-200 z-[60] hidden">
-        <div id="progress-fill" class="h-full bg-[var(--primary-color)] transition-all duration-500 ease-out rounded-r-full" style="width: 0%"></div>
+        <div id="progress-fill" class="h-full bg-[var(--primary-color)] transition-all duration-500 ease-out" style="width: 0%; border-top-right-radius: var(--progress-radius); border-bottom-right-radius: var(--progress-radius);"></div>
     </div>
 
     <nav id="admin-nav" class="bg-[var(--primary-color)] text-white shadow-lg sticky top-0 z-50 hidden transition-colors duration-500">
@@ -483,7 +409,9 @@
                     </select>
                 </div>
             </div>
+
             <div id="editor-questions" class="space-y-6 mb-32"></div>
+            
             <div id="editor-toolbar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-40 safe-pb hover:-translate-y-1 transition duration-300">
                  <div class="flex gap-2 pr-4 border-r border-gray-200">
                     <button onclick="window.app.addQuestion('text')" class="flex flex-col items-center justify-center w-10 h-10 text-gray-500 hover:text-[var(--primary-color)] transition" title="新增題目"><i class="fa-solid fa-plus text-xl"></i></button>
@@ -507,7 +435,7 @@
             
             <div class="mt-12 text-center">
                 <button id="public-submit-btn" type="button" onclick="window.app.submitResponse()" class="w-full max-w-xs theme-btn py-4 text-xl font-bold shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition">
-                    送出問卷 <i class="fa-solid fa-paper-plane ml-2"></i>
+                    送出問卷
                 </button>
             </div>
         </div>
