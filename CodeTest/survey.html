@@ -6,9 +6,10 @@
     <title>Firebase 問卷系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&family=DotGothic16&family=Space+Mono:wght@700&family=Noto+Sans+TC:wght@300;400;500;700&family=Comic+Neue:wght@700&family=Kosugi+Maru&family=Press+Start+2P&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&family=DotGothic16&family=Space+Mono:wght@700&family=Noto+Sans+TC:wght@300;400;500;700&family=Comic+Neue:wght@700&family=Kosugi+Maru&display=swap" rel="stylesheet">
 
     <style>
+        /* --- 核心變數系統 --- */
         :root {
             --bg-color: #FAF7F0;
             --bg-image: none;
@@ -17,7 +18,6 @@
             --card-border: 1px solid rgba(0,0,0,0.05);
             --card-radius: 20px;
             --card-shadow: 0 10px 15px -3px rgba(86, 138, 102, 0.1);
-            --card-blur: 0px;
             --primary-color: #568A66;
             --primary-text: #ffffff;
             --secondary-color: #E67F65;
@@ -35,24 +35,94 @@
             --progress-radius: 9999px;
         }
 
-        html, body { overflow-x: hidden; min-height: 100dvh; background-color: var(--bg-color); background-image: var(--bg-image); background-attachment: fixed; background-size: cover; background-position: center; font-family: var(--font-family); letter-spacing: var(--letter-spacing); color: var(--text-color); -webkit-tap-highlight-color: transparent; transition: background-color 0.5s ease, color 0.3s ease; }
+        html, body { 
+            overflow-x: hidden; 
+            min-height: 100dvh; 
+            background-color: var(--bg-color); 
+            background-image: var(--bg-image);
+            background-attachment: fixed;
+            background-size: cover;
+            background-position: center;
+            font-family: var(--font-family);
+            letter-spacing: var(--letter-spacing);
+            color: var(--text-color);
+            -webkit-tap-highlight-color: transparent; 
+            transition: background-color 0.5s ease, color 0.3s ease;
+        }
+        
         body { display: flex; flex-direction: column; }
         h1, h2, h3, h4 { text-shadow: var(--text-glow); }
 
-        .theme-card { background-color: var(--card-bg); border-radius: var(--card-radius); border: var(--card-border); box-shadow: var(--card-shadow); transition: all 0.3s ease; backdrop-filter: blur(var(--card-blur)); -webkit-backdrop-filter: blur(var(--card-blur)); }
-        .theme-btn { background-color: var(--primary-color); color: var(--primary-text); border-radius: var(--card-radius); box-shadow: var(--btn-shadow); border: none; transition: all 0.1s; filter: var(--btn-hover-filter); position: relative; overflow: hidden; }
-        .theme-btn:active { transform: translateY(2px); box-shadow: none !important; }
-        .theme-input { background-color: var(--input-bg); border: var(--input-border); border-style: var(--input-style); color: var(--text-color); border-radius: calc(var(--card-radius) / 2); transition: all 0.2s; }
-        .theme-input:focus { border-color: var(--primary-color); outline: none; box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2); }
+        .theme-card {
+            background-color: var(--card-bg);
+            border-radius: var(--card-radius);
+            border: var(--card-border);
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(var(--card-blur));
+            -webkit-backdrop-filter: blur(var(--card-blur));
+        }
 
-        input:checked + div { transform: scale(0.98); background-color: var(--select-bg) !important; border-color: var(--select-border) !important; color: var(--select-text) !important; box-shadow: inset 0 0 0 2px var(--select-border); font-weight: bold; }
+        .theme-btn {
+            background-color: var(--primary-color);
+            color: var(--primary-text);
+            border-radius: var(--card-radius);
+            box-shadow: var(--btn-shadow);
+            border: none;
+            transition: all 0.1s;
+            filter: var(--btn-hover-filter);
+            position: relative;
+            overflow: hidden;
+        }
+        .theme-btn:active { transform: translateY(2px); box-shadow: none !important; }
         
-        [data-theme="blackboard"] input:checked + div { box-shadow: inset 0 0 0 2px var(--primary-color), 0 0 5px var(--primary-color); background-color: rgba(255,255,255,0.1) !important; }
-        [data-theme="comic"] .theme-card, [data-theme="doodle"] .theme-card, [data-theme="comic"] .theme-input, [data-theme="doodle"] .theme-input, [data-theme="comic"] .theme-btn, [data-theme="doodle"] .theme-btn { border: 2px solid currentColor; }
-        [data-theme="comic"] input:checked + div, [data-theme="doodle"] input:checked + div { border: 3px solid currentColor !important; box-shadow: 4px 4px 0 currentColor; transform: translate(-2px, -2px); }
+        .theme-input {
+            background-color: var(--input-bg);
+            border: var(--input-border);
+            border-style: var(--input-style);
+            color: var(--text-color);
+            border-radius: calc(var(--card-radius) / 2);
+            transition: all 0.2s;
+        }
+        .theme-input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2);
+        }
+
+        input:checked + div { 
+            transform: scale(0.98); 
+            background-color: var(--select-bg) !important;
+            border-color: var(--select-border) !important;
+            color: var(--select-text) !important;
+            box-shadow: inset 0 0 0 2px var(--select-border);
+            font-weight: bold;
+        }
+
+        /* 特殊風格覆蓋 */
+        [data-theme="blackboard"] input:checked + div {
+            box-shadow: inset 0 0 0 2px var(--primary-color), 0 0 5px var(--primary-color);
+            background-color: rgba(255,255,255,0.1) !important;
+        }
+        [data-theme="comic"] .theme-card, [data-theme="doodle"] .theme-card,
+        [data-theme="comic"] .theme-input, [data-theme="doodle"] .theme-input,
+        [data-theme="comic"] .theme-btn, [data-theme="doodle"] .theme-btn { border: 2px solid currentColor; }
+        
+        [data-theme="comic"] input:checked + div, [data-theme="doodle"] input:checked + div {
+            border: 3px solid currentColor !important;
+            box-shadow: 4px 4px 0 currentColor;
+            transform: translate(-2px, -2px);
+        }
+        
         [data-theme="pixel"] * { image-rendering: pixelated; }
 
-        .noise-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; opacity: 0.05; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E"); display: none; }
+        .noise-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: -1; opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            display: none; 
+        }
+
         .decor-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; display: none; overflow: hidden; }
         .cloud { position: absolute; background: white; border-radius: 100px; opacity: 0.8; } 
         .cloud-1 { width: 120px; height: 40px; top: 10%; left: -10%; animation: float 25s infinite linear; }
@@ -73,77 +143,101 @@
     </style>
 
     <script>
-        // 1. 確保全域變數優先定義
-        window.app = window.app || {}; 
+        // 1. 初始化全域變數 (最優先)
+        window.app = {}; 
 
-        // 2. 修正後的風格列表 (修復了所有引號錯誤)
+        // 2. 風格定義 (仔細檢查所有語法)
         const THEMES = {
             'ghibli': { 
                 name: '1. 吉卜力風', 
-                bg: '#FAF7F0', image: 'radial-gradient(#E5E0D0 1px, transparent 1px)', bgSize: '20px 20px',
+                bg: '#FAF7F0', 
+                image: 'radial-gradient(#E5E0D0 1px, transparent 1px)', 
+                bgSize: '20px 20px',
                 text: '#4A4A4A', card: '#ffffff', primary: '#568A66', radius: '20px', 
-                shadow: '0 10px 15px -3px rgba(86, 138, 102, 0.15)', font: "'Zen Maru Gothic', sans-serif", btnShadow: '0 4px 0 #3E664B', decor: 'ghibli'
+                shadow: '0 10px 15px -3px rgba(86, 138, 102, 0.15)', 
+                font: "'Zen Maru Gothic', sans-serif",
+                btnShadow: '0 4px 0 #3E664B',
+                decor: 'ghibli'
             },
             'ai_ethereal': {
-                name: '24. AI 夢境風', 
-                bg: '#F3E5F5', image: 'radial-gradient(circle at 50% 50%, #E1BEE7 0%, #F3E5F5 100%)',
-                text: '#4A148C', card: 'rgba(255, 255, 255, 0.6)', primary: '#AB47BC', radius: '24px',
-                shadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)', font: "'Zen Maru Gothic', sans-serif", border: '1px solid rgba(255, 255, 255, 0.8)',
-                cardBlur: '8px', btnShadow: '0 4px 10px rgba(171, 71, 188, 0.4)', textGlow: '0 0 10px rgba(171, 71, 188, 0.3)'
+                name: '2. AI 夢境風',
+                bg: '#F3E5F5', 
+                image: 'radial-gradient(circle at 50% 50%, #E1BEE7 0%, #F3E5F5 100%)',
+                text: '#4A148C', 
+                card: 'rgba(255, 255, 255, 0.6)',
+                primary: '#AB47BC', 
+                radius: '24px',
+                shadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
+                font: "'Zen Maru Gothic', sans-serif",
+                border: '1px solid rgba(255, 255, 255, 0.8)',
+                cardBlur: '8px', 
+                btnShadow: '0 4px 10px rgba(171, 71, 188, 0.4)',
+                textGlow: '0 0 10px rgba(171, 71, 188, 0.3)'
             },
             'glass': {
-                name: '25. 亮面玻璃擬態', 
-                bg: '#8EC5FC', image: 'linear-gradient(120deg, #E0C3FC 0%, #8EC5FC 100%)', 
-                text: '#2b2b2b', card: 'rgba(255, 255, 255, 0.4)', primary: '#2563EB', radius: '16px',
-                shadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)', font: "sans-serif", border: '1px solid rgba(255, 255, 255, 0.6)',
-                cardBlur: '12px', selectBg: 'rgba(255, 255, 255, 0.6)', selectBorder: '#fff'
+                name: '3. 亮面玻璃擬態',
+                bg: '#8EC5FC',
+                image: 'linear-gradient(120deg, #E0C3FC 0%, #8EC5FC 100%)', 
+                text: '#2b2b2b',
+                card: 'rgba(255, 255, 255, 0.4)', 
+                primary: '#2563EB', 
+                radius: '16px',
+                shadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
+                font: "sans-serif",
+                border: '1px solid rgba(255, 255, 255, 0.6)',
+                cardBlur: '12px', 
+                selectBg: 'rgba(255, 255, 255, 0.6)',
+                selectBorder: '#fff'
             },
             'doodle': {
-                name: '26. 童趣線條圖', 
-                bg: '#FFF9C4', image: 'radial-gradient(#FFD54F 15%, transparent 16%)', bgSize: '16px 16px',
-                text: '#212121', card: '#FFFFFF', primary: '#FF5722', radius: '255px 15px 225px 15px / 15px 225px 15px 255px',
-                border: '3px solid #212121', shadow: '5px 5px 0 #212121', font: "'Comic Neue', cursive", btnShadow: '4px 4px 0 #212121',
-                selectBg: '#FFECB3', selectBorder: '#212121'
+                name: '4. 童趣線條圖',
+                bg: '#FFF9C4', 
+                image: 'radial-gradient(#FFD54F 15%, transparent 16%)', 
+                bgSize: '16px 16px',
+                text: '#212121',
+                card: '#FFFFFF',
+                primary: '#FF5722', 
+                radius: '255px 15px 225px 15px / 15px 225px 15px 255px', 
+                border: '3px solid #212121', 
+                shadow: '5px 5px 0 #212121', 
+                font: "'Comic Neue', cursive",
+                btnShadow: '4px 4px 0 #212121',
+                selectBg: '#FFECB3',
+                selectBorder: '#212121'
             },
             'miyazaki': {
-                name: '21. 宮崎駿天空', 
-                bg: '#87CEEB', image: 'linear-gradient(180deg, #87CEEB 0%, #B0E0E6 60%, #66BB6A 60%)',
+                name: '5. 宮崎駿天空',
+                bg: '#87CEEB', 
+                image: 'linear-gradient(180deg, #87CEEB 0%, #B0E0E6 60%, #66BB6A 60%)',
                 text: '#2F4F4F', card: 'rgba(255, 255, 255, 0.95)', primary: '#FF7F50', radius: '25px',
                 shadow: '0 8px 20px rgba(0,0,0,0.1)', font: "'Zen Maru Gothic', sans-serif", btnShadow: '0 4px 0 #CD5C5C',
                 btnText: '乘著風出發', decor: 'ghibli'
             },
-            'pixel': {
-                name: '22. 復古像素風', 
-                bg: '#222034', image: 'linear-gradient(transparent 95%, #33ff00 95%), linear-gradient(90deg, transparent 95%, #33ff00 95%)', bgSize: '20px 20px',
-                text: '#33ff00', card: '#000000', primary: '#33ff00', radius: '0px', border: '4px solid #33ff00',
-                shadow: '8px 8px 0 #004400', font: "'Press Start 2P', cursive", btnShadow: '4px 4px 0 #004400',
-                selectBg: '#004400', selectBorder: '#33ff00', selectText: '#33ff00', inputBg: '#000', inputBorder: '2px solid #33ff00',
-                btnText: 'START GAME', progressRadius: '0px'
-            },
             'harrypotter': {
-                name: '23. 哈利波特魔法', 
-                bg: '#F8F4E3', image: 'radial-gradient(circle at 50% 30%, #FFFBE6 0%, #F8F4E3 60%, #EFE6D5 100%)',
+                name: '6. 哈利波特魔法',
+                bg: '#F8F4E3', 
+                image: 'radial-gradient(circle at 50% 30%, #FFFBE6 0%, #F8F4E3 60%, #EFE6D5 100%)',
                 text: '#5D4037', card: '#FFFEF7', primary: '#A0522D', radius: '12px', border: '2px solid #8D6E63',
                 shadow: '4px 4px 0px #D7CCC8', font: "'Cinzel', serif", btnShadow: '3px 3px 0px #5D4037',
                 noise: true, selectBg: '#EFEBE9', selectBorder: '#5D4037', selectText: '#3E2723'
             },
-            'muji': { name: '2. 韓系文青', bg: '#F3F2ED', text: '#595750', card: '#FCFAF7', primary: '#8C8376', radius: '2px', shadow: 'none', border: '1px solid #E6E4E0', font: "'Noto Serif TC', serif", btnShadow: 'none', selectBg: '#EAE8E4', selectBorder: '#8C8376', selectText: '#595750', spacing: '1px' },
-            'taiwan': { name: '3. 台灣插畫', bg: '#FFF8E1', image: 'repeating-linear-gradient(45deg, #FFECB3 0, #FFECB3 1px, transparent 1px, transparent 10px)', bgSize: '20px 20px', text: '#5D4037', card: '#FFFFFF', primary: '#FF7043', radius: '16px', shadow: '4px 4px 0px #FFCCBC', border: '2px solid #5D4037', font: "'Zen Maru Gothic', sans-serif" },
-            'pixar': { name: '4. 迪士尼/皮克斯', bg: '#CAF0F8', image: 'radial-gradient(circle at 50% 0%, #ffffff 0%, #CAF0F8 80%)', text: '#023E8A', card: '#FFFFFF', primary: '#0077B6', radius: '24px', shadow: '0 10px 25px rgba(0,119,182,0.25)', font: "sans-serif", btnShadow: '0 6px 0 #023E8A' },
-            'watercolor': { name: '5. 手繪水彩', bg: '#F0F8FF', image: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\' opacity=\'0.15\'/%3E%3C/svg%3E")', text: '#5D6D7E', card: 'rgba(255,255,255,0.85)', primary: '#7FB3D5', radius: '30px', shadow: '0 8px 32px rgba(31, 38, 135, 0.1)', font: "serif", border: '1px solid rgba(255,255,255,0.6)' },
-            'flat': { name: '7. 扁平化插畫', bg: '#ECF0F1', text: '#2C3E50', card: '#FFFFFF', primary: '#3498DB', radius: '4px', shadow: '0 2px 5px rgba(0,0,0,0.05)', border: '1px solid #BDC3C7', font: "'Roboto', sans-serif", btnShadow: 'none' },
-            'cute': { name: '8. 可愛 Q 版', bg: '#FFF0F5', image: 'radial-gradient(#FFB6C1 3px, transparent 3px)', bgSize: '30px 30px', text: '#8B4513', card: '#FFFFFF', primary: '#FF80AB', radius: '30px', shadow: '0 8px 0 #FFC1E3', border: '3px solid #FF80AB', font: "'Kosugi Maru', sans-serif", btnShadow: '0 6px 0 #C51162' },
-            'map': { name: '11. 旅遊地圖', bg: '#F4EBD0', image: 'repeating-linear-gradient(90deg, #E6D5B8 0, #E6D5B8 1px, transparent 1px, transparent 40px)', text: '#5D4037', card: '#FFF8E1', primary: '#D84315', radius: '10px', shadow: '5px 5px 0 rgba(93, 64, 55, 0.2)', font: "serif", border: '2px dashed #8D6E63' },
-            'japanese': { name: '12. 日系極簡', bg: '#FFFFFF', text: '#222222', card: '#FFFFFF', primary: '#000000', radius: '0px', border: '1px solid #E5E5E5', shadow: 'none', font: "'Noto Serif TC', serif", selectBg: '#F5F5F5', selectBorder: '#333', selectText: '#000', spacing: '1px' },
-            'animal': { name: '14. 動物森友會', bg: '#B8E994', image: 'repeating-linear-gradient(45deg, #78E08F 0, #78E08F 20px, #B8E994 20px, #B8E994 40px)', text: '#3C6382', card: '#F8F3D4', primary: '#FA983A', radius: '24px', border: '4px solid #FFFFFF', shadow: '0 8px 0 rgba(0,0,0,0.1)', font: "'Zen Maru Gothic', sans-serif" },
-            'geometric': { name: '16. 極簡幾何', bg: '#F3F4F6', image: 'linear-gradient(135deg, #E5E7EB 25%, transparent 25%) -50px 0', bgSize: '100px 100px', text: '#111827', card: '#FFFFFF', primary: '#4F46E5', radius: '0px', shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', font: "sans-serif", selectBg: '#EEF2FF', selectBorder: '#4F46E5', selectText: '#4338CA' },
-            'vogue': { name: '17. 歐系高級雜誌', bg: '#F0F0F0', text: '#000000', card: '#FFFFFF', primary: '#000000', radius: '0px', border: '1px solid #000000', shadow: 'none', font: "'Noto Serif TC', serif", btnShadow: 'none' },
-            'corporate': { name: '18. 企業簡報', bg: '#F0F2F5', text: '#1C1E21', card: '#FFFFFF', primary: '#1877F2', radius: '8px', border: '1px solid #E5E7EB', shadow: '0 1px 2px rgba(0, 0, 0, 0.05)', font: "sans-serif" },
-            'edtech': { name: '19. 現代教育科技', bg: '#F0FDF4', image: 'linear-gradient(#E5E7EB 1px, transparent 1px), linear-gradient(90deg, #E5E7EB 1px, transparent 1px)', bgSize: '20px 20px', text: '#064E3B', card: '#FFFFFF', primary: '#10B981', radius: '12px', border: '1px solid #D1FAE5', shadow: '0 4px 6px -1px rgba(16, 185, 129, 0.1)', font: "sans-serif" },
-            'paper': { name: '20. 高級紙張質感', bg: '#FDFBF7', text: '#2C2825', card: '#FFFCF5', primary: '#A67C00', radius: '2px', shadow: '0 2px 10px rgba(0,0,0,0.03)', font: "'Noto Serif TC', serif", noise: true, border: '1px solid #E6E2D8' }
+            'muji': { name: '7. 韓系文青', bg: '#F3F2ED', text: '#595750', card: '#FCFAF7', primary: '#8C8376', radius: '2px', shadow: 'none', border: '1px solid #E6E4E0', font: "'Noto Serif TC', serif", btnShadow: 'none', selectBg: '#EAE8E4', selectBorder: '#8C8376', selectText: '#595750', spacing: '1px' },
+            'taiwan': { name: '8. 台灣插畫', bg: '#FFF8E1', image: 'repeating-linear-gradient(45deg, #FFECB3 0, #FFECB3 1px, transparent 1px, transparent 10px)', bgSize: '20px 20px', text: '#5D4037', card: '#FFFFFF', primary: '#FF7043', radius: '16px', shadow: '4px 4px 0px #FFCCBC', border: '2px solid #5D4037', font: "'Zen Maru Gothic', sans-serif" },
+            'pixar': { name: '9. 迪士尼/皮克斯', bg: '#CAF0F8', image: 'radial-gradient(circle at 50% 0%, #ffffff 0%, #CAF0F8 80%)', text: '#023E8A', card: '#FFFFFF', primary: '#0077B6', radius: '24px', shadow: '0 10px 25px rgba(0,119,182,0.25)', font: "sans-serif", btnShadow: '0 6px 0 #023E8A' },
+            'watercolor': { name: '10. 手繪水彩風', bg: '#F0F8FF', image: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\' opacity=\'0.15\'/%3E%3C/svg%3E")', text: '#5D6D7E', card: 'rgba(255,255,255,0.85)', primary: '#7FB3D5', radius: '30px', shadow: '0 8px 32px rgba(31, 38, 135, 0.1)', font: "serif", border: '1px solid rgba(255,255,255,0.6)' },
+            'flat': { name: '11. 扁平化插畫', bg: '#ECF0F1', text: '#2C3E50', card: '#FFFFFF', primary: '#3498DB', radius: '4px', shadow: '0 2px 5px rgba(0,0,0,0.05)', border: '1px solid #BDC3C7', font: "'Roboto', sans-serif", btnShadow: 'none' },
+            'cute': { name: '12. 可愛 Q 版', bg: '#FFF0F5', image: 'radial-gradient(#FFB6C1 3px, transparent 3px)', bgSize: '30px 30px', text: '#8B4513', card: '#FFFFFF', primary: '#FF80AB', radius: '30px', shadow: '0 8px 0 #FFC1E3', border: '3px solid #FF80AB', font: "'Kosugi Maru', sans-serif", btnShadow: '0 6px 0 #C51162' },
+            'map': { name: '13. 旅遊地圖', bg: '#F4EBD0', image: 'repeating-linear-gradient(90deg, #E6D5B8 0, #E6D5B8 1px, transparent 1px, transparent 40px)', text: '#5D4037', card: '#FFF8E1', primary: '#D84315', radius: '10px', shadow: '5px 5px 0 rgba(93, 64, 55, 0.2)', font: "serif", border: '2px dashed #8D6E63' },
+            'japanese': { name: '14. 日系極簡', bg: '#FFFFFF', text: '#222222', card: '#FFFFFF', primary: '#000000', radius: '0px', border: '1px solid #E5E5E5', shadow: 'none', font: "'Noto Serif TC', serif", selectBg: '#F5F5F5', selectBorder: '#333', selectText: '#000', spacing: '1px' },
+            'animal': { name: '15. 動物森友會', bg: '#B8E994', image: 'repeating-linear-gradient(45deg, #78E08F 0, #78E08F 20px, #B8E994 20px, #B8E994 40px)', text: '#3C6382', card: '#F8F3D4', primary: '#FA983A', radius: '24px', border: '4px solid #FFFFFF', shadow: '0 8px 0 rgba(0,0,0,0.1)', font: "'Zen Maru Gothic', sans-serif" },
+            'forest': { name: '16. 自然森林風', bg: '#2D6A4F', text: '#D8F3DC', card: '#1B4332', primary: '#52B788', radius: '16px', border: 'none', shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)', font: "sans-serif", selectBg: '#40916C', selectBorder: '#74C69D', selectText: '#fff', inputBg: '#081C15', inputBorder: '1px solid #52B788' },
+            'geometric': { name: '17. 極簡幾何', bg: '#F3F4F6', image: 'linear-gradient(135deg, #E5E7EB 25%, transparent 25%) -50px 0', bgSize: '100px 100px', text: '#111827', card: '#FFFFFF', primary: '#4F46E5', radius: '0px', shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', font: "sans-serif", selectBg: '#EEF2FF', selectBorder: '#4F46E5', selectText: '#4338CA' },
+            'vogue': { name: '18. 歐系高級雜誌', bg: '#F0F0F0', text: '#000000', card: '#FFFFFF', primary: '#000000', radius: '0px', border: '1px solid #000000', shadow: 'none', font: "'Noto Serif TC', serif", btnShadow: 'none' },
+            'corporate': { name: '19. 企業簡報', bg: '#F0F2F5', text: '#1C1E21', card: '#FFFFFF', primary: '#1877F2', radius: '8px', border: '1px solid #E5E7EB', shadow: '0 1px 2px rgba(0, 0, 0, 0.05)', font: "sans-serif" },
+            'edtech': { name: '20. 現代教育科技', bg: '#F0FDF4', image: 'linear-gradient(#E5E7EB 1px, transparent 1px), linear-gradient(90deg, #E5E7EB 1px, transparent 1px)', bgSize: '20px 20px', text: '#064E3B', card: '#FFFFFF', primary: '#10B981', radius: '12px', border: '1px solid #D1FAE5', shadow: '0 4px 6px -1px rgba(16, 185, 129, 0.1)', font: "sans-serif" },
+            'paper': { name: '21. 高級紙張質感', bg: '#FDFBF7', text: '#2C2825', card: '#FFFCF5', primary: '#A67C00', radius: '2px', shadow: '0 2px 10px rgba(0,0,0,0.03)', font: "'Noto Serif TC', serif", noise: true, border: '1px solid #E6E2D8' }
         };
 
-        // 3. 風格套用邏輯
         window.applyTheme = function(themeKey) {
             const theme = THEMES[themeKey] || THEMES['ghibli'];
             const r = document.documentElement;
@@ -177,7 +271,6 @@
             
             r.style.setProperty('--progress-radius', theme.progressRadius || '9999px');
 
-            // 特效開關
             const noise = document.querySelector('.noise-overlay');
             if(noise) noise.style.display = theme.noise ? 'block' : 'none';
             
@@ -186,12 +279,10 @@
                 decor.style.display = (themeKey === 'ghibli' || themeKey === 'miyazaki') ? 'block' : 'none';
             }
 
-            // 按鈕文字
             const submitBtn = document.getElementById('public-submit-btn');
             if(submitBtn) submitBtn.innerHTML = (theme.btnText || '送出問卷') + (themeKey === 'pixel' ? '' : ' <i class="fa-solid fa-paper-plane ml-2"></i>');
         };
 
-        // 4. 通用工具
         window.showToast = function(msg, type = 'success') {
             const toast = document.getElementById('toast');
             const icon = document.getElementById('toast-icon');
@@ -251,7 +342,6 @@
 
     <div class="noise-overlay"></div>
     
-    <!-- 裝飾層 -->
     <div class="decor-layer">
         <div class="cloud cloud-1"></div>
         <div class="cloud cloud-2"></div>
