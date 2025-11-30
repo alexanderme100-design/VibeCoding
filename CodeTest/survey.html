@@ -9,7 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&family=DotGothic16&family=Space+Mono:wght@700&family=Noto+Sans+TC:wght@300;400;500;700&family=Comic+Neue:wght@700&family=Kosugi+Maru&display=swap" rel="stylesheet">
 
     <style>
-        /* --- 核心變數系統 --- */
         :root {
             --bg-color: #FAF7F0;
             --bg-image: none;
@@ -18,6 +17,7 @@
             --card-border: 1px solid rgba(0,0,0,0.05);
             --card-radius: 20px;
             --card-shadow: 0 10px 15px -3px rgba(86, 138, 102, 0.1);
+            --card-blur: 0px;
             --primary-color: #568A66;
             --primary-text: #ffffff;
             --secondary-color: #E67F65;
@@ -35,94 +35,31 @@
             --progress-radius: 9999px;
         }
 
-        html, body { 
-            overflow-x: hidden; 
-            min-height: 100dvh; 
-            background-color: var(--bg-color); 
-            background-image: var(--bg-image);
-            background-attachment: fixed;
-            background-size: cover;
-            background-position: center;
-            font-family: var(--font-family);
-            letter-spacing: var(--letter-spacing);
-            color: var(--text-color);
-            -webkit-tap-highlight-color: transparent; 
-            transition: background-color 0.5s ease, color 0.3s ease;
-        }
-        
+        html, body { overflow-x: hidden; min-height: 100dvh; background-color: var(--bg-color); background-image: var(--bg-image); background-attachment: fixed; background-size: cover; background-position: center; font-family: var(--font-family); letter-spacing: var(--letter-spacing); color: var(--text-color); -webkit-tap-highlight-color: transparent; transition: background-color 0.5s ease, color 0.3s ease; }
         body { display: flex; flex-direction: column; }
         h1, h2, h3, h4 { text-shadow: var(--text-glow); }
 
-        .theme-card {
-            background-color: var(--card-bg);
-            border-radius: var(--card-radius);
-            border: var(--card-border);
-            box-shadow: var(--card-shadow);
-            transition: all 0.3s ease;
-            backdrop-filter: blur(var(--card-blur));
-            -webkit-backdrop-filter: blur(var(--card-blur));
-        }
-
-        .theme-btn {
-            background-color: var(--primary-color);
-            color: var(--primary-text);
-            border-radius: var(--card-radius);
-            box-shadow: var(--btn-shadow);
-            border: none;
-            transition: all 0.1s;
-            filter: var(--btn-hover-filter);
-            position: relative;
-            overflow: hidden;
-        }
+        .theme-card { background-color: var(--card-bg); border-radius: var(--card-radius); border: var(--card-border); box-shadow: var(--card-shadow); transition: all 0.3s ease; backdrop-filter: blur(var(--card-blur)); -webkit-backdrop-filter: blur(var(--card-blur)); }
+        .theme-btn { background-color: var(--primary-color); color: var(--primary-text); border-radius: var(--card-radius); box-shadow: var(--btn-shadow); border: none; transition: all 0.1s; filter: var(--btn-hover-filter); position: relative; overflow: hidden; }
         .theme-btn:active { transform: translateY(2px); box-shadow: none !important; }
-        
-        .theme-input {
-            background-color: var(--input-bg);
-            border: var(--input-border);
-            border-style: var(--input-style);
-            color: var(--text-color);
-            border-radius: calc(var(--card-radius) / 2);
-            transition: all 0.2s;
-        }
-        .theme-input:focus {
-            border-color: var(--primary-color);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2);
-        }
+        .theme-input { background-color: var(--input-bg); border: var(--input-border); border-style: var(--input-style); color: var(--text-color); border-radius: calc(var(--card-radius) / 2); transition: all 0.2s; }
+        .theme-input:focus { border-color: var(--primary-color); outline: none; box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.2); }
 
+        /* 優化後的選項樣式 */
         input:checked + div { 
-            transform: scale(0.98); 
-            background-color: var(--select-bg) !important;
-            border-color: var(--select-border) !important;
-            color: var(--select-text) !important;
-            box-shadow: inset 0 0 0 2px var(--select-border);
-            font-weight: bold;
+            transform: scale(0.96); 
+            background-color: var(--select-bg) !important; 
+            border-color: var(--select-border) !important; 
+            color: var(--select-text) !important; 
+            box-shadow: inset 0 0 0 2px var(--select-border); 
+            font-weight: bold; 
         }
-
+        
         /* 特殊風格覆蓋 */
-        [data-theme="blackboard"] input:checked + div {
-            box-shadow: inset 0 0 0 2px var(--primary-color), 0 0 5px var(--primary-color);
-            background-color: rgba(255,255,255,0.1) !important;
-        }
-        [data-theme="comic"] .theme-card, [data-theme="doodle"] .theme-card,
-        [data-theme="comic"] .theme-input, [data-theme="doodle"] .theme-input,
-        [data-theme="comic"] .theme-btn, [data-theme="doodle"] .theme-btn { border: 2px solid currentColor; }
-        
-        [data-theme="comic"] input:checked + div, [data-theme="doodle"] input:checked + div {
-            border: 3px solid currentColor !important;
-            box-shadow: 4px 4px 0 currentColor;
-            transform: translate(-2px, -2px);
-        }
-        
-        [data-theme="pixel"] * { image-rendering: pixelated; }
+        [data-theme="comic"] .theme-card, [data-theme="doodle"] .theme-card, [data-theme="comic"] .theme-input, [data-theme="doodle"] .theme-input, [data-theme="comic"] .theme-btn, [data-theme="doodle"] .theme-btn { border: 2px solid currentColor; }
+        [data-theme="comic"] input:checked + div, [data-theme="doodle"] input:checked + div { border: 3px solid currentColor !important; box-shadow: 4px 4px 0 currentColor; transform: translate(-2px, -2px); }
 
-        .noise-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: -1; opacity: 0.05;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-            display: none; 
-        }
-
+        .noise-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; opacity: 0.05; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E"); display: none; }
         .decor-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; display: none; overflow: hidden; }
         .cloud { position: absolute; background: white; border-radius: 100px; opacity: 0.8; } 
         .cloud-1 { width: 120px; height: 40px; top: 10%; left: -10%; animation: float 25s infinite linear; }
@@ -143,10 +80,8 @@
     </style>
 
     <script>
-        // 1. 初始化全域變數 (最優先)
         window.app = {}; 
 
-        // 2. 風格定義 (仔細檢查所有語法)
         const THEMES = {
             'ghibli': { 
                 name: '1. 吉卜力風', 
@@ -229,7 +164,7 @@
             'cute': { name: '12. 可愛 Q 版', bg: '#FFF0F5', image: 'radial-gradient(#FFB6C1 3px, transparent 3px)', bgSize: '30px 30px', text: '#8B4513', card: '#FFFFFF', primary: '#FF80AB', radius: '30px', shadow: '0 8px 0 #FFC1E3', border: '3px solid #FF80AB', font: "'Kosugi Maru', sans-serif", btnShadow: '0 6px 0 #C51162' },
             'map': { name: '13. 旅遊地圖', bg: '#F4EBD0', image: 'repeating-linear-gradient(90deg, #E6D5B8 0, #E6D5B8 1px, transparent 1px, transparent 40px)', text: '#5D4037', card: '#FFF8E1', primary: '#D84315', radius: '10px', shadow: '5px 5px 0 rgba(93, 64, 55, 0.2)', font: "serif", border: '2px dashed #8D6E63' },
             'japanese': { name: '14. 日系極簡', bg: '#FFFFFF', text: '#222222', card: '#FFFFFF', primary: '#000000', radius: '0px', border: '1px solid #E5E5E5', shadow: 'none', font: "'Noto Serif TC', serif", selectBg: '#F5F5F5', selectBorder: '#333', selectText: '#000', spacing: '1px' },
-            'animal': { name: '15. 動物森友會', bg: '#B8E994', image: 'repeating-linear-gradient(45deg, #78E08F 0, #78E08F 20px, #B8E994 20px, #B8E994 40px)', text: '#3C6382', card: '#F8F3D4', primary: '#FA983A', radius: '24px', border: '4px solid #FFFFFF', shadow: '0 8px 0 rgba(0,0,0,0.1)', font: "'Zen Maru Gothic', sans-serif" },
+            'animal': { name: '15. 動物森友會', bg: '#B8E994', image: 'repeating-linear-gradient(45deg, #78E08F 0, #78E08F 20px, #B8E994 20px, #B8E994 40px)', text: '#3C6382', card: '#F8F3D4', primary: '#FA983A', radius: '24px', border: '4px solid #FFFFFF', shadow: '0 8px 0 rgba(0,0,0,0.1)', font: "'Zen Maru Gothic', sans-serif'"},
             'forest': { name: '16. 自然森林風', bg: '#2D6A4F', text: '#D8F3DC', card: '#1B4332', primary: '#52B788', radius: '16px', border: 'none', shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)', font: "sans-serif", selectBg: '#40916C', selectBorder: '#74C69D', selectText: '#fff', inputBg: '#081C15', inputBorder: '1px solid #52B788' },
             'geometric': { name: '17. 極簡幾何', bg: '#F3F4F6', image: 'linear-gradient(135deg, #E5E7EB 25%, transparent 25%) -50px 0', bgSize: '100px 100px', text: '#111827', card: '#FFFFFF', primary: '#4F46E5', radius: '0px', shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', font: "sans-serif", selectBg: '#EEF2FF', selectBorder: '#4F46E5', selectText: '#4338CA' },
             'vogue': { name: '18. 歐系高級雜誌', bg: '#F0F0F0', text: '#000000', card: '#FFFFFF', primary: '#000000', radius: '0px', border: '1px solid #000000', shadow: 'none', font: "'Noto Serif TC', serif", btnShadow: 'none' },
@@ -342,12 +277,13 @@
 
     <div class="noise-overlay"></div>
     
+    <!-- 裝飾層 -->
     <div class="decor-layer">
         <div class="cloud cloud-1"></div>
         <div class="cloud cloud-2"></div>
     </div>
 
-    <div id="global-error" class="hidden fixed inset-0 bg-red-50/90 z-[200] flex flex-col items-center justify-center p-6 text-center backdrop-blur-sm">
+    <div id="global-error" class="hidden fixed inset-0 bg-red-50 z-[200] flex flex-col items-center justify-center p-6 text-center backdrop-blur-sm">
         <h2 class="text-xl font-bold text-red-600 mb-2">系統發生錯誤</h2>
         <p id="global-error-msg" class="text-sm text-gray-600 mb-4 break-all">Unknown</p>
         <button onclick="location.reload()" class="bg-red-600 text-white px-4 py-2 rounded">重新整理</button>
