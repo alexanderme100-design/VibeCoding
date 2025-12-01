@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>鷺江國小午餐停餐退費申請系統</title>
+  <title>午餐停餐/退費申請系統</title>
   
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍱</text></svg>">
-  <meta property="og:title" content="鷺江國小午餐停餐退費申請系統">
+  <meta property="og:title" content="午餐停餐/退費申請系統">
   <meta property="og:description" content="線上辦理午餐退費申請，請留意申請截止時間。">
   <meta property="og:type" content="website">
 
@@ -39,13 +39,11 @@
 
     /* Calendar Styling */
     .calendar-day { 
-        border-radius: 12px; /* 稍微方一點的圓角 */
+        border-radius: 12px; 
         font-weight: 500; 
         position: relative; 
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
     }
-    
-    /* 選中狀態：漸層藍色立體按鈕 */
     .calendar-day.selected { 
         background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important; 
         color: white !important; 
@@ -55,8 +53,6 @@
         z-index: 10;
         border: none;
     }
-    
-    /* 今天：外圈光暈與文字加粗 */
     .calendar-day.today { 
         font-weight: 800; 
         color: #2563EB; 
@@ -73,8 +69,6 @@
         border: none;
     }
     .calendar-day.today.selected::after { background-color: white; }
-
-    /* 禁用狀態 */
     .calendar-day.is-disabled { 
         color: #9CA3AF !important; 
         opacity: 0.6; 
@@ -82,26 +76,27 @@
         background-color: transparent !important;
         border: 1px solid transparent;
     }
-    
-    /* 假日鎖定 (學校設定) */
     .calendar-day.holiday-locked { 
-        color: #EF4444 !important; /* 紅色 */
-        background-color: #FEF2F2 !important; /* 淡紅底 */
+        color: #EF4444 !important; 
+        background-color: #FEF2F2 !important; 
         text-decoration: line-through;
         opacity: 0.8;
         cursor: not-allowed !important;
         border: 1px dashed #FECACA;
     }
-    
-    /* 週末紅字 (一般) */
     .calendar-day.holiday-text { color: #EF4444; }
-    
-    /* 補班日 (黃底) */
     .calendar-day.makeup-day { 
         background-color: #FFFBEB; 
         color: #D97706; 
         border: 1px solid #FDE68A;
     }
+
+    /* 動畫效果：日曆切換 */
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .calendar-anim-enter { animation: slideIn 0.3s ease-out forwards; }
 
     .required::after { content: " *"; color: #FF3B30; }
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -117,7 +112,7 @@
         <div class="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center text-white mr-3 shadow-md bg-gradient-to-br from-blue-500 to-blue-600">
            <i class="fa-solid fa-utensils text-lg"></i>
         </div>
-        鷺江國小午餐停餐退費申請
+        午餐停餐/退費申請
       </h1>
       <p class="text-gray-500 mt-1 ml-1 font-medium">每餐退費標準 $60</p>
     </div>
@@ -140,14 +135,32 @@
     <form id="refundForm" class="space-y-6" onsubmit="handleFormSubmit(event)">
       <div class="ios-card p-5 sm:p-6">
         <h2 class="text-lg font-bold text-gray-900 mb-5 flex items-center"><span class="bg-blue-100 text-blue-600 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2 font-bold">1</span>基本資料</h2>
+        
+        <!-- 自動填入提示 -->
+        <div id="autoFillHint" class="hidden mb-4 bg-green-50 text-green-700 text-xs px-3 py-2 rounded-lg border border-green-200 flex items-center">
+            <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> 已自動填入您上次的資料
+        </div>
+
         <div class="space-y-6">
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-3 required">停餐事由</label>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors"><input type="radio" name="reason" value="法定請假(腸病毒、水痘)" required><span class="ml-3 text-sm font-medium">法定請假</span></label>
+              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors">
+                <input type="radio" name="reason" value="法定請假(腸病毒、水痘)" required>
+                <div class="ml-3">
+                    <span class="text-sm font-medium block">法定請假</span>
+                    <span class="text-[10px] text-gray-500 block font-normal leading-tight mt-0.5">(腸病毒、水痘等)</span>
+                </div>
+              </label>
               <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors"><input type="radio" name="reason" value="病假"><span class="ml-3 text-sm font-medium">病假</span></label>
               <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors"><input type="radio" name="reason" value="事假"><span class="ml-3 text-sm font-medium">事假</span></label>
-              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors"><input type="radio" name="reason" value="其他"><span class="ml-3 text-sm font-medium">其他</span></label>
+              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors">
+                <input type="radio" name="reason" value="其他">
+                <div class="ml-3">
+                    <span class="text-sm font-medium block">其他</span>
+                    <span class="text-[10px] text-gray-500 block font-normal leading-tight mt-0.5">(老師公假、學生公假等)</span>
+                </div>
+              </label>
             </div>
             <input type="text" id="reasonOtherInput" class="ios-input hidden mt-3 w-full text-sm" placeholder="請輸入具體事由...">
           </div>
@@ -162,7 +175,8 @@
             </div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label class="block text-sm font-semibold text-gray-700 mb-2 required">班級座號/職稱</label><input type="text" id="classSeat" name="classSeat" placeholder="例：60123" class="ios-input w-full" required></div>
+            <!-- 優化：inputmode="numeric" 讓手機彈出數字鍵盤 -->
+            <div><label class="block text-sm font-semibold text-gray-700 mb-2 required">班級座號</label><input type="text" inputmode="numeric" id="classSeat" name="classSeat" placeholder="例：60123" class="ios-input w-full" required></div>
             <div><label class="block text-sm font-semibold text-gray-700 mb-2 required">姓名</label><input type="text" id="name" name="name" class="ios-input w-full" required></div>
           </div>
           <div>
@@ -182,12 +196,12 @@
         <div class="flex items-center justify-between mb-5 relative z-10">
             <h2 class="text-lg font-bold text-gray-900 flex items-center"><span class="bg-blue-100 text-blue-600 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2 font-bold">2</span>選擇日期</h2>
             <div class="flex space-x-1 bg-gray-100 p-1 rounded-full">
-                <button type="button" onclick="changeMonth(-1)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white hover:shadow-sm text-gray-500 transition-all"><i class="fa-solid fa-chevron-left text-xs"></i></button>
-                <button type="button" onclick="changeMonth(1)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white hover:shadow-sm text-gray-500 transition-all"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                <!-- 優化：按鈕加上 ID 以便控制啟用/禁用 -->
+                <button type="button" id="prevMonthBtn" onclick="changeMonth(-1)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white hover:shadow-sm text-gray-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                <button type="button" id="nextMonthBtn" onclick="changeMonth(1)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white hover:shadow-sm text-gray-500 transition-all"><i class="fa-solid fa-chevron-right text-xs"></i></button>
             </div>
         </div>
         
-        <!-- 日曆容器：背景色改為更清爽的淡藍色漸層 -->
         <div class="bg-gradient-to-b from-blue-50/50 to-white rounded-2xl p-4 mb-4 border border-blue-50">
           <div class="flex items-center justify-between mb-4">
             <span class="text-sm font-bold text-slate-700 flex items-center"><i class="fa-regular fa-calendar mr-2 text-blue-400"></i>停餐日曆</span>
@@ -198,7 +212,7 @@
             </div>
           </div>
           <p id="calendar-hint" class="text-xs text-gray-400 mb-2 flex items-center"><i class="fa-solid fa-circle-info mr-1 text-blue-300"></i>點擊灰色/紅色日期可查看原因</p>
-          <div id="calendar-wrapper" class="space-y-6 select-none"></div>
+          <div id="calendar-wrapper" class="space-y-6 select-none min-h-[250px]"></div>
         </div>
 
         <div class="bg-slate-800 rounded-2xl p-5 text-white shadow-xl shadow-slate-200 relative z-10">
@@ -248,16 +262,14 @@
 
   <script>
     // --- ⚠️ 請確認填入正確的 API 網址 ⚠️ ---
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyh7Bep2D8xivGee2-dGbGp8A1wXYPYR9kI0vuF3GOq4czWxjeGw2cTBaxAhGTp491vng/exec"; 
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxVBFHdvwc8A41DkenLAPrgcSZQ-YbCqaGoJaw2ZzK3UN_niaA_E4mp4qhj4S0XP1vC6A/exec"; 
 
     const COST_PER_MEAL = 60;
-    // 預設補班日與國定假日 (當後端沒資料時的備案，年份請根據實際情況調整)
     const MAKEUP_DAYS = ["2025/2/8"];
     const DEFAULT_HOLIDAYS = ["2025/1/1", "2025/1/27", "2025/1/28", "2025/1/29", "2025/1/30", "2025/1/31", "2025/2/28", "2025/4/3", "2025/4/4"];
     
     const CLUB_OPTIONS = ["全部未參加","1.2年級課後班(一.四.五)","3.4年級課後班(五)","1.2年級羽球隊(一. 四.五)","3.4年級羽球隊(五)","週三(羽球隊)","週三籃球班A","週三籃球班B","週三籃球班C","週三才藝班(流行mv舞蹈班)","週三才藝班(英語初階自然發音班P4-P6)班","週三才藝班(英語社團基礎字彙班V1-V3)","週三才藝班(幸福捏一下A)","週三才藝班(創意DIY-禮品＆點心小鋪)","週三才藝班(兒童創意美術)","週三才藝班(數學桌遊社寶可夢)","週三才藝班(思丁(STEAM)創客好小子)","週三才藝班(動漫平板繪圖與手作創作營)","週三才藝班(黑鷹足球社團課)","週五籃球班A","其他"];
 
-    // 系統運作變數
     let HOLIDAYS = [...DEFAULT_HOLIDAYS];
     let earliestValidDateObj = null;
     let earliestValidDateStr = "";
@@ -266,11 +278,43 @@
     let currentCalendarBaseDate = new Date(); 
 
     document.addEventListener('DOMContentLoaded', () => {
+      loadUserInfo(); // 優化1: 載入使用者資料
       renderClubs();
       initReasonToggle();
-      fetchHolidays(); // 仍然要讀取假日，但來源是試算表
+      fetchHolidays(); 
       setInterval(updateDashboard, 1000);
+      updateMonthNavButtons(); // 優化3: 初始化按鈕狀態
     });
+
+    // --- 優化1: LocalStorage 存取使用者資料 ---
+    function saveUserInfo(data) {
+        if (data.applyType === 'individual') {
+            const userInfo = {
+                classSeat: data.classSeat,
+                name: data.name,
+                diet: data.diet
+            };
+            localStorage.setItem('lunch_app_user', JSON.stringify(userInfo));
+        }
+    }
+
+    function loadUserInfo() {
+        const saved = localStorage.getItem('lunch_app_user');
+        if (saved) {
+            try {
+                const info = JSON.parse(saved);
+                if(info.classSeat) document.getElementById('classSeat').value = info.classSeat;
+                if(info.name) document.getElementById('name').value = info.name;
+                if(info.diet) {
+                    const r = document.querySelector(`input[name="diet"][value="${info.diet}"]`);
+                    if(r) r.checked = true;
+                }
+                // 顯示提示
+                document.getElementById('autoFillHint').classList.remove('hidden');
+                setTimeout(() => document.getElementById('autoFillHint').classList.add('hidden'), 5000);
+            } catch(e) {}
+        }
+    }
 
     async function safeFetch(data) {
         if (!GAS_API_URL || GAS_API_URL.includes("在此處貼上")) throw new Error("請先設定正確的 GAS_API_URL");
@@ -284,7 +328,6 @@
         try { return JSON.parse(text); } catch (e) { throw new Error("連線失敗：回傳資料格式錯誤"); }
     }
 
-    // 讀取假日設定 (單純讀取，不提供修改)
     function fetchHolidays() {
         safeFetch({ action: 'getHolidays' })
         .then(data => {
@@ -314,6 +357,9 @@
       if (data['reason'] === '其他') { const t = document.getElementById('reasonOtherInput').value.trim(); if(t) data['reason'] = `其他：${t}`; }
       data['clubs'] = clubs.join(', ');
       if (data['applyType'] === 'individual') data['studentCount'] = 1;
+      
+      saveUserInfo(data); // 儲存資料供下次使用
+
       document.getElementById('loadingOverlay').classList.remove('hidden');
       safeFetch(data).then(result => { if (result.result === "success") onSuccess(); else onFailure(new Error(result.error || "Unknown")); }).catch(onFailure);
     }
@@ -332,10 +378,35 @@
       radios.forEach(r => r.addEventListener('change', e => { if(e.target.value === '其他') { input.classList.remove('hidden'); input.required=true; input.focus(); } else { input.classList.add('hidden'); input.required=false; input.value=''; } }));
     }
     
-    function changeMonth(delta) { currentCalendarBaseDate.setMonth(currentCalendarBaseDate.getMonth() + delta); renderCalendar(); }
+    // --- 優化3: 日曆導航控制 ---
+    function updateMonthNavButtons() {
+        const today = new Date();
+        const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const displayMonthStart = new Date(currentCalendarBaseDate.getFullYear(), currentCalendarBaseDate.getMonth(), 1);
+        
+        // 如果顯示的月份 <= 當前月份，禁用上一頁
+        const prevBtn = document.getElementById('prevMonthBtn');
+        if (displayMonthStart <= currentMonthStart) {
+            prevBtn.disabled = true;
+        } else {
+            prevBtn.disabled = false;
+        }
+    }
+
+    function changeMonth(delta) { 
+        currentCalendarBaseDate.setMonth(currentCalendarBaseDate.getMonth() + delta); 
+        updateMonthNavButtons();
+        renderCalendar(); 
+    }
     
     function renderCalendar() {
-        document.getElementById('calendar-wrapper').innerHTML = ''; 
+        const wrapper = document.getElementById('calendar-wrapper');
+        // --- 優化4: 加入過場動畫 ---
+        wrapper.classList.remove('calendar-anim-enter');
+        void wrapper.offsetWidth; // trigger reflow
+        wrapper.classList.add('calendar-anim-enter');
+
+        wrapper.innerHTML = ''; 
         renderMonth(currentCalendarBaseDate.getFullYear(), currentCalendarBaseDate.getMonth());
         const next = new Date(currentCalendarBaseDate.getFullYear(), currentCalendarBaseDate.getMonth() + 1, 1);
         renderMonth(next.getFullYear(), next.getMonth());
@@ -366,11 +437,8 @@
       if (days===0 || currentStudentCount<=0) { btn.disabled=true; btn.innerText = (days===0?"請選擇停餐日期":"請輸入正確人數"); } else { btn.disabled=false; btn.innerText="提交申請"; }
     }
     
-    // --- 新版社團渲染邏輯 (視覺優化) ---
     function getClubStyle(name) {
-        // 預設樣式
         let s = { icon: "fa-shapes", color: "text-blue-500", bg: "peer-checked:bg-blue-50", border: "peer-checked:border-blue-500" };
-        
         if (name.includes("未參加")) s = { icon: "fa-ban", color: "text-gray-500", bg: "peer-checked:bg-gray-100", border: "peer-checked:border-gray-400" };
         else if (name.includes("課後班")) s = { icon: "fa-school", color: "text-emerald-500", bg: "peer-checked:bg-emerald-50", border: "peer-checked:border-emerald-500" };
         else if (name.includes("羽球")) s = { icon: "fa-feather", color: "text-cyan-500", bg: "peer-checked:bg-cyan-50", border: "peer-checked:border-cyan-500" };
@@ -380,32 +448,27 @@
         else if (name.includes("英語")) s = { icon: "fa-language", color: "text-violet-500", bg: "peer-checked:bg-violet-50", border: "peer-checked:border-violet-500" };
         else if (name.includes("美術") || name.includes("繪圖") || name.includes("DIY") || name.includes("捏")) s = { icon: "fa-palette", color: "text-fuchsia-500", bg: "peer-checked:bg-fuchsia-50", border: "peer-checked:border-fuchsia-500" };
         else if (name.includes("數學") || name.includes("STEAM") || name.includes("創客")) s = { icon: "fa-rocket", color: "text-rose-500", bg: "peer-checked:bg-rose-50", border: "peer-checked:border-rose-500" };
-        
         return s;
     }
 
     function renderClubs() {
       const con = document.getElementById('club-container');
-      con.innerHTML = ''; // 先清空
+      con.innerHTML = '';
       
       CLUB_OPTIONS.forEach((c,i) => {
          const style = getClubStyle(c);
-         
          const html = `
          <label class="relative group cursor-pointer w-full">
             <input type="checkbox" name="clubs" value="${c}" id="club_${i}" class="peer sr-only">
             <div class="flex items-center p-3 rounded-2xl border-2 border-transparent bg-white ring-1 ring-gray-100 shadow-sm transition-all duration-200 
                         hover:shadow-md hover:bg-gray-50 
                         ${style.bg} ${style.border} peer-checked:ring-0 peer-checked:shadow-md">
-                
                 <div class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0 mr-3 ${style.color} bg-opacity-20">
                     <i class="fa-solid ${style.icon} text-lg"></i>
                 </div>
-                
                 <div class="flex-1">
                     <span class="text-sm font-bold text-gray-700 peer-checked:text-gray-900 block leading-tight">${c}</span>
                 </div>
-
                 <div class="w-6 h-6 rounded-full border-2 border-gray-200 ml-2 flex items-center justify-center peer-checked:border-transparent peer-checked:bg-current ${style.color}">
                     <i class="fa-solid fa-check text-white text-xs opacity-0 peer-checked:opacity-100 transform scale-50 peer-checked:scale-100 transition-all"></i>
                 </div>
@@ -415,22 +478,18 @@
          con.insertAdjacentHTML('beforeend', html);
       });
 
-      // 重新綁定 "全部未參加" 的互斥邏輯
       const none = document.getElementById('club_0'); 
       const others = Array.from(document.querySelectorAll('input[name="clubs"]:not(#club_0)'));
-      
       none.addEventListener('change', e => { 
           if(e.target.checked) {
               others.forEach(cb => { 
                   cb.checked=false; 
                   cb.disabled=true; 
-                  // 視覺上的禁用效果 (針對父容器 label 加上透明度與灰階)
                   cb.parentElement.classList.add('opacity-50', 'grayscale', 'cursor-not-allowed');
               }); 
           } else { 
               others.forEach(cb => { 
                   cb.disabled=false; 
-                  // 恢復視覺效果
                   cb.parentElement.classList.remove('opacity-50', 'grayscale', 'cursor-not-allowed');
               }); 
           } 
@@ -471,7 +530,12 @@
     function closeInfoModal() { document.getElementById('infoModal').classList.add('hidden'); }
     function onSuccess() {
       document.getElementById('loadingOverlay').classList.add('hidden'); document.getElementById('refundForm').reset(); selectedDatesSet.clear();
-      currentCalendarBaseDate = new Date(); renderCalendar(); toggleStudentCount(false); fetchHolidays(); updateSummary();
+      currentCalendarBaseDate = new Date(); 
+      renderCalendar(); 
+      toggleStudentCount(false); 
+      fetchHolidays(); 
+      updateSummary();
+      updateMonthNavButtons();
       const others = Array.from(document.querySelectorAll('input[name="clubs"]:not(#club_0)')); others.forEach(cb => { cb.disabled=false; cb.parentElement.classList.remove('opacity-50','grayscale', 'cursor-not-allowed'); });
       document.getElementById('successModal').classList.remove('hidden');
     }
@@ -496,9 +560,8 @@
       weekDays.forEach((d, i) => { 
         const s = document.createElement('span'); 
         s.innerText = d; 
-        // 週末色彩邏輯
-        if (i === 0) s.className = "text-red-500"; // 週日紅
-        else if (i === 6) s.className = "text-orange-500"; // 週六橘
+        if (i === 0) s.className = "text-red-500";
+        else if (i === 6) s.className = "text-orange-500"; 
         else s.className = "text-slate-400";
         weekHeader.appendChild(s); 
       });
@@ -519,7 +582,7 @@
         const dateStr = formatDateKey(dateObj); 
         const btn = document.createElement('button');
         btn.type = "button"; btn.innerText = d;
-        btn.className = "calendar-day h-10 w-full flex items-center justify-center text-sm hover:bg-white hover:shadow-sm"; // 基礎樣式
+        btn.className = "calendar-day h-10 w-full flex items-center justify-center text-sm hover:bg-white hover:shadow-sm"; 
         
         btn.style.color = '';
         btn.style.backgroundColor = '';
@@ -527,14 +590,12 @@
         const dayOfWeek = dateObj.getDay();
         const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
         
-        // 直接判斷是否為不供餐日
         let isHoliday = HOLIDAYS.includes(dateStr);
         const isMakeup = MAKEUP_DAYS.includes(dateStr); 
         const isToday = (dateObj.toDateString() === today.toDateString());
 
         if (isToday) btn.classList.add('today');
 
-        // --- 一般家長模式邏輯 ---
         const compareDate = new Date(dateObj); compareDate.setHours(0,0,0,0);
         const thresholdDate = new Date(earliestValidDateObj); thresholdDate.setHours(0,0,0,0);
         
@@ -573,5 +634,3 @@
   </script>
 </body>
 </html>
-
-
