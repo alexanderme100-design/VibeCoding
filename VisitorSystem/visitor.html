@@ -104,10 +104,15 @@
         '家長訪談', '志工服務', '貴賓參訪'
       ];
 
-      // --- 輔助函式：取得目前時間 ---
-      const getCurrentTimeString = () => {
+      // --- 輔助函式：取得目前日期與時間 (YYYY/MM/DD HH:mm) ---
+      const getCurrentDateTimeString = () => {
         const now = new Date();
-        return now.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        return `${year}/${month}/${day} ${hours}:${minutes}`;
       };
 
       // --- 主程式 App ---
@@ -127,10 +132,10 @@
           host: ''
         });
 
-        // ⚠️ 使用您自己的資料庫，直接存取根目錄集合，不使用 artifacts 路徑
+        // ⚠️ 使用您自己的資料庫，直接存取根目錄集合
         const visitorsCollectionRef = collection(db, 'visitors');
 
-        // 1. 處理 Firebase 登入 (改回純匿名登入)
+        // 1. 處理 Firebase 登入
         useEffect(() => {
           const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
             if (currentUser) {
@@ -145,7 +150,7 @@
           return () => unsubscribeAuth();
         }, []);
 
-        // 2. 監聽 Firestore 資料變化 (即時更新)
+        // 2. 監聽 Firestore 資料變化
         useEffect(() => {
           if (!user) return; // 等待登入後才監聽
 
@@ -161,7 +166,6 @@
             setLoading(false);
           }, (error) => {
             console.error("讀取資料失敗:", error);
-            // 如果權限不足，UI 會在這裡報錯
             if (error.code === 'permission-denied') {
                alert('讀取失敗：權限不足。請前往 Firebase Console > Firestore Database > Rules 檢查規則。');
             }
@@ -196,13 +200,14 @@
           setSubmitting(true);
           
           try {
+            // 寫入資料庫：checkInTime 改為包含年月日的完整字串
             await addDoc(visitorsCollectionRef, {
               name: formData.name,
               phone: formData.phone,
               location: formData.location,
               reason: formData.reason,
               host: formData.host,
-              checkInTime: getCurrentTimeString(),
+              checkInTime: getCurrentDateTimeString(), // 格式：YYYY/MM/DD HH:mm
               checkInTimestamp: serverTimestamp(), // 用於排序
               checkOutTime: '',
               status: 'IN'
@@ -228,18 +233,16 @@
         const handleCheckOut = async (visitorId) => {
           if(!confirm('確定要將此訪客簽離嗎？')) return;
           
-          // 在 UI 上先做一個假更新讓反應更即時
           const tempVisitors = visitors.map(v => v.id === visitorId ? {...v, status: 'PROCESSING'} : v);
           setVisitors(tempVisitors);
 
           try {
-            // ⚠️ 直接存取根目錄的 visitors 集合文件
             const visitorRef = doc(db, 'visitors', visitorId);
+            // 更新資料庫：checkOutTime 改為包含年月日的完整字串
             await updateDoc(visitorRef, {
               status: 'OUT',
-              checkOutTime: getCurrentTimeString()
+              checkOutTime: getCurrentDateTimeString() // 格式：YYYY/MM/DD HH:mm
             });
-            // 成功後，Snapshot 會自動更新列表，不需要手動重整
           } catch (error) {
             console.error("簽離失敗:", error);
             if (error.code === 'permission-denied') {
@@ -278,21 +281,18 @@
             LOCATIONS.find(l => l.id === v.location)?.name || v.location,
             v.host,
             v.reason,
-            v.checkInTime,
+            v.checkInTime, // 這裡現在會輸出包含日期的格式
             v.checkOutTime || ''
           ]);
 
-          // 組合 CSV 內容 (加上雙引號避免逗號問題)
           const csvContent = [
             headers.join(','),
             ...rows.map(row => row.map(field => `"${field}"`).join(','))
           ].join('\n');
 
-          // 加入 BOM 以支援 Excel 中文顯示
           const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
           const url = URL.createObjectURL(blob);
           
-          // 觸發下載
           const link = document.createElement('a');
           link.href = url;
           link.download = `訪客紀錄_${new Date().toISOString().slice(0,10)}.csv`;
@@ -470,7 +470,7 @@
                             <th className="p-4 font-bold text-slate-600">姓名</th>
                             <th className="p-4 font-bold text-slate-600">地點/受訪者</th>
                             <th className="p-4 font-bold text-slate-600">事由</th>
-                            <th className="p-4 font-bold text-slate-600">時間</th>
+                            <th className="p-4 font-bold text-slate-600">日期與時間</th>
                             <th className="p-4 font-bold text-slate-600">操作</th>
                           </tr>
                         </thead>
