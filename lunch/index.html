@@ -35,11 +35,30 @@
     input[type="radio"]:checked::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 0.5rem; height: 0.5rem; background: white; border-radius: 50%; }
     input[type="checkbox"]:checked::after { content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: white; font-size: 0.8rem; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
 
+    /* 日曆單項基礎樣式 */
     .calendar-day { border-radius: 12px; font-weight: 500; position: relative; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid transparent; }
+    
+    /* 選中狀態 */
     .calendar-day.selected { background: linear-gradient(135deg, #007AFF 0%, #0056B3 100%) !important; color: white !important; font-weight: 700; transform: scale(1.05); z-index: 10; box-shadow: 0 4px 12px rgba(0,122,255,0.3); }
+    
+    /* 今日狀態 */
     .calendar-day.today { font-weight: 800; color: #007AFF; background-color: #E5F1FF; border: 1px solid #B3D7FF; }
-    .calendar-day.is-disabled { color: #C7C7CC !important; opacity: 0.5; cursor: not-allowed !important; }
-    .calendar-day.holiday-locked { color: #FF3B30 !important; background-color: #FFF2F2 !important; text-decoration: line-through; border: 1px dashed #FFD1D1; }
+    
+    /* 超過申請期限（灰顯） */
+    .calendar-day.is-disabled { color: #C7C7CC !important; opacity: 0.5; cursor: not-allowed !important; background-color: #F9F9F9; }
+    
+    /* 核心修改：學校設定的停餐日樣式（紅字 + 刪除線） */
+    .calendar-day.holiday-locked { 
+      color: #FF3B30 !important; 
+      background-color: #FFF2F2 !important; 
+      text-decoration: line-through; 
+      text-decoration-thickness: 2px; /* 刪除線加粗 */
+      border: 1px dashed #FFD1D1; 
+      cursor: not-allowed !important;
+      font-weight: 700;
+    }
+    
+    /* 補課/補餐日 */
     .calendar-day.makeup-day { background-color: #FFF9E6; color: #FF9500; border: 1px solid #FFE6A3; }
 
     @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -137,12 +156,20 @@
 
       <!-- 步驟 2: 選擇日期 -->
       <div class="ios-card p-6 relative overflow-hidden">
-        <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center justify-between mb-3">
             <h2 class="text-lg font-bold text-gray-900 flex items-center"><span class="bg-blue-100 text-blue-600 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2 font-bold">2</span>選擇日期</h2>
             <div class="flex space-x-1 bg-gray-100 p-1 rounded-full">
                 <button type="button" id="prevMonthBtn" onclick="changeMonth(-1)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white text-gray-500 disabled:opacity-20"><i class="fa-solid fa-chevron-left text-xs"></i></button>
                 <button type="button" id="nextMonthBtn" onclick="changeMonth(1)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white text-gray-500"><i class="fa-solid fa-chevron-right text-xs"></i></button>
             </div>
+        </div>
+
+        <!-- 修改圖例以反映新樣式 -->
+        <div class="flex items-center justify-center gap-4 mb-4 text-[10px] text-gray-400">
+            <div class="flex items-center"><span class="w-3 h-3 rounded bg-blue-500 mr-1"></span>選取</div>
+            <div class="flex items-center"><span class="w-3 h-3 rounded bg-gray-200 mr-1"></span>可選</div>
+            <div class="flex items-center"><span class="w-3 h-3 rounded bg-red-100 border border-red-300 border-dashed mr-1 relative"><span class="absolute inset-0 flex items-center justify-center text-red-500 text-[8px]">/</span></span>學校停餐</div>
+            <div class="flex items-center"><span class="w-3 h-3 rounded bg-gray-100 opacity-50 mr-1"></span>過期</div>
         </div>
         
         <div class="bg-blue-50/50 rounded-2xl p-4 mb-4 border border-blue-50">
@@ -256,9 +283,6 @@
 
     // --- API 交互 ---
     async function apiRequest(data) {
-        if (!GAS_API_URL || GAS_API_URL.includes("macros/s/")) {
-           // 這裡不做阻斷，讓開發者自行檢查
-        }
         const response = await fetch(GAS_API_URL, {
             method: "POST",
             body: JSON.stringify(data),
@@ -286,33 +310,24 @@
     // --- 表單邏輯 ---
     function handleFormSubmit(e) {
       e.preventDefault();
-      
       const form = document.getElementById('refundForm');
       const formData = new FormData(form);
       const data = {};
-      
-      // 處理社團勾選
       const clubs = [];
       document.querySelectorAll('input[name="clubs"]:checked').forEach(cb => clubs.push(cb.value));
-      
       formData.forEach((value, key) => { if (key !== 'clubs') data[key] = value; });
-      
-      // 處理「其他」事由
       if (data['reason'] === '其他') {
           const otherText = document.getElementById('reasonOtherInput').value.trim();
           data['reason'] = otherText ? `其他：${otherText}` : "其他";
       }
-      
       data['clubs'] = clubs.join(', ');
       if (data['applyType'] === 'individual') data['studentCount'] = 1;
 
-      // 最終校驗
       if (selectedDatesSet.size === 0) { showInfoModal("錯誤", "請至少選擇一個停餐日期"); return; }
       if (parseInt(data['studentCount']) <= 0) { showInfoModal("錯誤", "人數必須大於 0"); return; }
 
       saveUserInfo(data);
       document.getElementById('loadingOverlay').classList.remove('hidden');
-      
       apiRequest(data)
         .then(result => {
             document.getElementById('loadingOverlay').classList.add('hidden');
@@ -367,13 +382,8 @@
     function getEarliestDate() {
         const now = new Date();
         const hr = now.getHours();
-        
-        // 核心修正邏輯：如果今天是週末/例假日，視為已經超過「前一個工作日的 13:00」
         const isTodayWork = isWorkDay(now);
-        let add = 2;
-        if (!isTodayWork || hr >= 13) {
-            add = 3;
-        }
+        let add = (!isTodayWork || hr >= 13) ? 3 : 2;
 
         let cur = new Date(now);
         let added = 0;
@@ -388,8 +398,6 @@
     function updateDashboard() {
       const now = new Date();
       earliestValidDateObj = getEarliestDate();
-      
-      // 計算倒數 (下一個 13:00)
       let target = new Date(now);
       target.setHours(13,0,0,0);
       if (now.getHours() >= 13) target.setDate(target.getDate() + 1);
@@ -423,8 +431,6 @@
     function renderCalendar() {
       const wrapper = document.getElementById('calendar-wrapper');
       wrapper.innerHTML = '';
-      
-      // 渲染當前月與下個月
       renderMonth(currentCalendarBaseDate.getFullYear(), currentCalendarBaseDate.getMonth());
       const next = new Date(currentCalendarBaseDate.getFullYear(), currentCalendarBaseDate.getMonth() + 1, 1);
       renderMonth(next.getFullYear(), next.getMonth());
@@ -439,7 +445,6 @@
       const startDayOfWeek = firstDay.getDay();
       const today = new Date();
 
-      // 月份標題
       const title = document.createElement('div');
       title.className = "text-center font-bold text-slate-700 mb-3 text-sm";
       title.innerText = `民國 ${year - 1911} 年 ${month + 1} 月`;
@@ -448,7 +453,6 @@
       const grid = document.createElement('div');
       grid.className = "grid grid-cols-7 gap-1";
 
-      // 星期頭
       ['日','一','二','三','四','五','六'].forEach(w => {
           const s = document.createElement('div');
           s.className = "text-[10px] text-center text-slate-400 pb-1";
@@ -456,10 +460,8 @@
           grid.appendChild(s);
       });
 
-      // 空白格
       for (let i = 0; i < startDayOfWeek; i++) grid.appendChild(document.createElement('div'));
 
-      // 日期格
       for (let d = 1; d <= daysInMonth; d++) {
           const dateObj = new Date(year, month, d);
           const dateStr = formatDateKey(dateObj);
@@ -479,22 +481,27 @@
           let isDisabled = false;
           let reason = "";
 
-          if (dateObj < earliestValidDateObj) {
+          // 核心逻辑判断
+          if (isHoliday) {
+              // 學校設定的停餐日（最優先顯示）
+              isDisabled = true;
+              reason = "此日為學校設定之停餐日（不供餐）。";
+              btn.classList.add('holiday-locked');
+          } else if (dateObj < earliestValidDateObj) {
+              // 過期
               isDisabled = true;
               reason = `已超過申請期限。`;
-          } else if (isHoliday) {
-              isDisabled = true;
-              reason = "此日非供餐日。";
-              btn.classList.add('holiday-locked');
+              btn.classList.add('is-disabled');
           } else if (isWeekend && !isMakeup) {
+              // 週末
               isDisabled = true;
               reason = "此日為週末不供餐。";
               btn.classList.add('is-disabled');
           }
 
           if (isDisabled) {
-              btn.classList.add('is-disabled');
               btn.onclick = () => showInfoModal(`無法選取 ${d} 日`, reason);
+              if (!btn.classList.contains('holiday-locked')) btn.classList.add('is-disabled');
           } else {
               btn.onclick = () => {
                   if (selectedDatesSet.has(dateStr)) {
@@ -529,12 +536,7 @@
     function updateSummary() {
       const countInput = document.getElementById('studentCount');
       let count = parseInt(countInput.value) || 0;
-      if (count <= 0) {
-          countInput.classList.add('error');
-          count = 0;
-      } else {
-          countInput.classList.remove('error');
-      }
+      if (count <= 0) countInput.classList.add('error'); else countInput.classList.remove('error');
 
       const sortedDates = Array.from(selectedDatesSet).sort((a,b) => new Date(a) - new Date(b));
       const display = document.getElementById('selected-dates-display');
@@ -553,48 +555,25 @@
       }
     }
 
-    // --- 社團渲染 ---
     function renderClubs() {
       const container = document.getElementById('club-container');
       container.innerHTML = '';
-      
       CLUB_OPTIONS.forEach((name, i) => {
-          const html = `
-          <label class="relative cursor-pointer">
-            <input type="checkbox" name="clubs" value="${name}" id="club_${i}" class="peer sr-only">
-            <div class="flex items-center p-3 rounded-2xl border-2 border-transparent bg-white ring-1 ring-gray-100 shadow-sm transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50">
-                <div class="flex-1">
-                    <span class="text-sm font-bold text-gray-700">${name}</span>
-                </div>
-                <div class="w-5 h-5 rounded-full border-2 border-gray-200 flex items-center justify-center peer-checked:bg-blue-500 peer-checked:border-blue-500">
-                    <i class="fa-solid fa-check text-white text-[10px] hidden peer-checked:block"></i>
-                </div>
-            </div>
-          </label>`;
+          const html = `<label class="relative cursor-pointer"><input type="checkbox" name="clubs" value="${name}" id="club_${i}" class="peer sr-only"><div class="flex items-center p-3 rounded-2xl border-2 border-transparent bg-white ring-1 ring-gray-100 shadow-sm transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50"><div class="flex-1"><span class="text-sm font-bold text-gray-700">${name}</span></div><div class="w-5 h-5 rounded-full border-2 border-gray-200 flex items-center justify-center peer-checked:bg-blue-500 peer-checked:border-blue-500"><i class="fa-solid fa-check text-white text-[10px] hidden peer-checked:block"></i></div></div></label>`;
           container.insertAdjacentHTML('beforeend', html);
       });
-
-      // 連動處理：勾選「全部未參加」
       const noneCheckbox = document.getElementById('club_0');
       const others = Array.from(document.querySelectorAll('input[name="clubs"]:not(#club_0)'));
-      
       noneCheckbox.addEventListener('change', e => {
-          if (e.target.checked) {
-              others.forEach(cb => {
-                  cb.checked = false;
-                  cb.disabled = true;
-                  cb.parentElement.classList.add('opacity-40', 'grayscale');
-              });
-          } else {
-              others.forEach(cb => {
-                  cb.disabled = false;
-                  cb.parentElement.classList.remove('opacity-40', 'grayscale');
-              });
-          }
+          others.forEach(cb => {
+              cb.checked = false;
+              cb.disabled = e.target.checked;
+              cb.parentElement.classList.toggle('opacity-40', e.target.checked);
+              cb.parentElement.classList.toggle('grayscale', e.target.checked);
+          });
       });
     }
 
-    // --- 工具函式 ---
     function formatDateKey(d) { return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; }
     function formatDateFull(d) { 
         return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} (${['日','一','二','三','四','五','六'][d.getDay()]})`; 
