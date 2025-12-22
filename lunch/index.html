@@ -36,30 +36,63 @@
     input[type="checkbox"]:checked::after { content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: white; font-size: 0.8rem; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
 
     /* 日曆單項基礎樣式 */
-    .calendar-day { border-radius: 12px; font-weight: 500; position: relative; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid transparent; }
+    .calendar-day { 
+      border-radius: 12px; 
+      font-weight: 500; 
+      position: relative; 
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+      border: 1px solid #E5E7EB; /* 加入邊框讓可選日期更清晰 */
+      background-color: #FFFFFF; /* 預設白色 */
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* 加入微弱陰影 */
+    }
     
     /* 選中狀態 */
-    .calendar-day.selected { background: linear-gradient(135deg, #007AFF 0%, #0056B3 100%) !important; color: white !important; font-weight: 700; transform: scale(1.05); z-index: 10; box-shadow: 0 4px 12px rgba(0,122,255,0.3); }
+    .calendar-day.selected { 
+      background: linear-gradient(135deg, #007AFF 0%, #0056B3 100%) !important; 
+      color: white !important; 
+      font-weight: 700; 
+      transform: scale(1.05); 
+      z-index: 10; 
+      box-shadow: 0 4px 12px rgba(0,122,255,0.3); 
+      border-color: transparent;
+    }
     
     /* 今日狀態 */
-    .calendar-day.today { font-weight: 800; color: #007AFF; background-color: #E5F1FF; border: 1px solid #B3D7FF; }
+    .calendar-day.today { 
+      font-weight: 800; 
+      color: #007AFF; 
+      background-color: #E5F1FF; 
+      border: 1px solid #B3D7FF; 
+    }
     
-    /* 超過申請期限（灰顯） */
-    .calendar-day.is-disabled { color: #C7C7CC !important; opacity: 0.5; cursor: not-allowed !important; background-color: #F9F9F9; }
+    /* 超過申請期限（灰顯樣式強化） */
+    .calendar-day.is-disabled { 
+      color: #A1A1AA !important; 
+      opacity: 0.7; 
+      cursor: not-allowed !important; 
+      background-color: #F3F4F6 !important; /* 更深的淺灰色背景 */
+      border-color: #E5E7EB;
+      box-shadow: none; /* 移除陰影，表示不可點擊 */
+    }
     
     /* 核心修改：學校設定的停餐日樣式（紅字 + 刪除線） */
     .calendar-day.holiday-locked { 
       color: #FF3B30 !important; 
       background-color: #FFF2F2 !important; 
       text-decoration: line-through; 
-      text-decoration-thickness: 2px; /* 刪除線加粗 */
+      text-decoration-thickness: 2px; 
       border: 1px dashed #FFD1D1; 
       cursor: not-allowed !important;
       font-weight: 700;
+      box-shadow: none;
     }
     
     /* 補課/補餐日 */
-    .calendar-day.makeup-day { background-color: #FFF9E6; color: #FF9500; border: 1px solid #FFE6A3; }
+    .calendar-day.makeup-day { 
+      background-color: #FFF9E6; 
+      color: #FF9500; 
+      border: 1px solid #FFE6A3; 
+    }
 
     @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .calendar-anim-enter { animation: slideIn 0.3s ease-out forwards; }
@@ -164,12 +197,12 @@
             </div>
         </div>
 
-        <!-- 修改圖例以反映新樣式 -->
+        <!-- 修改圖例顏色以符合實際樣式 -->
         <div class="flex items-center justify-center gap-4 mb-4 text-[10px] text-gray-400">
-            <div class="flex items-center"><span class="w-3 h-3 rounded bg-blue-500 mr-1"></span>選取</div>
-            <div class="flex items-center"><span class="w-3 h-3 rounded bg-gray-200 mr-1"></span>可選</div>
-            <div class="flex items-center"><span class="w-3 h-3 rounded bg-red-100 border border-red-300 border-dashed mr-1 relative"><span class="absolute inset-0 flex items-center justify-center text-red-500 text-[8px]">/</span></span>學校停餐</div>
-            <div class="flex items-center"><span class="w-3 h-3 rounded bg-gray-100 opacity-50 mr-1"></span>過期</div>
+            <div class="flex items-center"><span class="w-3 h-3 rounded bg-blue-500 mr-1 shadow-sm"></span>選取</div>
+            <div class="flex items-center"><span class="w-3 h-3 rounded bg-white border border-gray-300 mr-1 shadow-sm"></span>可選</div>
+            <div class="flex items-center"><span class="w-3 h-3 rounded bg-red-100 border border-red-300 border-dashed mr-1 relative"><span class="absolute inset-0 flex items-center justify-center text-red-500 text-[8px]">/</span></span>停餐</div>
+            <div class="flex items-center"><span class="w-3 h-3 rounded bg-gray-200 border border-gray-300 mr-1"></span>過期</div>
         </div>
         
         <div class="bg-blue-50/50 rounded-2xl p-4 mb-4 border border-blue-50">
@@ -481,19 +514,15 @@
           let isDisabled = false;
           let reason = "";
 
-          // 核心逻辑判断
           if (isHoliday) {
-              // 學校設定的停餐日（最優先顯示）
               isDisabled = true;
               reason = "此日為學校設定之停餐日（不供餐）。";
               btn.classList.add('holiday-locked');
           } else if (dateObj < earliestValidDateObj) {
-              // 過期
               isDisabled = true;
               reason = `已超過申請期限。`;
               btn.classList.add('is-disabled');
           } else if (isWeekend && !isMakeup) {
-              // 週末
               isDisabled = true;
               reason = "此日為週末不供餐。";
               btn.classList.add('is-disabled');
