@@ -15,254 +15,302 @@
   
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+    
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
-      background-color: #F2F2F7;
-      color: #1C1C1E;
+      /* 吉卜力風格漸層背景：天空藍到草地綠 */
+      background: linear-gradient(180deg, #E0F2FE 0%, #F0FDFA 50%, #DCFCE7 100%);
+      background-attachment: fixed;
+      color: #334155;
       -webkit-tap-highlight-color: transparent;
+      min-height: 100vh;
     }
-    .ios-card { background: white; border-radius: 1.25rem; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.03); }
-    .ios-input { background: #F2F2F7; border: 1px solid transparent; border-radius: 10px; transition: all 0.2s; padding: 0.75rem; width: 100%; }
-    .ios-input:focus { background: white; border-color: #007AFF; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); outline: none; }
-    .ios-input.error { border-color: #FF3B30; background-color: #FFF2F2; }
-    .ios-btn-primary { background: #007AFF; color: white; border-radius: 12px; font-weight: 600; transition: all 0.2s; }
-    .ios-btn-primary:active { transform: scale(0.98); opacity: 0.8; }
-    .ios-btn-primary:disabled { background: #C7C7CC; cursor: not-allowed; transform: none; box-shadow: none !important; }
+
+    /* 增加微小的水彩紋理感 */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0.03;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+      z-index: -1;
+    }
+
+    /* 強化卡片對比：加深邊框與陰影 */
+    .ios-card { 
+      background: rgba(255, 255, 255, 0.95); 
+      border-radius: 1.5rem; 
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); 
+      border: 1px solid rgba(203, 213, 225, 0.6); /* 更明顯的灰色邊框 */
+      backdrop-filter: blur(8px);
+    }
+
+    .ios-input { 
+      background: #F8FAFC; 
+      border: 1px solid #E2E8F0; 
+      border-radius: 12px; 
+      transition: all 0.2s; 
+      padding: 0.75rem; 
+      width: 100%; 
+      color: #1E293B;
+    }
+    .ios-input:focus { background: white; border-color: #0EA5E9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15); outline: none; }
+    .ios-input.error { border-color: #EF4444; background-color: #FEF2F2; }
+
+    /* 吉卜力天空藍按鈕 */
+    .ios-btn-primary { 
+      background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%); 
+      color: white; 
+      border-radius: 14px; 
+      font-weight: 600; 
+      transition: all 0.3s; 
+      box-shadow: 0 4px 14px 0 rgba(14, 165, 233, 0.3);
+    }
+    .ios-btn-primary:active { transform: scale(0.97); opacity: 0.9; }
+    .ios-btn-primary:disabled { background: #CBD5E1; cursor: not-allowed; transform: none; box-shadow: none !important; }
     
-    input[type="radio"], input[type="checkbox"] { appearance: none; width: 1.35rem; height: 1.35rem; border: 2px solid #D1D1D6; border-radius: 50%; vertical-align: middle; position: relative; transition: all 0.2s; background: white; cursor: pointer; }
+    input[type="radio"], input[type="checkbox"] { appearance: none; width: 1.35rem; height: 1.35rem; border: 2px solid #CBD5E1; border-radius: 50%; vertical-align: middle; position: relative; transition: all 0.2s; background: white; cursor: pointer; }
     input[type="checkbox"] { border-radius: 6px; }
-    input[type="radio"]:checked, input[type="checkbox"]:checked { border-color: #007AFF; background: #007AFF; }
+    input[type="radio"]:checked, input[type="checkbox"]:checked { border-color: #0EA5E9; background: #0EA5E9; }
     input[type="radio"]:checked::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 0.5rem; height: 0.5rem; background: white; border-radius: 50%; }
     input[type="checkbox"]:checked::after { content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: white; font-size: 0.8rem; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
 
-    /* 日曆單項基礎樣式 */
+    /* 日曆單項：提升可讀性 */
     .calendar-day { 
       border-radius: 12px; 
-      font-weight: 500; 
+      font-weight: 600; 
       position: relative; 
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
-      border: 1px solid #E5E7EB; /* 加入邊框讓可選日期更清晰 */
-      background-color: #FFFFFF; /* 預設白色 */
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* 加入微弱陰影 */
+      transition: all 0.2s; 
+      border: 1px solid #F1F5F9; 
+      background-color: #FFFFFF; 
+      color: #475569;
     }
     
-    /* 選中狀態 */
     .calendar-day.selected { 
-      background: linear-gradient(135deg, #007AFF 0%, #0056B3 100%) !important; 
+      background: linear-gradient(135deg, #0EA5E9 0%, #2563EB 100%) !important; 
       color: white !important; 
-      font-weight: 700; 
-      transform: scale(1.05); 
+      transform: scale(1.08); 
       z-index: 10; 
-      box-shadow: 0 4px 12px rgba(0,122,255,0.3); 
+      box-shadow: 0 8px 15px -3px rgba(37, 99, 235, 0.4); 
       border-color: transparent;
     }
     
-    /* 今日狀態 */
     .calendar-day.today { 
-      font-weight: 800; 
-      color: #007AFF; 
-      background-color: #E5F1FF; 
-      border: 1px solid #B3D7FF; 
+      color: #0EA5E9; 
+      background-color: #F0F9FF; 
+      border: 2px solid #BAE6FD; 
     }
     
-    /* 超過申請期限（灰顯樣式強化） */
+    /* 過期日期：對比度拉開，使用霧灰色 */
     .calendar-day.is-disabled { 
-      color: #A1A1AA !important; 
-      opacity: 0.7; 
+      color: #94A3B8 !important; 
+      opacity: 0.6; 
       cursor: not-allowed !important; 
-      background-color: #F3F4F6 !important; /* 更深的淺灰色背景 */
-      border-color: #E5E7EB;
-      box-shadow: none; /* 移除陰影，表示不可點擊 */
-    }
-    
-    /* 核心修改：學校設定的停餐日樣式（紅字 + 刪除線） */
-    .calendar-day.holiday-locked { 
-      color: #FF3B30 !important; 
-      background-color: #FFF2F2 !important; 
-      text-decoration: line-through; 
-      text-decoration-thickness: 2px; 
-      border: 1px dashed #FFD1D1; 
-      cursor: not-allowed !important;
-      font-weight: 700;
+      background-color: #F1F5F9 !important; 
+      border-color: #E2E8F0;
       box-shadow: none;
     }
     
-    /* 補課/補餐日 */
+    /* 學校停餐：醒目的紅磚色與刪除線 */
+    .calendar-day.holiday-locked { 
+      color: #B91C1C !important; 
+      background-color: #FEE2E2 !important; 
+      text-decoration: line-through; 
+      text-decoration-thickness: 2px; 
+      border: 1px dashed #FCA5A5; 
+      box-shadow: none;
+    }
+    
     .calendar-day.makeup-day { 
-      background-color: #FFF9E6; 
-      color: #FF9500; 
-      border: 1px solid #FFE6A3; 
+      background-color: #FEF3C7; 
+      color: #D97706; 
+      border: 1px solid #FDE68A; 
     }
 
     @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .calendar-anim-enter { animation: slideIn 0.3s ease-out forwards; }
-    .required::after { content: " *"; color: #FF3B30; }
-    @keyframes modalIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-    .modal-content { animation: modalIn 0.2s ease-out forwards; }
+    .required::after { content: " *"; color: #EF4444; }
+    
+    /* 優化捲軸顏色 */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
   </style>
 </head>
 <body class="antialiased pb-10">
 
   <div class="max-w-2xl mx-auto my-6 px-4 sm:px-6 pt-4">
     <!-- Header -->
-    <div class="mb-6 text-center sm:text-left">
-      <h1 class="text-3xl font-bold text-gray-900 tracking-tight flex items-center justify-center sm:justify-start">
-        <div class="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center text-white mr-3 shadow-md bg-gradient-to-br from-blue-500 to-blue-600">
-           <i class="fa-solid fa-utensils text-lg"></i>
+    <div class="mb-8 text-center sm:text-left">
+      <h1 class="text-3xl font-bold text-slate-800 tracking-tight flex items-center justify-center sm:justify-start">
+        <div class="w-12 h-12 bg-sky-500 rounded-2xl flex items-center justify-center text-white mr-4 shadow-lg bg-gradient-to-br from-sky-400 to-sky-600">
+           <i class="fa-solid fa-cloud-sun text-xl"></i>
         </div>
         鷺江國小午餐退費申請
       </h1>
-      <p class="text-gray-500 mt-2 ml-1 font-medium">每餐退費標準 $60</p>
+      <p class="text-slate-500 mt-2 ml-1 font-medium flex items-center justify-center sm:justify-start">
+        <span class="bg-white/60 px-3 py-1 rounded-full border border-slate-200">每餐退費標準 <span class="text-sky-600 font-bold">$60</span></span>
+      </p>
     </div>
 
     <!-- 規則說明 -->
-    <div class="ios-card p-5 mb-6 bg-gradient-to-br from-blue-50 to-white border-blue-100">
-      <h3 class="font-bold text-blue-600 mb-3 flex items-center text-sm uppercase tracking-wide">
-        <i class="fa-solid fa-circle-info mr-2"></i> 申請規則與須知
+    <div class="ios-card p-6 mb-8 border-sky-100">
+      <h3 class="font-bold text-sky-700 mb-4 flex items-center text-sm uppercase tracking-wider">
+        <i class="fa-solid fa-paper-plane mr-2"></i> 申請規則與須知
       </h3>
-      <div id="rule-display" class="mb-4 bg-white p-3 rounded-xl border border-blue-100 shadow-sm">
-         <p class="text-xs text-gray-400">系統正在計算截算時間...</p>
+      <div id="rule-display" class="mb-5 bg-sky-50/50 p-4 rounded-2xl border border-sky-100">
+         <p class="text-xs text-slate-400 animate-pulse">系統正在計算截算時間...</p>
       </div>
-      <ul class="space-y-3 text-sm text-gray-700">
-        <li class="flex items-start"><span class="text-blue-500 mr-2">•</span><span>請於停餐日往前<strong class="text-gray-900 mx-1">第 2 個工作日下午 1:00 前</strong>提出申請。</span></li>
-        <li class="flex items-start"><span class="text-blue-500 mr-2">•</span><span>逾時申請因食材已訂購，<span class="text-red-500 font-bold">無法受理退費</span>。</span></li>
-        <li class="flex items-start"><span class="text-blue-500 mr-2">•</span><span>洽詢：<a href="tel:0222819980" class="text-blue-600 font-bold hover:underline">02-22819980 分機 9353</a></span></li>
+      <ul class="space-y-3 text-sm text-slate-600">
+        <li class="flex items-start"><span class="text-sky-400 mr-2"><i class="fa-solid fa-leaf"></i></span><span>請於停餐日往前<strong class="text-slate-900 mx-1">第 2 個工作日下午 1:00 前</strong>提出。</span></li>
+        <li class="flex items-start"><span class="text-sky-400 mr-2"><i class="fa-solid fa-leaf"></i></span><span>逾時申請因食材已訂購，<span class="text-rose-500 font-bold">無法受理退費</span>。</span></li>
+        <li class="flex items-start"><span class="text-sky-400 mr-2"><i class="fa-solid fa-leaf"></i></span><span>洽詢：<a href="tel:0222819980" class="text-sky-600 font-bold hover:underline">分機 9353</a></span></li>
       </ul>
     </div>
 
-    <form id="refundForm" class="space-y-6" onsubmit="handleFormSubmit(event)">
+    <form id="refundForm" class="space-y-8" onsubmit="handleFormSubmit(event)">
       <!-- 步驟 1: 基本資料 -->
-      <div class="ios-card p-6">
-        <h2 class="text-lg font-bold text-gray-900 mb-5 flex items-center"><span class="bg-blue-100 text-blue-600 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2 font-bold">1</span>基本資料</h2>
+      <div class="ios-card p-6 sm:p-8">
+        <h2 class="text-xl font-bold text-slate-800 mb-6 flex items-center">
+            <span class="bg-sky-100 text-sky-600 w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3 font-bold">1</span>
+            基本資料
+        </h2>
         
-        <div id="autoFillHint" class="hidden mb-4 bg-green-50 text-green-700 text-xs px-3 py-2 rounded-lg border border-green-200 flex items-center">
-            <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> 已自動填入您上次提交的資料
+        <div id="autoFillHint" class="hidden mb-6 bg-emerald-50 text-emerald-700 text-xs px-4 py-3 rounded-xl border border-emerald-100 flex items-center shadow-sm">
+            <i class="fa-solid fa-wand-magic-sparkles mr-2 text-emerald-500"></i> 已自動為您載入上次的申請資料
         </div>
 
-        <div class="space-y-6">
+        <div class="space-y-8">
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-3 required">停餐事由</label>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors">
+            <label class="block text-sm font-bold text-slate-700 mb-4 required">停餐事由</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label class="flex items-center p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-sky-50 cursor-pointer transition-all group">
                 <input type="radio" name="reason" value="法定請假(腸病毒、水痘)" required>
-                <div class="ml-3">
-                    <span class="text-sm font-medium block">法定請假</span>
-                    <span class="text-[10px] text-gray-500 block">腸病毒、水痘等</span>
+                <div class="ml-4">
+                    <span class="text-sm font-bold block text-slate-700 group-hover:text-sky-700">法定請假</span>
+                    <span class="text-[10px] text-slate-500 block">腸病毒、水痘等</span>
                 </div>
               </label>
-              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors"><input type="radio" name="reason" value="病假"><span class="ml-3 text-sm font-medium">病假</span></label>
-              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors"><input type="radio" name="reason" value="事假"><span class="ml-3 text-sm font-medium">事假</span></label>
-              <label class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors"><input type="radio" name="reason" value="其他"><span class="ml-3 text-sm font-medium">其他 (老師/學生公假等)</span></label>
+              <label class="flex items-center p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-sky-50 cursor-pointer transition-all group"><input type="radio" name="reason" value="病假"><span class="ml-4 text-sm font-bold text-slate-700 group-hover:text-sky-700">病假</span></label>
+              <label class="flex items-center p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-sky-50 cursor-pointer transition-all group"><input type="radio" name="reason" value="事假"><span class="ml-4 text-sm font-bold text-slate-700 group-hover:text-sky-700">事假</span></label>
+              <label class="flex items-center p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-sky-50 cursor-pointer transition-all group"><input type="radio" name="reason" value="其他"><span class="ml-4 text-sm font-bold text-slate-700 group-hover:text-sky-700">其他 (公假等)</span></label>
             </div>
-            <input type="text" id="reasonOtherInput" class="ios-input hidden mt-3" placeholder="請輸入具體事由...">
+            <input type="text" id="reasonOtherInput" class="ios-input mt-4 hidden" placeholder="請詳細註明停餐事由...">
           </div>
 
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-3 required">申請類別</label>
-            <div class="bg-gray-100 p-1 rounded-xl flex">
-              <label class="flex-1 text-center cursor-pointer"><input type="radio" name="applyType" value="individual" class="hidden peer" checked onchange="toggleStudentCount(false)"><div class="py-2 rounded-lg text-sm font-medium text-gray-500 peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm transition-all">個人申請</div></label>
-              <label class="flex-1 text-center cursor-pointer"><input type="radio" name="applyType" value="class" class="hidden peer" onchange="toggleStudentCount(true)"><div class="py-2 rounded-lg text-sm font-medium text-gray-500 peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm transition-all">全班/多人</div></label>
+            <label class="block text-sm font-bold text-slate-700 mb-4 required">申請類別</label>
+            <div class="bg-slate-100/80 p-1.5 rounded-2xl flex">
+              <label class="flex-1 text-center cursor-pointer"><input type="radio" name="applyType" value="individual" class="hidden peer" checked onchange="toggleStudentCount(false)"><div class="py-2.5 rounded-xl text-sm font-bold text-slate-500 peer-checked:bg-white peer-checked:text-sky-600 peer-checked:shadow-md transition-all">個人申請</div></label>
+              <label class="flex-1 text-center cursor-pointer"><input type="radio" name="applyType" value="class" class="hidden peer" onchange="toggleStudentCount(true)"><div class="py-2.5 rounded-xl text-sm font-bold text-slate-500 peer-checked:bg-white peer-checked:text-sky-600 peer-checked:shadow-md transition-all">全班 / 多人</div></label>
             </div>
-            <div id="studentCountContainer" class="hidden mt-4">
-              <div class="flex items-center">
-                <label class="text-sm text-gray-500 mr-3">總人數：</label>
-                <input type="number" id="studentCount" name="studentCount" value="1" min="1" class="ios-input w-24 text-center font-bold" oninput="updateSummary()">
-                <span class="ml-2 text-gray-500 text-sm">人</span>
+            <div id="studentCountContainer" class="hidden mt-6 animate-fade-in">
+              <div class="flex items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <label class="text-sm font-bold text-slate-600 mr-4">停餐總人數：</label>
+                <input type="number" id="studentCount" name="studentCount" value="1" min="1" class="ios-input w-28 text-center font-bold text-lg" oninput="updateSummary()">
+                <span class="ml-3 text-slate-500 font-bold">人</span>
               </div>
             </div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label class="block text-sm font-semibold text-gray-700 mb-2 required">班級座號</label><input type="text" inputmode="numeric" id="classSeat" name="classSeat" placeholder="例：60123" class="ios-input" required></div>
-            <div><label class="block text-sm font-semibold text-gray-700 mb-2 required">姓名</label><input type="text" id="name" name="name" class="ios-input" required></div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div><label class="block text-sm font-bold text-slate-700 mb-2 required">班級座號</label><input type="text" inputmode="numeric" id="classSeat" name="classSeat" placeholder="例如：60123" class="ios-input" required></div>
+            <div><label class="block text-sm font-bold text-slate-700 mb-2 required">姓名</label><input type="text" id="name" name="name" class="ios-input" required></div>
           </div>
 
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2 required">用餐葷素</label>
-            <div class="flex space-x-8 mt-2">
-              <label class="flex items-center cursor-pointer"><input type="radio" name="diet" value="葷" required><span class="ml-2 font-medium">葷食</span></label>
-              <label class="flex items-center cursor-pointer"><input type="radio" name="diet" value="素"><span class="ml-2 font-medium">素食</span></label>
+            <label class="block text-sm font-bold text-slate-700 mb-3 required">用餐葷素</label>
+            <div class="flex space-x-12 mt-2">
+              <label class="flex items-center cursor-pointer group"><input type="radio" name="diet" value="葷" required><span class="ml-3 font-bold text-slate-700 group-hover:text-sky-600">葷食</span></label>
+              <label class="flex items-center cursor-pointer group"><input type="radio" name="diet" value="素"><span class="ml-3 font-bold text-slate-700 group-hover:text-sky-600">素食</span></label>
             </div>
           </div>
         </div>
       </div>
 
       <!-- 步驟 2: 選擇日期 -->
-      <div class="ios-card p-6 relative overflow-hidden">
-        <div class="flex items-center justify-between mb-3">
-            <h2 class="text-lg font-bold text-gray-900 flex items-center"><span class="bg-blue-100 text-blue-600 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2 font-bold">2</span>選擇日期</h2>
-            <div class="flex space-x-1 bg-gray-100 p-1 rounded-full">
-                <button type="button" id="prevMonthBtn" onclick="changeMonth(-1)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white text-gray-500 disabled:opacity-20"><i class="fa-solid fa-chevron-left text-xs"></i></button>
-                <button type="button" id="nextMonthBtn" onclick="changeMonth(1)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white text-gray-500"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+      <div class="ios-card p-6 sm:p-8 relative overflow-hidden">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold text-slate-800 flex items-center">
+                <span class="bg-sky-100 text-sky-600 w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3 font-bold">2</span>
+                選擇日期
+            </h2>
+            <div class="flex space-x-2 bg-slate-100 p-1 rounded-full">
+                <button type="button" id="prevMonthBtn" onclick="changeMonth(-1)" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white text-slate-500 disabled:opacity-30 transition-all shadow-sm"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                <button type="button" id="nextMonthBtn" onclick="changeMonth(1)" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white text-slate-500 transition-all shadow-sm"><i class="fa-solid fa-chevron-right text-xs"></i></button>
             </div>
         </div>
 
-        <!-- 修改圖例顏色以符合實際樣式 -->
-        <div class="flex items-center justify-center gap-4 mb-4 text-[10px] text-gray-400">
-            <div class="flex items-center"><span class="w-3 h-3 rounded bg-blue-500 mr-1 shadow-sm"></span>選取</div>
-            <div class="flex items-center"><span class="w-3 h-3 rounded bg-white border border-gray-300 mr-1 shadow-sm"></span>可選</div>
-            <div class="flex items-center"><span class="w-3 h-3 rounded bg-red-100 border border-red-300 border-dashed mr-1 relative"><span class="absolute inset-0 flex items-center justify-center text-red-500 text-[8px]">/</span></span>停餐</div>
-            <div class="flex items-center"><span class="w-3 h-3 rounded bg-gray-200 border border-gray-300 mr-1"></span>過期</div>
+        <!-- 提升圖例對比度 -->
+        <div class="flex flex-wrap items-center justify-center gap-4 mb-6 text-[11px] font-bold text-slate-500">
+            <div class="flex items-center"><span class="w-4 h-4 rounded-md bg-sky-500 mr-2 shadow-sm"></span>已選</div>
+            <div class="flex items-center"><span class="w-4 h-4 rounded-md bg-white border border-slate-300 mr-2 shadow-sm"></span>可選</div>
+            <div class="flex items-center"><span class="w-4 h-4 rounded-md bg-red-100 border border-red-300 border-dashed mr-2 relative overflow-hidden"><span class="absolute inset-0 flex items-center justify-center text-red-500 text-[10px]">✕</span></span>停餐日</div>
+            <div class="flex items-center"><span class="w-4 h-4 rounded-md bg-slate-200 border border-slate-300 mr-2"></span>不可選</div>
         </div>
         
-        <div class="bg-blue-50/50 rounded-2xl p-4 mb-4 border border-blue-50">
-          <div id="calendar-wrapper" class="space-y-6 select-none min-h-[250px] calendar-anim-enter"></div>
+        <div class="bg-slate-100/50 rounded-3xl p-5 mb-6 border border-slate-200/60">
+          <div id="calendar-wrapper" class="space-y-8 select-none min-h-[250px] calendar-anim-enter"></div>
         </div>
 
-        <div class="bg-slate-800 rounded-2xl p-5 text-white shadow-lg">
-          <div class="grid grid-cols-3 gap-4 text-center divide-x divide-slate-600">
-            <div><div class="text-[10px] text-slate-400 mb-1">人數</div><div id="displayStudentCount" class="text-lg font-bold">1</div></div>
-            <div><div class="text-[10px] text-slate-400 mb-1">天數</div><div id="displayTotalDays" class="text-lg font-bold">0</div></div>
-            <div><div class="text-[10px] text-slate-400 mb-1">總退費</div><div class="text-lg font-bold text-blue-300">$<span id="totalAmount">0</span></div></div>
+        <div class="bg-slate-800 rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-full -mr-16 -mt-16"></div>
+          <div class="grid grid-cols-3 gap-6 text-center divide-x divide-slate-700 relative z-10">
+            <div><div class="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest">人數</div><div id="displayStudentCount" class="text-2xl font-bold tracking-tight">1</div></div>
+            <div><div class="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest">天數</div><div id="displayTotalDays" class="text-2xl font-bold tracking-tight">0</div></div>
+            <div><div class="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest">總退費</div><div class="text-2xl font-bold text-sky-400 tracking-tight">$<span id="totalAmount">0</span></div></div>
           </div>
-          <div id="selected-dates-display" class="mt-4 pt-4 border-t border-slate-700 text-xs text-slate-300 min-h-[20px] flex flex-wrap gap-2">
-            <span class="italic opacity-50">請點擊上方日曆選擇日期...</span>
+          <div id="selected-dates-display" class="mt-6 pt-5 border-t border-slate-700/50 text-xs text-slate-300 min-h-[24px] flex flex-wrap gap-2.5">
+            <span class="italic opacity-50 font-medium">請在日曆上點選您要停餐的日期...</span>
           </div>
           <input type="hidden" id="dateInput" name="dateInput" required>
         </div>
       </div>
 
       <!-- 步驟 3: 社團調查 -->
-      <div class="ios-card p-6">
-        <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center"><span class="bg-blue-100 text-blue-600 w-7 h-7 rounded-full flex items-center justify-center text-xs mr-2 font-bold">3</span>社團調查</h2>
-        <p class="text-xs text-gray-400 mb-4">若有參加社團請勾選（以便對帳），若無請勾選「全部未參加」</p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="club-container"></div>
+      <div class="ios-card p-6 sm:p-8">
+        <h2 class="text-xl font-bold text-slate-800 mb-2 flex items-center">
+            <span class="bg-sky-100 text-sky-600 w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3 font-bold">3</span>
+            社團調查
+        </h2>
+        <p class="text-xs text-slate-400 mb-6 font-medium italic">參加社團者請務必勾選，若無請勾選「全部未參加」</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="club-container"></div>
       </div>
 
-      <div class="pb-6">
-        <button type="submit" id="submitBtn" class="ios-btn-primary w-full py-4 text-lg shadow-xl shadow-blue-500/20 disabled:grayscale" disabled>提交申請</button>
+      <div class="pb-10">
+        <button type="submit" id="submitBtn" class="ios-btn-primary w-full py-5 text-xl shadow-2xl disabled:grayscale" disabled>提交申請</button>
       </div>
     </form>
     
     <!-- Modals -->
-    <div id="loadingOverlay" class="hidden fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-2xl shadow-2xl text-center">
-        <div class="animate-spin rounded-full h-10 w-10 border-4 border-blue-100 border-t-blue-500 mx-auto mb-4"></div>
-        <p class="text-gray-600 font-medium">正在傳送申請...</p>
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50">
+      <div class="bg-white p-8 rounded-3xl shadow-2xl text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-sky-100 border-t-sky-500 mx-auto mb-6"></div>
+        <p class="text-slate-700 font-bold">正在為您處理申請，請稍候...</p>
       </div>
     </div>
 
-    <div id="successModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div class="modal-content bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm w-full">
-        <div class="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fa-solid fa-check"></i></div>
-        <h3 class="text-2xl font-bold text-gray-900 mb-2">申請成功</h3>
-        <p class="text-gray-500 mb-8">系統已收到您的停餐資料。<br>請記得轉告班級老師。</p>
-        <button onclick="location.reload()" class="ios-btn-primary w-full py-3.5">返回</button>
+    <div id="successModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-lg flex items-center justify-center z-50 p-4">
+      <div class="modal-content bg-white p-10 rounded-[2.5rem] shadow-2xl text-center max-w-sm w-full border border-emerald-100">
+        <div class="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-inner"><i class="fa-solid fa-check"></i></div>
+        <h3 class="text-2xl font-extrabold text-slate-800 mb-3 tracking-tight">申請成功！</h3>
+        <p class="text-slate-500 mb-10 font-medium leading-relaxed">您的停餐資料已成功送出。<br>別忘了也要跟導師說一聲喔！</p>
+        <button onclick="location.reload()" class="ios-btn-primary w-full py-4 text-lg">回到首頁</button>
       </div>
     </div>
 
-    <div id="infoModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="modal-content bg-white p-6 rounded-2xl shadow-xl text-center max-w-xs w-full">
-        <div class="mb-3 text-amber-400 text-4xl"><i class="fa-solid fa-circle-exclamation"></i></div>
-        <h3 class="text-lg font-bold text-gray-900 mb-2" id="infoModalTitle">提示</h3>
-        <p class="text-gray-600 mb-6 text-sm" id="infoModalMessage"></p>
-        <button onclick="closeInfoModal()" class="bg-gray-100 text-gray-700 font-bold py-2.5 px-4 rounded-xl w-full">我知道了</button>
+    <div id="infoModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="modal-content bg-white p-8 rounded-3xl shadow-2xl text-center max-w-xs w-full">
+        <div class="mb-4 text-amber-500 text-5xl"><i class="fa-solid fa-circle-exclamation"></i></div>
+        <h3 class="text-lg font-bold text-slate-800 mb-3" id="infoModalTitle">小提示</h3>
+        <p class="text-slate-600 mb-8 text-sm leading-relaxed font-medium" id="infoModalMessage"></p>
+        <button onclick="closeInfoModal()" class="bg-slate-100 text-slate-700 font-bold py-3 px-6 rounded-2xl w-full hover:bg-slate-200 transition-colors">我知道了</button>
       </div>
     </div>
   </div>
 
   <script>
-    // --- ⚠️ 配置區域 ⚠️ ---
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyh7Bep2D8xivGee2-dGbGp8A1wXYPYR9kI0vuF3GOq4czWxjeGw2cTBaxAhGTp491vng/exec"; 
 
     const COST_PER_MEAL = 60;
@@ -276,7 +324,6 @@
     let selectedDatesSet = new Set();
     let currentCalendarBaseDate = new Date(); 
 
-    // --- 初始化 ---
     document.addEventListener('DOMContentLoaded', () => {
       loadUserInfo();
       renderClubs();
@@ -286,7 +333,6 @@
       updateMonthNavButtons();
     });
 
-    // --- 資料存取 ---
     function saveUserInfo(data) {
         if (data.applyType === 'individual') {
             localStorage.setItem('lunch_app_user', JSON.stringify({
@@ -314,14 +360,13 @@
         } catch(e) { localStorage.removeItem('lunch_app_user'); }
     }
 
-    // --- API 交互 ---
     async function apiRequest(data) {
         const response = await fetch(GAS_API_URL, {
             method: "POST",
             body: JSON.stringify(data),
             headers: { "Content-Type": "text/plain;charset=utf-8" },
         });
-        if (!response.ok) throw new Error("伺服器連線失敗");
+        if (!response.ok) throw new Error("與伺服器連線失敗，請檢查網路。");
         return JSON.parse(await response.text());
     }
 
@@ -340,7 +385,6 @@
         });
     }
 
-    // --- 表單邏輯 ---
     function handleFormSubmit(e) {
       e.preventDefault();
       const form = document.getElementById('refundForm');
@@ -356,8 +400,8 @@
       data['clubs'] = clubs.join(', ');
       if (data['applyType'] === 'individual') data['studentCount'] = 1;
 
-      if (selectedDatesSet.size === 0) { showInfoModal("錯誤", "請至少選擇一個停餐日期"); return; }
-      if (parseInt(data['studentCount']) <= 0) { showInfoModal("錯誤", "人數必須大於 0"); return; }
+      if (selectedDatesSet.size === 0) { showInfoModal("哎呀！", "請至少在日曆上選擇一個要停餐的日期喔！"); return; }
+      if (parseInt(data['studentCount']) <= 0) { showInfoModal("人數錯誤", "停餐人數必須至少 1 人以上喔！"); return; }
 
       saveUserInfo(data);
       document.getElementById('loadingOverlay').classList.remove('hidden');
@@ -365,24 +409,19 @@
         .then(result => {
             document.getElementById('loadingOverlay').classList.add('hidden');
             if (result.result === "success") document.getElementById('successModal').classList.remove('hidden');
-            else throw new Error(result.error || "傳送失敗");
+            else throw new Error(result.error || "提交失敗，請洽詢總務處。");
         })
         .catch(err => {
             document.getElementById('loadingOverlay').classList.add('hidden');
-            showInfoModal("提交失敗", err.message);
+            showInfoModal("連線失敗", err.message);
         });
     }
 
     function toggleStudentCount(isClass) {
       const container = document.getElementById('studentCountContainer');
       const input = document.getElementById('studentCount');
-      if (isClass) {
-          container.classList.remove('hidden');
-          input.focus();
-      } else {
-          container.classList.add('hidden');
-          input.value = "1";
-      }
+      if (isClass) { container.classList.remove('hidden'); input.focus(); } 
+      else { container.classList.add('hidden'); input.value = "1"; }
       updateSummary();
     }
 
@@ -390,20 +429,12 @@
       const input = document.getElementById('reasonOtherInput');
       document.querySelectorAll('input[name="reason"]').forEach(r => {
           r.addEventListener('change', e => {
-              if (e.target.value === '其他') {
-                  input.classList.remove('hidden');
-                  input.required = true;
-                  input.focus();
-              } else {
-                  input.classList.add('hidden');
-                  input.required = false;
-                  input.value = '';
-              }
+              if (e.target.value === '其他') { input.classList.remove('hidden'); input.required = true; input.focus(); } 
+              else { input.classList.add('hidden'); input.required = false; input.value = ''; }
           });
       });
     }
 
-    // --- 日曆核心邏輯 ---
     function isWorkDay(date) {
       const dateStr = formatDateKey(date);
       if (HOLIDAYS.includes(dateStr)) return false;
@@ -417,7 +448,6 @@
         const hr = now.getHours();
         const isTodayWork = isWorkDay(now);
         let add = (!isTodayWork || hr >= 13) ? 3 : 2;
-
         let cur = new Date(now);
         let added = 0;
         while(added < add) {
@@ -443,17 +473,18 @@
       const el = document.getElementById('rule-display');
       if (el) {
           el.innerHTML = `
-            <div class="flex flex-col gap-2">
-                <div class="flex items-center justify-between text-xs text-gray-500">
-                    <span>現在時刻：${formatDateFull(now)} ${now.toLocaleTimeString()}</span>
+            <div class="flex flex-col gap-3">
+                <div class="flex items-center justify-between text-xs text-slate-500 font-bold">
+                    <span>${formatDateFull(now)} ${now.toLocaleTimeString()}</span>
                 </div>
-                <div class="flex items-center text-sm bg-red-50 p-2 rounded-lg border border-red-100">
-                    <i class="fa-solid fa-hourglass-half text-red-500 mr-2"></i>
-                    <span class="text-gray-600 mr-2">收單倒數：</span>
-                    <span class="text-red-600 font-bold font-mono text-lg">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}</span>
+                <div class="flex items-center text-sm bg-rose-50 p-3 rounded-2xl border border-rose-100 shadow-sm">
+                    <i class="fa-solid fa-hourglass-start text-rose-500 mr-3 text-lg"></i>
+                    <span class="text-slate-600 mr-2 font-bold">今日收單倒數：</span>
+                    <span class="text-rose-600 font-black font-mono text-xl">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}</span>
                 </div>
-                <div class="text-sm font-bold text-blue-600 flex items-center mt-1">
-                    <span class="text-xs text-gray-400 font-normal mr-2">最早退費日：</span>
+                <div class="text-sm font-black text-sky-700 flex items-center bg-white/80 p-3 rounded-2xl border border-sky-100 shadow-sm">
+                    <i class="fa-solid fa-calendar-check mr-3 text-lg text-sky-400"></i>
+                    <span class="text-xs text-slate-400 font-bold mr-2">最早退費日期：</span>
                     ${formatDateFull(earliestValidDateObj)}
                 </div>
             </div>
@@ -479,16 +510,16 @@
       const today = new Date();
 
       const title = document.createElement('div');
-      title.className = "text-center font-bold text-slate-700 mb-3 text-sm";
+      title.className = "text-center font-black text-slate-700 mb-5 text-sm tracking-widest bg-white/50 py-1 rounded-full border border-white mx-auto w-48 shadow-sm";
       title.innerText = `民國 ${year - 1911} 年 ${month + 1} 月`;
       container.appendChild(title);
 
       const grid = document.createElement('div');
-      grid.className = "grid grid-cols-7 gap-1";
+      grid.className = "grid grid-cols-7 gap-1.5";
 
       ['日','一','二','三','四','五','六'].forEach(w => {
           const s = document.createElement('div');
-          s.className = "text-[10px] text-center text-slate-400 pb-1";
+          s.className = "text-[10px] text-center text-slate-400 pb-2 font-black";
           s.innerText = w;
           grid.appendChild(s);
       });
@@ -501,7 +532,7 @@
           const btn = document.createElement('button');
           btn.type = "button";
           btn.innerText = d;
-          btn.className = "calendar-day h-9 w-full flex items-center justify-center text-sm";
+          btn.className = "calendar-day h-10 w-full flex items-center justify-center text-sm shadow-sm";
           
           const isToday = (dateObj.toDateString() === today.toDateString());
           const isHoliday = HOLIDAYS.includes(dateStr);
@@ -516,20 +547,20 @@
 
           if (isHoliday) {
               isDisabled = true;
-              reason = "此日為學校設定之停餐日（不供餐）。";
+              reason = "這天是學校預設的停餐日（不用供餐）。";
               btn.classList.add('holiday-locked');
           } else if (dateObj < earliestValidDateObj) {
               isDisabled = true;
-              reason = `已超過申請期限。`;
+              reason = `已經超過 ${formatDateKey(dateObj)} 的申請截止時間囉。`;
               btn.classList.add('is-disabled');
           } else if (isWeekend && !isMakeup) {
               isDisabled = true;
-              reason = "此日為週末不供餐。";
+              reason = "週末不用上課，所以沒有供餐。";
               btn.classList.add('is-disabled');
           }
 
           if (isDisabled) {
-              btn.onclick = () => showInfoModal(`無法選取 ${d} 日`, reason);
+              btn.onclick = () => showInfoModal(`這天不能選喔`, reason);
               if (!btn.classList.contains('holiday-locked')) btn.classList.add('is-disabled');
           } else {
               btn.onclick = () => {
@@ -576,10 +607,10 @@
       document.getElementById('dateInput').value = sortedDates.join(', ');
 
       if (sortedDates.length === 0) {
-          display.innerHTML = '<span class="italic opacity-50">請點擊上方日曆選擇日期...</span>';
+          display.innerHTML = '<span class="italic opacity-50 font-medium tracking-tight">請在日曆上點選您要停餐的日期...</span>';
           document.getElementById('submitBtn').disabled = true;
       } else {
-          display.innerHTML = sortedDates.map(d => `<span class="bg-blue-500 text-white px-2 py-0.5 rounded-md shadow-sm border border-blue-600">${d.split('/')[1]}/${d.split('/')[2]}</span>`).join('');
+          display.innerHTML = sortedDates.map(d => `<span class="bg-sky-500 text-white px-3 py-1 rounded-full shadow-md border border-sky-600 font-bold">${d.split('/')[1]}/${d.split('/')[2]}</span>`).join('');
           document.getElementById('submitBtn').disabled = (count <= 0);
       }
     }
@@ -588,7 +619,7 @@
       const container = document.getElementById('club-container');
       container.innerHTML = '';
       CLUB_OPTIONS.forEach((name, i) => {
-          const html = `<label class="relative cursor-pointer"><input type="checkbox" name="clubs" value="${name}" id="club_${i}" class="peer sr-only"><div class="flex items-center p-3 rounded-2xl border-2 border-transparent bg-white ring-1 ring-gray-100 shadow-sm transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50"><div class="flex-1"><span class="text-sm font-bold text-gray-700">${name}</span></div><div class="w-5 h-5 rounded-full border-2 border-gray-200 flex items-center justify-center peer-checked:bg-blue-500 peer-checked:border-blue-500"><i class="fa-solid fa-check text-white text-[10px] hidden peer-checked:block"></i></div></div></label>`;
+          const html = `<label class="relative cursor-pointer group"><input type="checkbox" name="clubs" value="${name}" id="club_${i}" class="peer sr-only"><div class="flex items-center p-4 rounded-2xl border-2 border-slate-100 bg-white shadow-sm transition-all group-hover:border-sky-200 peer-checked:border-sky-500 peer-checked:bg-sky-50 peer-checked:shadow-inner"><div class="flex-1"><span class="text-sm font-bold text-slate-700 peer-checked:text-sky-700">${name}</span></div><div class="w-6 h-6 rounded-full border-2 border-slate-200 flex items-center justify-center peer-checked:bg-sky-500 peer-checked:border-sky-500 transition-all shadow-sm"><i class="fa-solid fa-check text-white text-xs hidden peer-checked:block"></i></div></div></label>`;
           container.insertAdjacentHTML('beforeend', html);
       });
       const noneCheckbox = document.getElementById('club_0');
@@ -597,8 +628,9 @@
           others.forEach(cb => {
               cb.checked = false;
               cb.disabled = e.target.checked;
-              cb.parentElement.classList.toggle('opacity-40', e.target.checked);
+              cb.parentElement.classList.toggle('opacity-30', e.target.checked);
               cb.parentElement.classList.toggle('grayscale', e.target.checked);
+              cb.parentElement.classList.toggle('pointer-events-none', e.target.checked);
           });
       });
     }
