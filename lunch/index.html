@@ -55,23 +55,20 @@
     }
     .ios-input:focus { background: white; border-color: #0EA5E9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15); outline: none; }
     
-    /* 隱藏所有原始瀏覽器按鈕，避免出現「兩個圈圈」 */
     input[type="radio"], input[type="checkbox"] { 
         display: none !important;
     }
 
-    /* 選中區塊的琥珀黃色樣式 */
     .selected-amber-block {
         border-color: #F59E0B !important;
-        background-color: #FFFBEB !important; /* Amber 50 */
+        background-color: #FFFBEB !important;
         box-shadow: 0 4px 12px -2px rgba(245, 158, 11, 0.15);
         transform: translateY(-1px);
     }
     .selected-amber-block span {
-        color: #92400E !important; /* Amber 800 */
+        color: #92400E !important;
     }
 
-    /* 單一圓圈指示器 */
     .custom-indicator {
         width: 1.25rem;
         height: 1.25rem;
@@ -100,7 +97,6 @@
         display: block;
     }
 
-    /* 方形勾選指示器 (用於社團) */
     .custom-check {
         width: 1.25rem;
         height: 1.25rem;
@@ -204,7 +200,7 @@
       </h1>
       <p class="text-slate-500 mt-2 ml-1 font-bold flex items-center justify-center sm:justify-start">
         <span class="bg-white/70 backdrop-blur px-4 py-1.5 rounded-full border border-slate-200 shadow-sm text-sm">
-            每餐退費標準 <span class="text-sky-600 font-black text-lg">$60</span> 元
+           每餐退費標準 <span class="text-sky-600 font-black text-lg">$60</span> 元
         </span>
       </p>
     </div>
@@ -305,7 +301,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div id="identifiableField">
                 <label class="block text-sm font-bold text-slate-700 mb-2 required" id="identLabel">班級座號</label>
-                <input type="text" inputmode="numeric" id="classSeat" name="classSeat" placeholder="例如：60123" class="ios-input" required maxlength="20">
+                <input type="text" id="classSeat" name="classSeat" placeholder="例如：60123" class="ios-input" required maxlength="20">
             </div>
             <div><label class="block text-sm font-bold text-slate-700 mb-2 required">姓名</label><input type="text" id="name" name="name" class="ios-input" required placeholder="姓名"></div>
           </div>
@@ -349,7 +345,7 @@
         </div>
         
         <div class="bg-slate-100/50 rounded-3xl p-5 mb-6 border border-slate-200/60 shadow-inner">
-          <div id="calendar-wrapper" class="space-y-8 select-none min-h-[250px] calendar-anim-enter"></div>
+          <div id="calendar-wrapper" class="space-y-8 select-none min-h-[250px]"></div>
         </div>
 
         <div class="bg-slate-800 rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden">
@@ -452,7 +448,8 @@
       
       const classSeatInput = document.getElementById('classSeat');
       classSeatInput.addEventListener('input', (e) => {
-          const identity = document.querySelector('input[name="identity"]:checked').value;
+          const identityInput = document.querySelector('input[name="identity"]:checked');
+          const identity = identityInput ? identityInput.value : '學生';
           if(identity === '學生') {
             e.target.value = e.target.value.replace(/[^0-9]/g, '');
           }
@@ -463,9 +460,8 @@
     });
 
     function updateBlockStyles() {
-        // 更新單選與勾選區塊的高亮
         document.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(input => {
-            const container = input.closest('.group, .club-container-box');
+            const container = input.closest('.group, .club-container-box, label');
             if (!container) return;
             if (input.checked) {
                 container.classList.add('selected-amber-block');
@@ -540,28 +536,40 @@
         const clubs = [];
         
         document.querySelectorAll('input[name="clubs"]:checked').forEach(cb => clubs.push(cb.value));
-        formData.forEach((value, key) => { if (key !== 'clubs') data[key] = value; });
         
+        formData.forEach((value, key) => { 
+            if (key !== 'clubs') data[key] = value; 
+        });
+        
+        let finalCount = 1;
+        if (data['applyType'] === 'class') {
+            finalCount = parseInt(data['studentCount']) || 1;
+        }
+        data['studentCount'] = finalCount;
+
         if (data['reason'] === '其他') {
             const otherText = document.getElementById('reasonOtherInput').value.trim();
             data['reason'] = otherText ? `其他：${otherText}` : "其他";
         }
         data['clubs'] = clubs.join(', ');
-        if (data['applyType'] === 'individual') data['studentCount'] = 1;
 
-        if (selectedDatesSet.size === 0) { showInfoModal("忘記選日期了！", "請先在日曆上點選要停餐的日期喔。"); return; }
+        if (selectedDatesSet.size === 0) { 
+            showInfoModal("忘記選日期了！", "請先在日曆上點選要停餐的日期喔。"); 
+            return; 
+        }
         
         currentSubmitData = data;
         const sortedDates = Array.from(selectedDatesSet).sort((a,b) => new Date(a) - new Date(b));
+        const totalAmountValue = sortedDates.length * finalCount * COST_PER_MEAL;
         const identTitle = data.identity === '教職員' ? "單位職稱" : "班級座號";
 
         document.getElementById('preview-content').innerHTML = `
             <div class="flex justify-between border-b border-amber-200 pb-2 mb-2"><span>申請身分：</span><span class="text-amber-700 font-black">${data.identity}</span></div>
             <div class="flex justify-between border-b border-amber-200 pb-2 mb-2"><span>${identTitle}：</span><span class="text-amber-700 font-black">${data.classSeat}</span></div>
             <div class="flex justify-between border-b border-amber-200 pb-2 mb-2"><span>姓名：</span><span class="text-amber-700 font-black">${data.name}</span></div>
-            <div class="flex justify-between border-b border-amber-200 pb-2 mb-2"><span>停餐人數：</span><span class="text-amber-700 font-black">${data.studentCount} 人</span></div>
+            <div class="flex justify-between border-b border-amber-200 pb-2 mb-2"><span>停餐人數：</span><span class="text-amber-700 font-black">${finalCount} 人</span></div>
             <div class="flex justify-between border-b border-amber-200 pb-2 mb-2"><span>停餐天數：</span><span class="text-amber-700 font-black">${sortedDates.length} 天</span></div>
-            <div class="flex justify-between pt-2"><span>預計退費：</span><span class="text-rose-600 font-black text-xl">$${(sortedDates.length * data.studentCount * COST_PER_MEAL).toLocaleString()}</span></div>
+            <div class="flex justify-between pt-2"><span>預計退費：</span><span class="text-rose-600 font-black text-xl">$${totalAmountValue.toLocaleString()}</span></div>
         `;
         document.getElementById('confirmModal').classList.remove('hidden');
     }
@@ -573,6 +581,15 @@
         closeConfirmModal();
         document.getElementById('loadingOverlay').classList.remove('hidden');
         saveUserInfo(currentSubmitData);
+        
+        // 核心修正：將計算後的金額與詳細資訊加入資料包
+        const sortedDates = Array.from(selectedDatesSet).sort((a,b) => new Date(a) - new Date(b));
+        const studentCount = parseInt(currentSubmitData.studentCount) || 1;
+        
+        currentSubmitData.dateInput = sortedDates.join(', ');
+        currentSubmitData.totalDays = sortedDates.length;
+        currentSubmitData.totalAmount = sortedDates.length * studentCount * COST_PER_MEAL;
+
         fetch(GAS_API_URL, {
             method: "POST",
             body: JSON.stringify(currentSubmitData),
@@ -617,8 +634,13 @@
     function toggleStudentCount(isClass) {
       const container = document.getElementById('studentCountContainer');
       const input = document.getElementById('studentCount');
-      if (isClass) { container.classList.remove('hidden'); input.focus(); } 
-      else { container.classList.add('hidden'); input.value = "1"; }
+      if (isClass) { 
+          container.classList.remove('hidden'); 
+          input.focus(); 
+      } else { 
+          container.classList.add('hidden'); 
+          input.value = "1"; 
+      }
       updateSummary();
     }
 
@@ -734,12 +756,12 @@
           const isMakeup = MAKEUP_DAYS.includes(dateStr);
           const isWeekend = (dateObj.getDay() === 0 || dateObj.getDay() === 6);
           if (dateObj.toDateString() === today.toDateString()) btn.classList.add('today');
-          if (isMakeup) btn.classList.add('makeup-day');
           let isDisabled = false;
           let reason = "";
           if (isHoliday) { isDisabled = true; reason = "學校停餐日。"; btn.classList.add('holiday-locked'); } 
           else if (dateObj < earliestValidDateObj) { isDisabled = true; reason = `已過截止時間。`; btn.classList.add('is-disabled'); } 
           else if (isWeekend && !isMakeup) { isDisabled = true; reason = "週末不供餐。"; btn.classList.add('is-disabled'); }
+          
           if (isDisabled) {
               btn.onclick = () => showInfoModal(`無法選取`, reason);
           } else {
@@ -766,19 +788,25 @@
       const countInput = document.getElementById('studentCount');
       let count = parseInt(countInput.value) || 0;
       if (count <= 0) countInput.classList.add('error'); else countInput.classList.remove('error');
+      
       const sortedDates = Array.from(selectedDatesSet).sort((a,b) => new Date(a) - new Date(b));
       const display = document.getElementById('selected-dates-display');
       const totalAmt = sortedDates.length * count * COST_PER_MEAL;
+      
       document.getElementById('displayStudentCount').innerText = count;
       document.getElementById('displayTotalDays').innerText = sortedDates.length;
       document.getElementById('totalAmount').innerText = totalAmt.toLocaleString();
       document.getElementById('dateInput').value = sortedDates.join(', ');
+      
       document.getElementById('sticky-days').innerText = sortedDates.length;
       document.getElementById('sticky-amount').innerText = totalAmt.toLocaleString();
+      
       const sticky = document.getElementById('sticky-summary');
       if (sortedDates.length > 0) sticky.classList.add('visible');
       else sticky.classList.remove('visible');
+      
       document.getElementById('step3-dot').classList.toggle('active', sortedDates.length > 0);
+      
       if (sortedDates.length === 0) {
           display.innerHTML = '<span class="italic opacity-50 font-medium">尚未選擇日期...</span>';
           document.getElementById('submitBtn').disabled = true;
